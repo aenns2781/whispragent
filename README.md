@@ -88,6 +88,41 @@ npm run dev
    - In Terminal, press `Ctrl+C` to stop it
    - Run `npm run dev` again to see your changes
 
+### Step 6: Building Your Own Standalone App (Optional)
+
+**Want to create a real .app file you can drag to Applications?**
+
+1. **In Terminal, in the `whispragent` folder, run:**
+   ```bash
+   npm run pack
+   ```
+
+2. **Wait 2-3 minutes** for the build to complete.
+
+3. **Find your app:**
+   - **Mac (Apple Silicon)**: `dist/mac-arm64/OpenWhispr.app`
+   - **Mac (Intel)**: `dist/mac/OpenWhispr.app`
+   - **Windows**: `dist/win-unpacked/OpenWhispr.exe`
+
+4. **Install it:**
+   - **Mac**: Drag `OpenWhispr.app` to your Applications folder
+   - **Windows**: Copy the whole `win-unpacked` folder wherever you want
+
+5. **First time opening on Mac:**
+   - Right-click on OpenWhispr.app → Click "Open"
+   - Or run in Terminal: `sudo xattr -rd com.apple.quarantine /Applications/OpenWhispr.app`
+
+6. **Enable auto-start on login:**
+   - Open OpenWhispr
+   - Click the settings icon
+   - Turn on "Launch on Startup"
+
+**Now you have a real app that:**
+- Works like any other Mac/Windows app
+- Can auto-start when you login
+- Runs in the background with a tray icon
+- You customized yourself!
+
 ### Need Help?
 
 - **The app won't start**: Make sure you ran `npm install` first
