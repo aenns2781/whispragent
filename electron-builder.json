@@ -58,7 +58,6 @@
     "hardenedRuntime": true,
     "entitlements": "resources/entitlements.mac.plist",
     "entitlementsInherit": "resources/entitlements.mac.plist",
-    "entitlementsInherit": "resources/entitlements.mac.plist",
     "extendInfo": {
       "LSUIElement": false,
       "NSMicrophoneUsageDescription": "OpenWhispr needs microphone access for speech-to-text transcription.",
