@@ -72,6 +72,18 @@ export async function initializeTranscriptions(limit = DEFAULT_LIMIT) {
   return items;
 }
 
+export async function updateDisplayLimit(newLimit: number) {
+  currentLimit = newLimit;
+  const items = await window.electronAPI.getTranscriptions(newLimit);
+  transcriptions = items;
+  emit();
+  return items;
+}
+
+export async function getTranscriptionCount(): Promise<number> {
+  return await window.electronAPI.getTranscriptionCount();
+}
+
 export function addTranscription(item: TranscriptionItem) {
   if (!item) return;
   const withoutDuplicate = transcriptions.filter(

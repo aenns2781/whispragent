@@ -9,8 +9,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Features
 
 - 🎤 **Global Hotkey**: Customizable hotkey to start/stop dictation from anywhere (default: backtick `)
+- 📸 **Screenshot Capture with Vision AI**: Press Cmd/Ctrl + hotkey to capture screen and process with GPT-5.1 vision
 - 🤖 **Multi-Provider AI Processing**: Choose between OpenAI, Anthropic Claude, Google Gemini, or local models
-- 🎯 **Agent Naming**: Personalize your AI assistant with a custom name for natural interactions
+- 🎯 **Agent Naming**: Personalize your AI assistant with a custom name - triggered by voice, highlighted text, or screenshots
 - 🧠 **Latest AI Models** (September 2025):
   - **OpenAI**: GPT-5 Series, GPT-4.1 Series, o-series reasoning models (o3/o4-mini)
   - **Anthropic**: Claude Opus 4.1, Claude Sonnet 4, Claude 3.5 Sonnet/Haiku
@@ -19,8 +20,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🔒 **Privacy-First**: Local processing keeps your voice data completely private
 - 🎨 **Modern UI**: Built with React 19, TypeScript, and Tailwind CSS v4
 - 🚀 **Fast**: Optimized with Vite and modern tooling
+- 🚀 **Launch on Startup**: Automatically start when your computer boots (configurable)
 - 📱 **Control Panel**: Manage settings, view history, and configure API keys
 - 🗄️ **Transcription History**: SQLite database stores all your transcriptions locally
+- 📤 **Export Transcriptions**: Export your history to CSV, JSON, or TXT formats
 - 🔧 **Model Management**: Download and manage local Whisper models (tiny, base, small, medium, large, turbo)
 - 🧹 **Model Cleanup**: One-click removal of cached Whisper models with uninstall hooks to keep disks tidy
 - 🌐 **Cross-Platform**: Works on macOS, Windows, and Linux
@@ -205,6 +208,7 @@ npm run build:linux  # Linux
 2. **Grant Permissions**:
    - **Microphone Access**: Required for voice recording
    - **Accessibility Permissions**: Required for automatic text pasting (macOS)
+   - **Screen Recording**: Required for screenshot capture feature (macOS)
 
 3. **Name Your Agent**: Give your AI assistant a personal name (e.g., "Assistant", "Jarvis", "Alex")
    - Makes interactions feel more natural and conversational
@@ -226,9 +230,12 @@ npm run build:linux  # Linux
 - **Access**: Right-click the tray icon (macOS) or through the system menu
 - **Configure**: Choose between local and cloud processing
 - **History**: View, copy, and delete past transcriptions
+  - Export to CSV, JSON, or TXT formats
+  - Configurable display limits (10, 25, 50, 100, 200, 500, 1000)
+  - Shows total count vs displayed count
 - **Models**: Download and manage local Whisper models
 - **Storage Cleanup**: Remove downloaded Whisper models from cache to reclaim space
-- **Settings**: Configure API keys, customize hotkeys, and manage permissions
+- **Settings**: Configure API keys, customize hotkeys, launch on startup, and manage permissions
 
 ### Uninstall & Cache Cleanup
 - **In-App**: Use *Settings → Speech to Text Processing → Local Model Storage → Remove Downloaded Models* to clear `~/.cache/openwhispr/models` (or `%USERPROFILE%\.cache\openwhispr\models` on Windows).
@@ -236,17 +243,42 @@ npm run build:linux  # Linux
 - **Linux Packages**: `deb`/`rpm` post-uninstall scripts also remove cached models.
 - **macOS**: If you uninstall manually, remove `~/Library/Caches` or `~/.cache/openwhispr/models` if desired.
 
-### Agent Naming & AI Processing
-Once you've named your agent during setup, you can interact with it using multiple AI providers:
+### Screenshot Capture with Vision AI
+Capture your screen and let AI analyze it along with your voice command:
 
-**🎯 Agent Commands** (for AI assistance):
+1. **Press Cmd/Ctrl + hotkey** - Captures a screenshot of your active window
+2. **Give voice command** - Describe what you want AI to do with the screenshot
+3. **AI processes both** - GPT-5.1 vision model analyzes screenshot + voice command together
+4. **Get results** - AI response is pasted at cursor location
+
+**Example Use Cases**:
+- "Cmd+hotkey: Explain what this error message means"
+- "Cmd+hotkey: Write code to implement this UI design"
+- "Cmd+hotkey: Summarize the key points from this document"
+- "Cmd+hotkey: Help me debug this code"
+
+**Requirements**:
+- Screen Recording permission on macOS (granted during first-time setup)
+- Agent mode automatically activates for all screenshot captures
+- Uses GPT-5.1 or configured vision-capable model
+
+### Agent Naming & AI Processing
+Once you've named your agent during setup, you can trigger agent mode in THREE ways:
+
+**🎯 Agent Mode Triggers**:
+1. **Say agent name**: "Hey [AgentName], make this more professional"
+2. **Highlight text first**: Select text before pressing hotkey - agent processes it
+3. **Take screenshot**: Press Cmd/Ctrl + hotkey - agent analyzes image + voice
+
+**🎯 Agent Command Examples**:
 - "Hey [AgentName], make this more professional"
 - "Hey [AgentName], format this as a list"
 - "Hey [AgentName], write a thank you email"
-- "Hey [AgentName], convert this to bullet points"
+- Highlight text → hotkey → "Convert this to bullet points"
+- Cmd+hotkey → "Explain this error message"
 
 **🤖 AI Provider Options**:
-- **OpenAI**: 
+- **OpenAI**:
   - GPT-5 Series (Nano/Mini/Full) - Latest generation with deep reasoning
   - GPT-4.1 Series - Enhanced coding with 1M token context
   - o3/o4 Series - Advanced reasoning models with longer thinking
@@ -259,7 +291,7 @@ Once you've named your agent during setup, you can interact with it using multip
 - "Meeting notes: John mentioned the quarterly report"
 - "Dear Sarah, thank you for your help"
 
-The AI automatically detects when you're giving it commands versus dictating regular text, and removes agent name references from the final output.
+The AI automatically removes agent name references from the final output.
 
 ### Processing Options
 - **Local Processing**: 
@@ -470,16 +502,20 @@ OpenWhispr is designed with privacy and security in mind:
    - Go to System Settings → Privacy & Security → Accessibility
    - Add OpenWhispr and enable the checkbox
    - Use "Fix Permission Issues" in Control Panel if needed
-3. **API key errors** (cloud processing only): Ensure your OpenAI API key is valid and has credits
+3. **Screen Recording permissions (macOS)**: Required for screenshot capture feature
+   - Go to System Settings → Privacy & Security → Screen Recording
+   - Add OpenWhispr and enable the checkbox
+   - Restart app after granting permission
+4. **API key errors** (cloud processing only): Ensure your OpenAI API key is valid and has credits
    - Set key through Control Panel or .env file
    - Check logs for "OpenAI API Key present: Yes/No"
-4. **Local Whisper installation**: 
+5. **Local Whisper installation**:
    - Ensure Python 3.7+ is installed
    - Use Control Panel to install Whisper automatically
    - Check available disk space for models
-5. **Global hotkey conflicts**: Change the hotkey in the Control Panel - any key can be used
-6. **Text not pasting**: Check accessibility permissions and try manual paste with Cmd+V
-7. **Panel position**: If the panel appears off-screen, restart the app to reset position
+6. **Global hotkey conflicts**: Change the hotkey in the Control Panel - any key can be used
+7. **Text not pasting**: Check accessibility permissions and try manual paste with Cmd+V
+8. **Panel position**: If the panel appears off-screen, restart the app to reset position
 
 ### Getting Help
 

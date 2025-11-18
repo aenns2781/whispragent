@@ -1,4 +1,4 @@
-const { ipcMain, app, shell, BrowserWindow } = require("electron");
+const { ipcMain, app, shell, BrowserWindow, desktopCapturer } = require("electron");
 const AppUtils = require("../utils");
 const debugLogger = require("./debugLogger");
 
@@ -119,6 +119,14 @@ class IPCHandlers {
       return result;
     });
 
+    ipcMain.handle("db-get-transcription-count", async (event) => {
+      return this.databaseManager.getTranscriptionCount();
+    });
+
+    ipcMain.handle("db-get-all-transcriptions", async (event) => {
+      return this.databaseManager.getAllTranscriptions();
+    });
+
     // Clipboard handlers
     ipcMain.handle("paste-text", async (event, text) => {
       return this.clipboardManager.pasteText(text);
@@ -130,6 +138,10 @@ class IPCHandlers {
 
     ipcMain.handle("write-clipboard", async (event, text) => {
       return this.clipboardManager.writeClipboard(text);
+    });
+
+    ipcMain.handle("simulate-copy", async (event) => {
+      return this.clipboardManager.simulateCopy();
     });
 
     // Whisper handlers
@@ -285,6 +297,10 @@ class IPCHandlers {
 
     ipcMain.handle("update-hotkey", async (event, hotkey) => {
       return await this.windowManager.updateHotkey(hotkey);
+    });
+
+    ipcMain.handle("update-screenshot-modifier", async (event, modifier) => {
+      return await this.windowManager.updateScreenshotModifier(modifier);
     });
 
     ipcMain.handle("start-window-drag", async (event) => {
@@ -518,6 +534,136 @@ class IPCHandlers {
     ipcMain.handle("log-reasoning", async (event, stage, details) => {
       debugLogger.logReasoning(stage, details);
       return { success: true };
+    });
+
+    // Screenshot capture handler - uses native OS screenshot selection tool
+    ipcMain.handle("capture-screenshot", async () => {
+      try {
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+        const { clipboard, nativeImage } = require('electron');
+
+        if (process.platform === 'darwin') {
+          // macOS: Use native screencapture with interactive selection
+          // -i = interactive mode (drag to select region)
+          // -c = copy to clipboard
+          console.log("Triggering macOS screenshot selection tool...");
+
+          try {
+            await execAsync('screencapture -i -c');
+
+            // Wait a bit for the clipboard to be populated
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Read the screenshot from clipboard
+            const image = clipboard.readImage();
+
+            if (image.isEmpty()) {
+              console.log("No screenshot captured (user may have cancelled)");
+              return { success: false, error: "Screenshot cancelled or no selection made" };
+            }
+
+            const screenshot = image.toDataURL();
+            console.log("Screenshot captured successfully from clipboard");
+            return { success: true, screenshot };
+          } catch (error) {
+            // Check if it's a permission error
+            if (error.message?.includes('permission') ||
+                error.message?.includes('denied') ||
+                error.message?.includes('not authorized')) {
+              return {
+                success: false,
+                error: "Screen recording permission denied. Please grant permission in System Settings > Privacy & Security > Screen Recording."
+              };
+            }
+            throw error;
+          }
+        } else if (process.platform === 'win32') {
+          // Windows: Trigger the native Snipping Tool
+          console.log("Triggering Windows screenshot selection tool...");
+
+          try {
+            // Clear clipboard first
+            clipboard.clear();
+
+            // Trigger Windows Snipping Tool (Win + Shift + S)
+            const { GlobalKeyboardListener } = require('node-global-key-listener');
+
+            // Use PowerShell to simulate Win+Shift+S
+            await execAsync('powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\'^+{PRTSC}\')"');
+
+            // Wait for user to make selection and for it to be copied to clipboard
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Read from clipboard
+            const image = clipboard.readImage();
+
+            if (image.isEmpty()) {
+              console.log("No screenshot captured (user may have cancelled)");
+              return { success: false, error: "Screenshot cancelled or no selection made" };
+            }
+
+            const screenshot = image.toDataURL();
+            console.log("Screenshot captured successfully from clipboard");
+            return { success: true, screenshot };
+          } catch (error) {
+            console.error("Windows screenshot error:", error);
+            throw error;
+          }
+        } else {
+          // Linux: Use native tools if available
+          console.log("Triggering Linux screenshot selection tool...");
+
+          try {
+            // Try gnome-screenshot first, then scrot
+            await execAsync('gnome-screenshot -a -c || scrot -s -');
+
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            const image = clipboard.readImage();
+
+            if (image.isEmpty()) {
+              return { success: false, error: "Screenshot cancelled or no selection made" };
+            }
+
+            const screenshot = image.toDataURL();
+            return { success: true, screenshot };
+          } catch (error) {
+            return {
+              success: false,
+              error: "Screenshot tool not available. Please install gnome-screenshot or scrot."
+            };
+          }
+        }
+      } catch (error) {
+        console.error("Screenshot capture error:", error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // Launch on startup handlers
+    ipcMain.handle("set-launch-on-startup", async (event, enabled) => {
+      try {
+        app.setLoginItemSettings({
+          openAtLogin: enabled,
+          openAsHidden: false,
+        });
+        return { success: true };
+      } catch (error) {
+        console.error("Failed to set launch on startup:", error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("get-launch-on-startup", async () => {
+      try {
+        const settings = app.getLoginItemSettings();
+        return { enabled: settings.openAtLogin };
+      } catch (error) {
+        console.error("Failed to get launch on startup:", error);
+        return { enabled: false, error: error.message };
+      }
     });
   }
 

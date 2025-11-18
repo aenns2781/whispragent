@@ -46,8 +46,9 @@ export default function SupportDropdown({ className }: SupportDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className={className}>
+        <Button variant="outline" size="sm" className={className}>
           <HelpCircle size={16} />
+          <span className="ml-2">Help</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

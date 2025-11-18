@@ -1,7 +1,15 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { RefreshCw, Download, Keyboard, Mic, Shield } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Toggle } from "./ui/toggle";
+import { Keyboard, Mic, Shield, Camera } from "lucide-react";
 import WhisperModelPicker from "./WhisperModelPicker";
 import ProcessingModeSelector from "./ui/ProcessingModeSelector";
 import ApiKeyInput from "./ui/ApiKeyInput";
@@ -18,7 +26,6 @@ import LanguageSelector from "./ui/LanguageSelector";
 import PromptStudio from "./ui/PromptStudio";
 import { API_ENDPOINTS } from "../config/constants";
 import AIModelSelectorEnhanced from "./AIModelSelectorEnhanced";
-import type { UpdateInfoResult } from "../types/electron";
 const InteractiveKeyboard = React.lazy(() => import("./ui/Keyboard"));
 
 export type SettingsSectionType =
@@ -81,91 +88,26 @@ export default function SettingsPage({
     updateApiKeys,
   } = useSettings();
 
-  // Update state
+  // Current version state
   const [currentVersion, setCurrentVersion] = useState<string>("");
-  const [updateStatus, setUpdateStatus] = useState<{
-    updateAvailable: boolean;
-    updateDownloaded: boolean;
-    isDevelopment: boolean;
-  }>({ updateAvailable: false, updateDownloaded: false, isDevelopment: false });
-  const [checkingForUpdates, setCheckingForUpdates] = useState(false);
-  const [downloadingUpdate, setDownloadingUpdate] = useState(false);
-  const [installInitiated, setInstallInitiated] = useState(false);
-  const [updateDownloadProgress, setUpdateDownloadProgress] = useState(0);
-  const [updateInfo, setUpdateInfo] = useState<{
-    version?: string;
-    releaseDate?: string;
-    releaseNotes?: string;
-  }>({});
   const [isRemovingModels, setIsRemovingModels] = useState(false);
   const cachePathHint =
     typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent)
       ? "%USERPROFILE%\\.cache\\openwhispr\\models"
       : "~/.cache/openwhispr/models";
 
-  const isUpdateAvailable =
-    !updateStatus.isDevelopment &&
-    (updateStatus.updateAvailable || updateStatus.updateDownloaded);
+  // Screenshot modifier key state
+  const [screenshotModifier, setScreenshotModifier] = useState(() => {
+    return localStorage.getItem("screenshotModifier") || "CmdOrCtrl";
+  });
+
+  // Launch on startup state
+  const [launchOnStartup, setLaunchOnStartup] = useState(false);
 
   const whisperHook = useWhisper(showAlertDialog);
   const permissionsHook = usePermissions(showAlertDialog);
   const { pasteFromClipboardWithFallback } = useClipboard(showAlertDialog);
   const { agentName, setAgentName } = useAgentName();
-  const installTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const subscribeToUpdates = useCallback(() => {
-    if (!window.electronAPI) return;
-
-    window.electronAPI.onUpdateAvailable?.((_event, info) => {
-      setUpdateStatus((prev) => ({ ...prev, updateAvailable: true, updateDownloaded: false }));
-      if (info) {
-        setUpdateInfo({
-          version: info.version || "unknown",
-          releaseDate: info.releaseDate,
-          releaseNotes: info.releaseNotes ?? undefined,
-        });
-      }
-    });
-
-    window.electronAPI.onUpdateNotAvailable?.(() => {
-      setUpdateStatus((prev) => ({ ...prev, updateAvailable: false, updateDownloaded: false }));
-      setUpdateInfo({});
-      setDownloadingUpdate(false);
-      setInstallInitiated(false);
-      setUpdateDownloadProgress(0);
-    });
-
-    window.electronAPI.onUpdateDownloaded?.((_event, info) => {
-      setUpdateStatus((prev) => ({ ...prev, updateDownloaded: true }));
-      setDownloadingUpdate(false);
-      setInstallInitiated(false);
-      if (info) {
-        setUpdateInfo({
-          version: info.version || "unknown",
-          releaseDate: info.releaseDate,
-          releaseNotes: info.releaseNotes ?? undefined,
-        });
-      }
-    });
-
-    window.electronAPI.onUpdateDownloadProgress?.((_event, progressObj) => {
-      setUpdateDownloadProgress(progressObj.percent || 0);
-    });
-
-    window.electronAPI.onUpdateError?.((_event, error) => {
-      setCheckingForUpdates(false);
-      setDownloadingUpdate(false);
-      setInstallInitiated(false);
-      console.error("Update error:", error);
-      showAlertDialog({
-        title: "Update Error",
-        description:
-          typeof error?.message === "string"
-            ? error.message
-            : "The updater encountered a problem. Please try again or download the latest release manually.",
-      });
-    });
-  }, [showAlertDialog]);
 
   // Local state for provider selection (overrides computed value)
   const [localReasoningProvider, setLocalReasoningProvider] = useState(() => {
@@ -176,80 +118,30 @@ export default function SettingsPage({
   useEffect(() => {
     let mounted = true;
 
-    // Defer version and update checks to improve initial render
+    // Defer version check and whisper installation to improve initial render
     const timer = setTimeout(async () => {
       if (!mounted) return;
 
       const versionResult = await window.electronAPI?.getAppVersion();
       if (versionResult && mounted) setCurrentVersion(versionResult.version);
 
-      const statusResult = await window.electronAPI?.getUpdateStatus();
-      if (statusResult && mounted) {
-        setUpdateStatus((prev) => ({
-          ...prev,
-          ...statusResult,
-          updateAvailable: prev.updateAvailable || statusResult.updateAvailable,
-          updateDownloaded: prev.updateDownloaded || statusResult.updateDownloaded,
-        }));
-        if ((statusResult.updateAvailable || statusResult.updateDownloaded) && window.electronAPI?.getUpdateInfo) {
-          const info = await window.electronAPI.getUpdateInfo();
-          if (info) {
-            setUpdateInfo({
-              version: info.version || "unknown",
-              releaseDate: info.releaseDate,
-              releaseNotes: info.releaseNotes ?? undefined,
-            });
-          }
-        }
-      }
-
-      subscribeToUpdates();
-
       // Check whisper after initial render
       if (mounted) {
         whisperHook.checkWhisperInstallation();
+      }
+
+      // Load launch on startup setting
+      const launchResult = await window.electronAPI?.getLaunchOnStartup();
+      if (launchResult && mounted) {
+        setLaunchOnStartup(launchResult.enabled);
       }
     }, 100);
 
     return () => {
       mounted = false;
       clearTimeout(timer);
-      // Always clean up update listeners if they exist
-      if (window.electronAPI) {
-        window.electronAPI.removeAllListeners?.("update-available");
-        window.electronAPI.removeAllListeners?.("update-not-available");
-        window.electronAPI.removeAllListeners?.("update-downloaded");
-        window.electronAPI.removeAllListeners?.("update-error");
-        window.electronAPI.removeAllListeners?.("update-download-progress");
-      }
     };
-  }, [whisperHook, subscribeToUpdates]);
-
-  useEffect(() => {
-    if (installInitiated) {
-      if (installTimeoutRef.current) {
-        clearTimeout(installTimeoutRef.current);
-      }
-      installTimeoutRef.current = setTimeout(() => {
-        setInstallInitiated(false);
-        showAlertDialog({
-          title: "Still Running",
-          description:
-            "OpenWhispr didn't restart automatically. Please quit the app manually to finish installing the update.",
-        });
-      }, 10000);
-    } else if (installTimeoutRef.current) {
-      clearTimeout(installTimeoutRef.current);
-      installTimeoutRef.current = null;
-    }
-
-    return () => {
-      if (installTimeoutRef.current) {
-        clearTimeout(installTimeoutRef.current);
-        installTimeoutRef.current = null;
-      }
-    };
-  }, [installInitiated, showAlertDialog]);
+  }, [whisperHook]);
 
   const saveReasoningSettings = useCallback(async () => {
     const normalizedReasoningBase = (cloudReasoningBaseUrl || '').trim();
@@ -464,226 +356,40 @@ export default function SettingsPage({
     });
   }, [isRemovingModels, cachePathHint, showConfirmDialog, showAlertDialog]);
 
+  const handleLaunchOnStartupToggle = useCallback(async (enabled: boolean) => {
+    try {
+      const result = await window.electronAPI?.setLaunchOnStartup(enabled);
+      if (result?.success) {
+        setLaunchOnStartup(enabled);
+        localStorage.setItem("launchOnStartup", String(enabled));
+        showAlertDialog({
+          title: "Launch Setting Updated",
+          description: enabled
+            ? "OpenWhispr will now start automatically when you log in."
+            : "OpenWhispr will no longer start automatically at login.",
+        });
+      } else {
+        showAlertDialog({
+          title: "Failed to Update Setting",
+          description: result?.error || "Could not update launch on startup setting.",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to toggle launch on startup:", error);
+      showAlertDialog({
+        title: "Error",
+        description: `Failed to update setting: ${error.message}`,
+      });
+    }
+  }, [showAlertDialog]);
+
   const renderSectionContent = () => {
     switch (activeSection) {
       case "general":
         return (
           <div className="space-y-8">
-            {/* App Updates Section */}
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  App Updates
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Keep OpenWhispr up to date with the latest features and
-                  improvements.
-                </p>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium text-neutral-800">
-                    Current Version
-                  </p>
-                  <p className="text-xs text-neutral-600">
-                    {currentVersion || "Loading..."}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {updateStatus.isDevelopment ? (
-                    <span className="text-xs text-amber-600 bg-amber-100 px-2 py-1 rounded-full">
-                      Development Mode
-                    </span>
-                  ) : updateStatus.updateAvailable ? (
-                    <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                      Update Available
-                    </span>
-                  ) : (
-                    <span className="text-xs text-neutral-600 bg-neutral-100 px-2 py-1 rounded-full">
-                      Up to Date
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-3">
-                <Button
-                  onClick={async () => {
-                    setCheckingForUpdates(true);
-                    try {
-                      const result =
-                        await window.electronAPI?.checkForUpdates();
-                      if (result?.updateAvailable) {
-                        setUpdateInfo({
-                          version: result.version || 'unknown',
-                          releaseDate: result.releaseDate,
-                          releaseNotes: result.releaseNotes,
-                        });
-                        setUpdateStatus((prev) => ({
-                          ...prev,
-                          updateAvailable: true,
-                          updateDownloaded: false,
-                        }));
-                        showAlertDialog({
-                          title: "Update Available",
-                          description: `Update available: v${result.version || 'new version'}`,
-                        });
-                      } else {
-                        showAlertDialog({
-                          title: "No Updates",
-                          description:
-                            result?.message || "No updates available",
-                        });
-                      }
-                    } catch (error: any) {
-                      showAlertDialog({
-                        title: "Update Check Failed",
-                        description: `Error checking for updates: ${error.message}`,
-                      });
-                    } finally {
-                      setCheckingForUpdates(false);
-                    }
-                  }}
-                  disabled={checkingForUpdates || updateStatus.isDevelopment}
-                  className="w-full"
-                >
-                  {checkingForUpdates ? (
-                    <>
-                      <RefreshCw size={16} className="animate-spin mr-2" />
-                      Checking for Updates...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw size={16} className="mr-2" />
-                      Check for Updates
-                    </>
-                  )}
-                </Button>
-
-                {isUpdateAvailable && !updateStatus.updateDownloaded && (
-                  <div className="space-y-2">
-                    <Button
-                      onClick={async () => {
-                        setDownloadingUpdate(true);
-                        setUpdateDownloadProgress(0);
-                        try {
-                          await window.electronAPI?.downloadUpdate();
-                        } catch (error: any) {
-                          setDownloadingUpdate(false);
-                          showAlertDialog({
-                            title: "Download Failed",
-                            description: `Failed to download update: ${error.message}`,
-                          });
-                        }
-                      }}
-                      disabled={downloadingUpdate}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                    >
-                      {downloadingUpdate ? (
-                        <>
-                          <Download size={16} className="animate-pulse mr-2" />
-                          Downloading... {Math.round(updateDownloadProgress)}%
-                        </>
-                      ) : (
-                        <>
-                          <Download size={16} className="mr-2" />
-                          Download Update{updateInfo.version ? ` v${updateInfo.version}` : ''}
-                        </>
-                      )}
-                    </Button>
-
-                    {downloadingUpdate && (
-                      <div className="space-y-1">
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200">
-                          <div
-                            className="h-full bg-green-600 transition-all duration-200"
-                            style={{ width: `${Math.min(100, Math.max(0, updateDownloadProgress))}%` }}
-                          />
-                        </div>
-                        <p className="text-xs text-neutral-600 text-right">
-                          {Math.round(updateDownloadProgress)}% downloaded
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {updateStatus.updateDownloaded && (
-                  <Button
-                    onClick={() => {
-                      showConfirmDialog({
-                        title: "Install Update",
-                        description: `Ready to install update${updateInfo.version ? ` v${updateInfo.version}` : ''}. The app will restart to complete installation.`,
-                        confirmText: "Install & Restart",
-                        onConfirm: async () => {
-                          try {
-                            setInstallInitiated(true);
-                            const result = await window.electronAPI?.installUpdate?.();
-                            if (!result?.success) {
-                              setInstallInitiated(false);
-                              showAlertDialog({
-                                title: "Install Failed",
-                                description:
-                                  result?.message ||
-                                  "Failed to start the installer. Please try again.",
-                              });
-                              return;
-                            }
-
-                            showAlertDialog({
-                              title: "Installing Update",
-                              description:
-                                "OpenWhispr will restart automatically to finish installing the newest version.",
-                            });
-                          } catch (error: any) {
-                            setInstallInitiated(false);
-                            showAlertDialog({
-                              title: "Install Failed",
-                              description: `Failed to install update: ${error.message}`,
-                            });
-                          }
-                        },
-                      });
-                    }}
-                    disabled={installInitiated}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    {installInitiated ? (
-                      <>
-                        <RefreshCw size={16} className="animate-spin mr-2" />
-                        Restarting to Finish Update...
-                      </>
-                    ) : (
-                      <>
-                        <span className="mr-2">🚀</span>
-                        Quit & Install Update
-                      </>
-                    )}
-                  </Button>
-                )}
-
-                {updateInfo.version && (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h4 className="font-medium text-blue-900 mb-2">
-                      Update v{updateInfo.version}
-                    </h4>
-                    {updateInfo.releaseDate && (
-                      <p className="text-sm text-blue-700 mb-2">
-                        Released: {new Date(updateInfo.releaseDate).toLocaleDateString()}
-                      </p>
-                    )}
-                    {updateInfo.releaseNotes && (
-                      <div className="text-sm text-blue-800">
-                        <p className="font-medium mb-1">What's New:</p>
-                        <div className="whitespace-pre-wrap">{updateInfo.releaseNotes}</div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Hotkey Section */}
-            <div className="border-t pt-8">
+            <div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Dictation Hotkey
@@ -731,6 +437,55 @@ export default function SettingsPage({
                 >
                   Save Hotkey
                 </Button>
+
+                {/* Screenshot Modifier Key */}
+                <div className="mt-6 space-y-4">
+                  <h4 className="font-medium text-gray-900">Screenshot Mode</h4>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p className="text-sm text-blue-800 mb-3">
+                      Hold this modifier key while pressing your hotkey to capture a screenshot with your voice command.
+                    </p>
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium text-blue-900">
+                        Screenshot Modifier Key
+                      </label>
+                      <Select
+                        value={screenshotModifier}
+                        onValueChange={(value) => {
+                          setScreenshotModifier(value);
+                          localStorage.setItem("screenshotModifier", value);
+                          // Update the hotkey manager with new modifier
+                          window.electronAPI?.updateScreenshotModifier?.(value);
+                        }}
+                      >
+                        <SelectTrigger className="w-full bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CmdOrCtrl">
+                            {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Command (⌘)' : 'Control (Ctrl)'}
+                          </SelectItem>
+                          <SelectItem value="Alt">Alt / Option (⌥)</SelectItem>
+                          <SelectItem value="Shift">Shift (⇧)</SelectItem>
+                          <SelectItem value="CmdOrCtrl+Shift">
+                            {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Command + Shift' : 'Ctrl + Shift'}
+                          </SelectItem>
+                          <SelectItem value="CmdOrCtrl+Alt">
+                            {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Command + Option' : 'Ctrl + Alt'}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-blue-700 mt-2">
+                        Current shortcut: <kbd className="bg-white px-2 py-1 rounded text-xs font-mono border border-blue-200">
+                          {screenshotModifier === 'CmdOrCtrl'
+                            ? (typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl')
+                            : screenshotModifier.replace('CmdOrCtrl', typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl')}
+                          +{formatHotkeyLabel(dictationKey)}
+                        </kbd>
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -763,6 +518,22 @@ export default function SettingsPage({
                   Test Accessibility Permission
                 </Button>
                 <Button
+                  onClick={async () => {
+                    const hasPermission = await permissionsHook.checkScreenPermission();
+                    if (hasPermission) {
+                      showAlertDialog({
+                        title: "✅ Screen Recording Permission Granted",
+                        description: "You can now use Cmd+Backtick (Mac) or Ctrl+Backtick (Win/Linux) to capture screenshots with your voice commands.",
+                      });
+                    }
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Camera className="mr-2 h-4 w-4" />
+                  Test Screen Recording Permission
+                </Button>
+                <Button
                   onClick={resetAccessibilityPermissions}
                   variant="secondary"
                   className="w-full"
@@ -773,6 +544,34 @@ export default function SettingsPage({
               </div>
             </div>
 
+            {/* Launch on Startup Section */}
+            <div className="border-t pt-8">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Startup Behavior
+                </h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  Configure how OpenWhispr behaves when you start your computer.
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                  <div className="flex-1 mr-4">
+                    <h4 className="font-medium text-gray-900 mb-1">
+                      Launch at Startup
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Automatically start OpenWhispr when you log into your computer
+                    </p>
+                  </div>
+                  <Toggle
+                    checked={launchOnStartup}
+                    onChange={handleLaunchOnStartupToggle}
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* About Section */}
             <div className="border-t pt-8">
               <div>
@@ -780,9 +579,7 @@ export default function SettingsPage({
                   About OpenWhispr
                 </h3>
                 <p className="text-sm text-gray-600 mb-6">
-                  OpenWhispr converts your speech to text using AI. Press your
-                  hotkey, speak, and we'll type what you said wherever your
-                  cursor is.
+                  OpenWhispr transcribes speech and captures screenshots with AI-powered processing. Press your hotkey to dictate, address your agent by name for commands, highlight text to enhance it, or use {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl'}+hotkey to capture screenshots.
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-6">

@@ -192,6 +192,12 @@ class ReasoningService extends BaseReasoningService {
   ): Promise<string> {
     const provider = getModelProvider(model);
 
+    // Add console log for visibility
+    console.log("🧠 Reasoning Service:");
+    console.log("   - Model requested:", model);
+    console.log("   - Provider determined:", provider);
+    console.log("   - Agent name:", agentName || "none");
+
     debugLogger.logReasoning("PROVIDER_SELECTION", {
       model,
       provider,
@@ -210,18 +216,28 @@ class ReasoningService extends BaseReasoningService {
         model
       });
       
+      console.log(`   - Routing to ${provider} provider...`);
+
       switch (provider) {
         case "openai":
+          console.log("   - Calling OpenAI with model:", model);
           result = await this.processWithOpenAI(text, model, agentName, config);
+          console.log("   ✅ OpenAI processing complete");
           break;
         case "anthropic":
+          console.log("   - Calling Anthropic with model:", model);
           result = await this.processWithAnthropic(text, model, agentName, config);
+          console.log("   ✅ Anthropic processing complete");
           break;
         case "local":
+          console.log("   - Calling Local provider with model:", model);
           result = await this.processWithLocal(text, model, agentName, config);
+          console.log("   ✅ Local processing complete");
           break;
         case "gemini":
+          console.log("   - Calling Gemini with model:", model);
           result = await this.processWithGemini(text, model, agentName, config);
+          console.log("   ✅ Gemini processing complete");
           break;
         default:
           throw new Error(`Unsupported reasoning provider: ${provider}`);
@@ -239,6 +255,10 @@ class ReasoningService extends BaseReasoningService {
       
       return result;
     } catch (error) {
+      console.error(`   ❌ ${provider} provider failed:`, (error as Error).message);
+      console.error(`   - Model: ${model}`);
+      console.error(`   - Error details:`, error);
+
       debugLogger.logReasoning("PROVIDER_ERROR", {
         provider,
         model,
@@ -276,31 +296,78 @@ class ReasoningService extends BaseReasoningService {
     this.isProcessing = true;
 
     try {
-      const systemPrompt = "You are a dictation assistant. Clean up text by fixing grammar and punctuation. Output ONLY the cleaned text without any explanations, options, or commentary.";
+      const systemPrompt = "You are an AI assistant. Process the user's request or instruction and provide a helpful response. Output ONLY the response without any meta-commentary or explanations.";
       const userPrompt = this.getReasoningPrompt(text, agentName, config);
 
-      // Build input array for Responses API
-      const input = [
+      // Build message array - handle image if provided
+      let userContent: any = userPrompt;
+      if (config.screenshot) {
+        // For multimodal input, use array format with text and image
+        userContent = [
+          { type: "input_text", text: userPrompt },
+          {
+            type: "input_image",
+            image_url: config.screenshot, // Base64 data URL from screenshot
+            detail: "high" // Use high detail for screenshots
+          }
+        ];
+      }
+
+      const messages = [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
+        { role: "user", content: userContent }
       ];
 
-      // Build request body for Responses API
+      // Determine if we should use Responses API or Chat Completions
+      const isGPT5Model = model && (model.startsWith('gpt-5') || model === 'gpt-5.1');
+      const useResponsesAPI = isGPT5Model; // GPT-5 models MUST use Responses API
+
+      // Build request body based on the API type
       const requestBody: any = {
         model: model || "gpt-4o-mini",
-        input,
-        messages: input, // include both for Responses and Chat Completions compatibility
-        store: false, // Don't store responses for privacy
       };
 
-      // Add temperature for older models (GPT-4 and earlier)
-      const isOlderModel = model && (model.startsWith('gpt-4') || model.startsWith('gpt-3'));
-      if (isOlderModel) {
-        requestBody.temperature = config.temperature || 0.3;
+      if (useResponsesAPI) {
+        console.error("📡 USING RESPONSES API FOR GPT-5.1");
+
+        // Responses API format for GPT-5.1
+        requestBody.input = messages;
+        requestBody.store = false; // Don't store responses for privacy
+
+        // Add GPT-5.1 specific parameters
+        if (isGPT5Model) {
+          // Set reasoning effort (none for speed, low/medium/high for complex tasks)
+          requestBody.reasoning = {
+            effort: config.reasoningEffort || "low" // Default to low for Calvin agent
+          };
+
+          // Set verbosity
+          requestBody.text = {
+            verbosity: config.verbosity || "medium"
+          };
+
+          console.error("📝 GPT-5.1 Request Body:", JSON.stringify(requestBody, null, 2));
+
+          // GPT-5 models don't support temperature
+        }
+      } else {
+        // Chat Completions API format for older models
+        requestBody.messages = messages;
+
+        // Add temperature for older models (GPT-4 and earlier)
+        const isOlderModel = model && (model.startsWith('gpt-4') || model.startsWith('gpt-3'));
+        if (isOlderModel) {
+          requestBody.temperature = config.temperature || 0.3;
+        }
       }
 
       const openAiBase = this.getConfiguredOpenAIBase();
       const endpointCandidates = this.getOpenAIEndpointCandidates(openAiBase);
+
+      console.error("🔗 OpenAI Endpoints:");
+      console.error("   - Base URL:", openAiBase);
+      console.error("   - Candidates:", endpointCandidates.map(c => `${c.url} (${c.type})`));
+      console.error("   - Will try Responses API first for GPT-5.1");
 
       debugLogger.logReasoning("OPENAI_ENDPOINTS", {
         base: openAiBase,
@@ -314,14 +381,26 @@ class ReasoningService extends BaseReasoningService {
 
           for (const { url: endpoint, type } of endpointCandidates) {
             try {
-              const res = await fetch(endpoint, {
+              console.error(`🚀 CALLING OPENAI API:`);
+              console.error(`   - Endpoint: ${endpoint}`);
+              console.error(`   - Type: ${type}`);
+              console.error(`   - Model: ${requestBody.model}`);
+
+              const fetchOptions: RequestInit = {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                   Authorization: `Bearer ${apiKey}`,
                 },
                 body: JSON.stringify(requestBody),
-              });
+              };
+
+              // Add abort signal if provided
+              if (config.abortSignal) {
+                fetchOptions.signal = config.abortSignal;
+              }
+
+              const res = await fetch(endpoint, fetchOptions);
 
               if (!res.ok) {
                 const errorData = await res.json().catch(() => ({ error: res.statusText }));
@@ -329,6 +408,9 @@ class ReasoningService extends BaseReasoningService {
                   errorData.error?.message ||
                   errorData.message ||
                   `OpenAI API error: ${res.status}`;
+
+                console.error(`❌ API ERROR ${res.status}:`, errorMessage);
+                console.error(`   - Full error:`, errorData);
 
                 const isUnsupportedEndpoint =
                   (res.status === 404 || res.status === 405) &&
@@ -586,7 +668,7 @@ class ReasoningService extends BaseReasoningService {
     this.isProcessing = true;
 
     try {
-      const systemPrompt = "You are a dictation assistant. Clean up text by fixing grammar and punctuation. Output ONLY the cleaned text without any explanations, options, or commentary.";
+      const systemPrompt = "You are an AI assistant. Process the user's request or instruction and provide a helpful response. Output ONLY the response without any meta-commentary or explanations.";
       const userPrompt = this.getReasoningPrompt(text, agentName, config);
 
       const requestBody = {
@@ -619,17 +701,24 @@ class ReasoningService extends BaseReasoningService {
               hasApiKey: !!apiKey,
               requestBody: JSON.stringify(requestBody).substring(0, 200)
             });
-            
+
+            const fetchOptions: RequestInit = {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": apiKey,
+              },
+              body: JSON.stringify(requestBody),
+            };
+
+            // Add abort signal if provided
+            if (config.abortSignal) {
+              fetchOptions.signal = config.abortSignal;
+            }
+
             const res = await fetch(
               `${API_ENDPOINTS.GEMINI}/models/${model}:generateContent`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "x-goog-api-key": apiKey,
-                },
-                body: JSON.stringify(requestBody),
-              }
+              fetchOptions
             );
 
             if (!res.ok) {

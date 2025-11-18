@@ -45,7 +45,6 @@ const PROVIDER_CONFIG: Record<string, ProviderConfig> = {
 export default function PromptStudio({ className = "" }: PromptStudioProps) {
   const [activeTab, setActiveTab] = useState<"current" | "edit" | "test">("current");
   const [editedAgentPrompt, setEditedAgentPrompt] = useState(DEFAULT_PROMPTS.agent);
-  const [editedRegularPrompt, setEditedRegularPrompt] = useState(DEFAULT_PROMPTS.regular);
   const [testText, setTestText] = useState("Hey Assistant, make this more professional: This is a test message that needs some work.");
   const [testResult, setTestResult] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +59,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
       try {
         const parsed = JSON.parse(savedPrompts);
         setEditedAgentPrompt(parsed.agent || DEFAULT_PROMPTS.agent);
-        setEditedRegularPrompt(parsed.regular || DEFAULT_PROMPTS.regular);
       } catch (error) {
         console.error("Failed to load custom prompts:", error);
       }
@@ -69,24 +67,22 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
 
   const savePrompts = () => {
     const customPrompts = {
-      agent: editedAgentPrompt,
-      regular: editedRegularPrompt
+      agent: editedAgentPrompt
     };
-    
+
     localStorage.setItem("customPrompts", JSON.stringify(customPrompts));
     showAlertDialog({
-      title: "Prompts Saved!",
-      description: "Your custom prompts have been saved and will be used for all future AI processing."
+      title: "Agent Prompt Saved!",
+      description: "Your custom agent prompt has been saved and will be used when agent mode is triggered."
     });
   };
 
   const resetToDefaults = () => {
     setEditedAgentPrompt(DEFAULT_PROMPTS.agent);
-    setEditedRegularPrompt(DEFAULT_PROMPTS.regular);
     localStorage.removeItem("customPrompts");
     showAlertDialog({
       title: "Reset Complete",
-      description: "Prompts have been reset to default values."
+      description: "Agent prompt has been reset to default value."
     });
   };
 
@@ -222,28 +218,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Zap className="w-4 h-4 text-green-600" />
-            Regular Mode Prompt (for automatic cleanup)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-gray-50 border rounded-lg p-4 font-mono text-sm">
-            <pre className="whitespace-pre-wrap">{editedRegularPrompt}</pre>
-          </div>
-          <Button 
-            onClick={() => copyPrompt(editedRegularPrompt)} 
-            variant="outline" 
-            size="sm" 
-            className="mt-3"
-          >
-            <Copy className="w-4 h-4 mr-2" />
-            Copy Prompt
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 
@@ -274,20 +248,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Regular Mode Prompt</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={editedRegularPrompt}
-            onChange={(e) => setEditedRegularPrompt(e.target.value)}
-            rows={12}
-            className="font-mono text-sm"
-            placeholder="Enter your custom regular prompt..."
-          />
-        </CardContent>
-      </Card>
 
       <div className="flex gap-3">
         <Button onClick={savePrompts} className="flex-1">

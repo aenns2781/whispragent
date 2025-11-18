@@ -83,6 +83,7 @@ export default function App() {
   const audioChunksRef = useRef([]);
   const commandMenuRef = useRef(null);
   const buttonRef = useRef(null);
+  const audioManagerRef = useRef(null);
   const { toast } = useToast();
   const { hotkey } = useHotkey();
   const { isDragging, handleMouseDown, handleMouseUp } =
@@ -107,9 +108,69 @@ export default function App() {
     }
   }, [isCommandMenuOpen, isHovered, setWindowInteractivity]);
 
-  const startRecording = async () => {
+  const startRecording = async (withScreenshot = false) => {
     try {
       setError("");
+
+      // Capture screenshot if requested
+      let capturedScreenshot = null;
+      if (withScreenshot) {
+        console.error("📸 CAPTURING SCREENSHOT...");
+        try {
+          const screenshotResult = await window.electronAPI.captureScreenshot();
+          if (screenshotResult.success) {
+            capturedScreenshot = screenshotResult.screenshot;
+            console.error("✅ Screenshot captured successfully");
+            // Store for later use
+            window.capturedScreenshot = capturedScreenshot;
+          } else if (screenshotResult.error?.includes('permission')) {
+            // Permission denied - show error and don't start recording
+            console.error("❌ Screen recording permission denied");
+            alert("Screen recording permission required! Please grant permission in System Settings > Privacy & Security > Screen Recording.");
+            return; // Exit early, don't start recording
+          }
+        } catch (error) {
+          console.error("❌ Screenshot capture failed:", error);
+        }
+      }
+
+      // Capture any highlighted text BEFORE starting recording
+      console.error("🎤 RECORDING STARTED - Checking for highlighted text...");
+      let capturedContext = null;
+      let originalClipboard = null;
+
+      try {
+        // Save the current clipboard content first
+        originalClipboard = await window.electronAPI.readClipboard();
+        console.error("📋 Original clipboard content saved");
+
+        // Try to copy any highlighted text
+        console.error("📋 Attempting to copy highlighted text with Cmd+C...");
+        const copyResult = await window.electronAPI.simulateCopy();
+        console.error("📋 Copy command executed:", copyResult);
+
+        // Wait for copy to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Read the potentially new clipboard content
+        const newClipboard = await window.electronAPI.readClipboard();
+
+        // If clipboard changed, we captured highlighted text
+        if (newClipboard !== originalClipboard && newClipboard) {
+          capturedContext = newClipboard;
+          console.error("✅ HIGHLIGHTED TEXT CAPTURED! Length:", capturedContext.length);
+          console.error("✅ Preview:", capturedContext.substring(0, 100) + "...");
+        } else {
+          console.error("ℹ️ No highlighted text detected (clipboard unchanged)");
+        }
+      } catch (error) {
+        console.error("❌ Capture error:", error);
+      }
+
+      // Store captured context to pass to audio processing later
+      window.capturedHighlightedContext = capturedContext;
+      window.originalClipboardContent = originalClipboard;
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       mediaRecorderRef.current = new window.MediaRecorder(stream);
@@ -165,6 +226,7 @@ export default function App() {
   const processAudio = async (audioBlob) => {
     try {
       const audioManager = new AudioManager();
+      audioManagerRef.current = audioManager;
       audioManager.setCallbacks({
         onStateChange: ({ isRecording, isProcessing }) => {
           setIsRecording(isRecording);
@@ -178,7 +240,8 @@ export default function App() {
           });
         },
         onTranscriptionComplete: async (result) => {
-          if (result.success && result.text) {
+          // Check if result exists and has text - if text is null, processing was cancelled
+          if (result.success && result.text !== null && result.text !== undefined) {
             setTranscript(result.text);
 
             // Paste immediately - don't wait for database save
@@ -193,6 +256,8 @@ export default function App() {
 
             // Wait for paste to complete, but don't block on database save
             await pastePromise;
+          } else if (result.success && result.text === null) {
+            console.log("Processing was cancelled - not pasting");
           }
         },
       });
@@ -244,14 +309,38 @@ export default function App() {
     const handleToggle = () => {
       setIsCommandMenuOpen(false);
       if (!recording && !isRecording && !isProcessing) {
-        startRecording();
+        startRecording(false); // Normal recording without screenshot
         recording = true;
       } else if (isRecording) {
         stopRecording();
         recording = false;
+      } else if (isProcessing) {
+        // Cancel the processing when hotkey pressed during processing
+        console.log("Cancelling agent processing...");
+        if (audioManagerRef.current) {
+          audioManagerRef.current.cancelProcessing();
+        }
+        setIsProcessing(false);
       }
     };
+
+    const handleScreenshotToggle = () => {
+      console.error("📸 SCREENSHOT TOGGLE EVENT RECEIVED!");
+      setIsCommandMenuOpen(false);
+      if (!recording && !isRecording && !isProcessing) {
+        console.error("📸 Starting recording with screenshot...");
+        startRecording(true); // Recording with screenshot
+        recording = true;
+      } else if (isRecording) {
+        console.error("📸 Stopping recording...");
+        stopRecording();
+        recording = false;
+      }
+    };
+
     window.electronAPI.onToggleDictation(handleToggle);
+    window.electronAPI.onToggleScreenshot(handleScreenshotToggle);
+
     return () => {
       // No need to remove listener, as it's handled in preload
     };

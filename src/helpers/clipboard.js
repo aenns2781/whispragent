@@ -1,5 +1,7 @@
 const { clipboard } = require("electron");
-const { spawn, spawnSync } = require("child_process");
+const { spawn, spawnSync, exec: execCallback } = require("child_process");
+const { promisify } = require("util");
+const exec = promisify(execCallback);
 
 class ClipboardManager {
   constructor() {
@@ -17,6 +19,46 @@ class ClipboardManager {
           process.stderr.write(`Log error: ${error.message}\n`);
         }
       }
+    }
+  }
+
+  async simulateCopy() {
+    try {
+      // Simulate Cmd+C to copy highlighted text
+      if (process.platform === "darwin") {
+        // Use AppleScript to simulate Cmd+C
+        const script = `
+          tell application "System Events"
+            keystroke "c" using command down
+          end tell
+        `;
+        await exec(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`);
+        this.safeLog("✅ Simulated Cmd+C to copy highlighted text");
+        return true;
+      } else if (process.platform === "win32") {
+        // Windows: Use robotjs or PowerShell
+        try {
+          await exec('powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\'^c\')"');
+          this.safeLog("✅ Simulated Ctrl+C on Windows");
+          return true;
+        } catch {
+          // Fallback: text already in clipboard
+          return true;
+        }
+      } else {
+        // Linux: Try xdotool
+        try {
+          await exec("xdotool key ctrl+c");
+          this.safeLog("✅ Simulated Ctrl+C on Linux");
+          return true;
+        } catch {
+          // Fallback if xdotool not available
+          return true;
+        }
+      }
+    } catch (error) {
+      this.safeLog("⚠️ Could not simulate copy:", error.message);
+      return false;
     }
   }
 

@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   hideWindow: () => ipcRenderer.invoke("hide-window"),
   showDictationPanel: () => ipcRenderer.invoke("show-dictation-panel"),
   onToggleDictation: (callback) => ipcRenderer.on("toggle-dictation", callback),
+  onToggleScreenshot: (callback) => ipcRenderer.on("toggle-screenshot", callback),
+  captureScreenshot: () => ipcRenderer.invoke("capture-screenshot"),
 
   // Database functions
   saveTranscription: (text) =>
@@ -14,6 +16,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   clearTranscriptions: () => ipcRenderer.invoke("db-clear-transcriptions"),
   deleteTranscription: (id) =>
     ipcRenderer.invoke("db-delete-transcription", id),
+  getTranscriptionCount: () =>
+    ipcRenderer.invoke("db-get-transcription-count"),
+  getAllTranscriptions: () =>
+    ipcRenderer.invoke("db-get-all-transcriptions"),
   onTranscriptionAdded: (callback) => {
     const listener = (_event, transcription) => callback?.(transcription);
     ipcRenderer.on("transcription-added", listener);
@@ -43,6 +49,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Clipboard functions
   readClipboard: () => ipcRenderer.invoke("read-clipboard"),
   writeClipboard: (text) => ipcRenderer.invoke("write-clipboard", text),
+  simulateCopy: () => ipcRenderer.invoke("simulate-copy"),
 
   // Python installation functions
   checkPythonInstallation: () =>
@@ -82,6 +89,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Cleanup function
   cleanupApp: () => ipcRenderer.invoke("cleanup-app"),
   updateHotkey: (hotkey) => ipcRenderer.invoke("update-hotkey", hotkey),
+  updateScreenshotModifier: (modifier) => ipcRenderer.invoke("update-screenshot-modifier", modifier),
   startWindowDrag: () => ipcRenderer.invoke("start-window-drag"),
   stopWindowDrag: () => ipcRenderer.invoke("stop-window-drag"),
   setMainWindowInteractivity: (interactive) =>
@@ -145,9 +153,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   llamaCppUninstall: () => ipcRenderer.invoke("llama-cpp-uninstall"),
   
   // Debug logging for reasoning pipeline
-  logReasoning: (stage, details) => 
+  logReasoning: (stage, details) =>
     ipcRenderer.invoke("log-reasoning", stage, details),
-  
+
+  // Launch on startup
+  setLaunchOnStartup: (enabled) =>
+    ipcRenderer.invoke("set-launch-on-startup", enabled),
+  getLaunchOnStartup: () =>
+    ipcRenderer.invoke("get-launch-on-startup"),
+
   // Remove all listeners for a channel
   removeAllListeners: (channel) => {
     ipcRenderer.removeAllListeners(channel);

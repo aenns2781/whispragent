@@ -125,6 +125,8 @@ declare global {
         text: string
       ) => Promise<{ id: number; success: boolean }>;
       getTranscriptions: (limit?: number) => Promise<TranscriptionItem[]>;
+      getTranscriptionCount: () => Promise<number>;
+      getAllTranscriptions: () => Promise<TranscriptionItem[]>;
       clearTranscriptions: () => Promise<{ cleared: number; success: boolean }>;
       deleteTranscription: (id: number) => Promise<{ success: boolean }>;
       onTranscriptionAdded?: (
@@ -260,16 +262,20 @@ declare global {
 
       // Hotkey management
       updateHotkey: (key: string) => Promise<{ success: boolean; message: string }>;
-      
+
       // Gemini API key management
       getGeminiKey: () => Promise<string | null>;
       saveGeminiKey: (key: string) => Promise<void>;
-      
+
       // Debug logging
       logReasoning?: (stage: string, details: any) => Promise<void>;
-      
+
       // FFmpeg availability
       checkFFmpegAvailability: () => Promise<boolean>;
+
+      // Launch on startup
+      setLaunchOnStartup: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
+      getLaunchOnStartup: () => Promise<{ enabled: boolean; error?: string }>;
     };
     
     api?: {

@@ -4,15 +4,19 @@ class HotkeyManager {
   constructor() {
     this.currentHotkey = "`";
     this.isInitialized = false;
+    this.screenshotModifier = "CmdOrCtrl"; // Default modifier
   }
 
-  setupShortcuts(hotkey = "`", callback) {
+  setupShortcuts(hotkey = "`", callback, screenshotCallback) {
     if (!callback) {
       throw new Error("Callback function is required for hotkey setup");
     }
 
+    // Unregister previous hotkeys
     if (this.currentHotkey && this.currentHotkey !== "GLOBE") {
       globalShortcut.unregister(this.currentHotkey);
+      // Unregister with current modifier
+      globalShortcut.unregister(`${this.screenshotModifier}+${this.currentHotkey}`);
     }
 
     try {
@@ -27,10 +31,20 @@ class HotkeyManager {
         return { success: true, hotkey };
       }
 
-      // Register the new hotkey
+      // Register the normal hotkey
       const success = globalShortcut.register(hotkey, callback);
+      console.log(`Registered hotkey "${hotkey}":`, success);
 
-      if (success) {
+      // Register modifier+hotkey for screenshot mode if callback provided
+      let screenshotSuccess = true;
+      if (screenshotCallback) {
+        // Use configured modifier
+        const screenshotHotkey = `${this.screenshotModifier}+${hotkey}`;
+        screenshotSuccess = globalShortcut.register(screenshotHotkey, screenshotCallback);
+        console.log(`Registered screenshot hotkey "${screenshotHotkey}":`, screenshotSuccess);
+      }
+
+      if (success && screenshotSuccess) {
         this.currentHotkey = hotkey;
         return { success: true, hotkey };
       } else {
@@ -46,32 +60,43 @@ class HotkeyManager {
     }
   }
 
-  async initializeHotkey(mainWindow, callback) {
+  async initializeHotkey(mainWindow, callback, screenshotCallback) {
     if (!mainWindow || !callback) {
       throw new Error("mainWindow and callback are required");
     }
 
+    // Load screenshot modifier from localStorage
+    try {
+      const savedModifier = await mainWindow.webContents.executeJavaScript(`
+        localStorage.getItem("screenshotModifier") || "CmdOrCtrl"
+      `);
+      this.screenshotModifier = savedModifier;
+      console.log("Loaded screenshot modifier:", this.screenshotModifier);
+    } catch (err) {
+      console.log("Using default screenshot modifier: CmdOrCtrl");
+    }
+
     // Set up default hotkey first
-    this.setupShortcuts("`", callback);
+    this.setupShortcuts("`", callback, screenshotCallback);
 
     // Listen for window to be ready, then get saved hotkey
     mainWindow.webContents.once("did-finish-load", () => {
       setTimeout(() => {
-        this.loadSavedHotkey(mainWindow, callback);
+        this.loadSavedHotkey(mainWindow, callback, screenshotCallback);
       }, 1000);
     });
 
     this.isInitialized = true;
   }
 
-  async loadSavedHotkey(mainWindow, callback) {
+  async loadSavedHotkey(mainWindow, callback, screenshotCallback) {
     try {
       const savedHotkey = await mainWindow.webContents.executeJavaScript(`
         localStorage.getItem("dictationKey") || "\`"
       `);
 
       if (savedHotkey && savedHotkey !== "`") {
-        const result = this.setupShortcuts(savedHotkey, callback);
+        const result = this.setupShortcuts(savedHotkey, callback, screenshotCallback);
         if (result.success) {
           // Hotkey initialized from localStorage
         }
@@ -81,13 +106,13 @@ class HotkeyManager {
     }
   }
 
-  async updateHotkey(hotkey, callback) {
+  async updateHotkey(hotkey, callback, screenshotCallback) {
     if (!callback) {
       throw new Error("Callback function is required for hotkey update");
     }
 
     try {
-      const result = this.setupShortcuts(hotkey, callback);
+      const result = this.setupShortcuts(hotkey, callback, screenshotCallback);
       if (result.success) {
         return { success: true, message: `Hotkey updated to: ${hotkey}` };
       } else {
@@ -112,6 +137,19 @@ class HotkeyManager {
 
   isHotkeyRegistered(hotkey) {
     return globalShortcut.isRegistered(hotkey);
+  }
+
+  updateScreenshotModifier(newModifier, callback, screenshotCallback) {
+    // Store the new modifier
+    this.screenshotModifier = newModifier;
+    console.log("Updating screenshot modifier to:", newModifier);
+
+    // Re-register shortcuts with the new modifier
+    if (this.currentHotkey && callback && screenshotCallback) {
+      return this.setupShortcuts(this.currentHotkey, callback, screenshotCallback);
+    }
+
+    return { success: true, message: "Screenshot modifier updated" };
   }
 }
 

@@ -106,6 +106,36 @@ class DatabaseManager {
     }
   }
 
+  getTranscriptionCount() {
+    try {
+      if (!this.db) {
+        throw new Error("Database not initialized");
+      }
+      const stmt = this.db.prepare("SELECT COUNT(*) as count FROM transcriptions");
+      const result = stmt.get();
+      return result.count;
+    } catch (error) {
+      console.error("Error getting transcription count:", error.message);
+      throw error;
+    }
+  }
+
+  getAllTranscriptions() {
+    try {
+      if (!this.db) {
+        throw new Error("Database not initialized");
+      }
+      const stmt = this.db.prepare(
+        "SELECT * FROM transcriptions ORDER BY timestamp DESC"
+      );
+      const transcriptions = stmt.all();
+      return transcriptions;
+    } catch (error) {
+      console.error("Error getting all transcriptions:", error.message);
+      throw error;
+    }
+  }
+
   cleanup() {
     console.log("Starting database cleanup...");
     try {

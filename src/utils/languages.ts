@@ -73,19 +73,34 @@ export const REASONING_PROVIDERS = {
     models: [
       // GPT-5 Series (Latest)
       {
+        value: "gpt-5.1",
+        label: "GPT-5.1",
+        description: "Latest flagship, best intelligence with flexible reasoning",
+      },
+      {
+        value: "gpt-5.1-nano",
+        label: "GPT-5.1 Nano",
+        description: "Ultra-fast, high-throughput tasks",
+      },
+      {
+        value: "gpt-5.1-mini",
+        label: "GPT-5.1 Mini",
+        description: "Fast and cost-efficient, balanced capability",
+      },
+      {
+        value: "gpt-5",
+        label: "GPT-5 (Legacy)",
+        description: "Previous flagship, replaced by GPT-5.1",
+      },
+      {
         value: "gpt-5-nano",
-        label: "GPT-5 Nano",
+        label: "GPT-5 Nano (Legacy)",
         description: "Ultra-fast, low latency",
       },
       {
         value: "gpt-5-mini",
-        label: "GPT-5 Mini",
-        description: "Fast and cost-efficient (default)",
-      },
-      {
-        value: "gpt-5",
-        label: "GPT-5",
-        description: "Deep reasoning, multi-step logic",
+        label: "GPT-5 Mini (Legacy)",
+        description: "Fast and cost-efficient",
       },
       // GPT-4.1 Series
       {

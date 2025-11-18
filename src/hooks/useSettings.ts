@@ -115,7 +115,26 @@ export function useSettings() {
 
   const [reasoningModel, setReasoningModel] = useLocalStorage(
     "reasoningModel",
-    "gpt-4o-mini",
+    "gpt-5.1",
+    {
+      serialize: String,
+      deserialize: String,
+    }
+  );
+
+  // GPT-5.1 specific settings
+  const [reasoningEffort, setReasoningEffort] = useLocalStorage(
+    "reasoningEffort",
+    "low", // none, low, medium, high
+    {
+      serialize: String,
+      deserialize: String,
+    }
+  );
+
+  const [verbosity, setVerbosity] = useLocalStorage(
+    "verbosity",
+    "medium", // low, medium, high
     {
       serialize: String,
       deserialize: String,
@@ -219,6 +238,8 @@ export function useSettings() {
     cloudReasoningBaseUrl,
     useReasoningModel,
     reasoningModel,
+    reasoningEffort,
+    verbosity,
     reasoningProvider,
     openaiApiKey,
     anthropicApiKey,
@@ -234,6 +255,8 @@ export function useSettings() {
     setCloudReasoningBaseUrl,
     setUseReasoningModel,
     setReasoningModel,
+    setReasoningEffort,
+    setVerbosity,
     setReasoningProvider: (provider: string) => {
       if (provider === 'custom') {
         return;

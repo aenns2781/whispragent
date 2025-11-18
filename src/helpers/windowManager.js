@@ -113,7 +113,16 @@ class WindowManager {
       this.mainWindow.webContents.send("toggle-dictation");
     };
 
-    await this.hotkeyManager.initializeHotkey(this.mainWindow, callback);
+    const screenshotCallback = () => {
+      console.log("Screenshot hotkey triggered!");
+      if (!this.mainWindow.isVisible()) {
+        this.mainWindow.show();
+      }
+      this.mainWindow.webContents.send("toggle-screenshot");
+      console.log("Sent toggle-screenshot event to renderer");
+    };
+
+    await this.hotkeyManager.initializeHotkey(this.mainWindow, callback, screenshotCallback);
   }
 
   async updateHotkey(hotkey) {
@@ -124,7 +133,16 @@ class WindowManager {
       this.mainWindow.webContents.send("toggle-dictation");
     };
 
-    return await this.hotkeyManager.updateHotkey(hotkey, callback);
+    const screenshotCallback = () => {
+      console.log("Screenshot hotkey triggered!");
+      if (!this.mainWindow.isVisible()) {
+        this.mainWindow.show();
+      }
+      this.mainWindow.webContents.send("toggle-screenshot");
+      console.log("Sent toggle-screenshot event to renderer");
+    };
+
+    return await this.hotkeyManager.updateHotkey(hotkey, callback, screenshotCallback);
   }
 
   async startWindowDrag() {
@@ -133,6 +151,26 @@ class WindowManager {
 
   async stopWindowDrag() {
     return await this.dragManager.stopWindowDrag();
+  }
+
+  async updateScreenshotModifier(modifier) {
+    const callback = () => {
+      if (!this.mainWindow.isVisible()) {
+        this.mainWindow.show();
+      }
+      this.mainWindow.webContents.send("toggle-dictation");
+    };
+
+    const screenshotCallback = () => {
+      console.log("Screenshot hotkey triggered!");
+      if (!this.mainWindow.isVisible()) {
+        this.mainWindow.show();
+      }
+      this.mainWindow.webContents.send("toggle-screenshot");
+      console.log("Sent toggle-screenshot event to renderer");
+    };
+
+    return this.hotkeyManager.updateScreenshotModifier(modifier, callback, screenshotCallback);
   }
 
   async createControlPanelWindow() {
@@ -255,13 +293,8 @@ class WindowManager {
 
     this.mainWindow.once("ready-to-show", () => {
       this.enforceMainWindowOnTop();
-      if (!this.mainWindow.isVisible()) {
-        if (typeof this.mainWindow.showInactive === "function") {
-          this.mainWindow.showInactive();
-        } else {
-          this.mainWindow.show();
-        }
-      }
+      // Window starts hidden - only shows when hotkey is pressed or tray menu is clicked
+      // This keeps the app subtle and in the background
     });
 
     this.mainWindow.on("show", () => {

@@ -536,35 +536,17 @@ export default function AIModelSelectorEnhanced({
 
   return (
     <div className="space-y-6">
-      {/* Enable/Disable Toggle */}
-      <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl">
-        <div>
-          <label className="text-sm font-medium text-green-800">
-            Enable AI Text Enhancement
-          </label>
-          <p className="text-xs text-green-700">
-            Use AI to automatically improve transcription quality
-          </p>
-        </div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            className="sr-only"
-            checked={useReasoningModel}
-            onChange={(e) => setUseReasoningModel(e.target.checked)}
-          />
-          <div className={`w-11 h-6 bg-gray-200 rounded-full transition-colors duration-200 ${
-            useReasoningModel ? "bg-green-600" : "bg-gray-300"
-          }`}>
-            <div className={`absolute top-0.5 left-0.5 bg-white border border-gray-300 rounded-full h-5 w-5 transition-transform duration-200 ${
-              useReasoningModel ? "translate-x-5" : "translate-x-0"
-            }`} />
-          </div>
-        </label>
+      {/* Title and description */}
+      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+        <h3 className="text-sm font-medium text-blue-800">
+          Agent Mode Configuration
+        </h3>
+        <p className="text-xs text-blue-700 mt-1">
+          Configure the AI model that powers your agent mode. This is triggered when you say the agent's name, highlight text, or capture a screenshot.
+        </p>
       </div>
 
-      {useReasoningModel && (
-        <>
+      <>
           {/* Cloud vs Local Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <button
@@ -930,7 +912,6 @@ export default function AIModelSelectorEnhanced({
             </div>
           )}
         </>
-      )}
     </div>
   );
 }

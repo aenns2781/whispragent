@@ -18,6 +18,7 @@ import {
   Lock,
   X,
   User,
+  Camera,
 } from "lucide-react";
 import TitleBar from "./TitleBar";
 import WhisperModelPicker from "./WhisperModelPicker";
@@ -830,6 +831,23 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 onRequest={permissionsHook.testAccessibilityPermission}
                 buttonText="Test & Grant"
               />
+
+              <PermissionCard
+                icon={Camera}
+                title="Screen Recording Permission"
+                description="Required for screenshot capture with voice commands"
+                granted={permissionsHook.screenPermissionGranted}
+                onRequest={async () => {
+                  const hasPermission = await permissionsHook.checkScreenPermission();
+                  if (hasPermission) {
+                    showAlertDialog({
+                      title: "✅ Screen Recording Permission Granted",
+                      description: "You can now use the screenshot feature with your voice commands.",
+                    });
+                  }
+                }}
+                buttonText="Test & Grant"
+              />
             </div>
 
             <div className="bg-amber-50 p-4 rounded-lg">
@@ -871,6 +889,20 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 />
                 <p className="text-xs text-gray-500 mt-2">
                   Press this key from anywhere to start/stop dictation
+                </p>
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <h4 className="font-medium text-blue-900 mb-2">
+                  📸 Screenshot Feature
+                </h4>
+                <p className="text-sm text-blue-800 mb-2">
+                  Hold <kbd className="bg-white px-2 py-1 rounded text-xs font-mono border border-blue-200">
+                    {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl'}
+                  </kbd> while pressing your hotkey to capture a screenshot with your voice command.
+                </p>
+                <p className="text-sm text-blue-700">
+                  This automatically triggers agent mode, allowing you to ask questions about what's on your screen.
                 </p>
               </div>
 
@@ -1163,6 +1195,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         return (
           permissionsHook.micPermissionGranted &&
           permissionsHook.accessibilityPermissionGranted
+          // Screen permission is optional, so not required to proceed
         );
       case 4:
         return hotkey.trim() !== "";
