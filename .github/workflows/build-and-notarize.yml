@@ -88,9 +88,8 @@ jobs:
       run: ${{ matrix.build_cmd }} -- --publish never
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        # Disable code signing - build unsigned apps (requires users to bypass Gatekeeper)
-        # To enable signing: set up Apple Developer account secrets and change to 'true'
-        CSC_IDENTITY_AUTO_DISCOVERY: false
+        # Enable signing for macOS
+        CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.os == 'macos-latest' && 'true' || 'false' }}
         # Notarization credentials (electron-builder standard)
         # APPLE_API_KEY is set from the file path in setup step
         APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
