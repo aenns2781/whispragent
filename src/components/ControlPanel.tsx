@@ -307,7 +307,7 @@ export default function ControlPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background text-foreground">
       <ConfirmDialog
         open={confirmDialog.open}
         onOpenChange={hideConfirmDialog}
@@ -322,7 +322,7 @@ export default function ControlPanel() {
         onOpenChange={hideAlertDialog}
         title={alertDialog.title}
         description={alertDialog.description}
-        onOk={() => {}}
+        onOk={() => { }}
       />
 
       <TitleBar
@@ -333,7 +333,7 @@ export default function ControlPanel() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowSettings(!showSettings)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 hover:border-indigo-700 gap-2"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground border-primary hover:border-primary/90 gap-2"
               >
                 <Settings size={16} />
                 Settings
@@ -344,7 +344,7 @@ export default function ControlPanel() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={handleClose}
                   aria-label="Close window"
                 >
@@ -361,138 +361,138 @@ export default function ControlPanel() {
       {/* Main content */}
       <div className="h-[calc(100vh-40px)]">
         <Card className="h-full flex flex-col">
-            <CardHeader>
-              <div className="flex items-center justify-between mb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <FileText size={18} className="text-indigo-600" />
-                  Recent Transcriptions
-                </CardTitle>
-                <div className="flex gap-2">
-                  {history.length > 0 && (
-                    <>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="gap-2">
-                            <Download size={14} />
-                            Export
-                            <ChevronDown size={14} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => exportTranscriptions("csv")}>
-                            Export as CSV
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => exportTranscriptions("json")}>
-                            Export as JSON
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => exportTranscriptions("txt")}>
-                            Export as TXT
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <Button
-                        onClick={clearHistory}
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </>
-                  )}
+          <CardHeader>
+            <div className="flex items-center justify-between mb-4">
+              <CardTitle className="flex items-center gap-2">
+                <FileText size={18} className="text-primary" />
+                Recent Transcriptions
+              </CardTitle>
+              <div className="flex gap-2">
+                {history.length > 0 && (
+                  <>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Download size={14} />
+                          Export
+                          <ChevronDown size={14} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => exportTranscriptions("csv")}>
+                          Export as CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportTranscriptions("json")}>
+                          Export as JSON
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportTranscriptions("txt")}>
+                          Export as TXT
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button
+                      onClick={clearHistory}
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+            {totalCount > 0 && (
+              <div className="flex items-center justify-between gap-4 pb-4 border-b">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing <span className="font-medium text-foreground">{history.length}</span> of{" "}
+                    <span className="font-medium text-foreground">{totalCount}</span> total
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="display-limit" className="text-sm text-muted-foreground">
+                      Display:
+                    </label>
+                    <Select value={displayLimit.toString()} onValueChange={handleDisplayLimitChange}>
+                      <SelectTrigger id="display-limit" className="w-[100px] h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                        <SelectItem value="200">200</SelectItem>
+                        <SelectItem value="500">500</SelectItem>
+                        <SelectItem value="1000">1000</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
-              {totalCount > 0 && (
-                <div className="flex items-center justify-between gap-4 pb-4 border-b">
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm text-gray-600">
-                      Showing <span className="font-medium text-gray-900">{history.length}</span> of{" "}
-                      <span className="font-medium text-gray-900">{totalCount}</span> total
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <label htmlFor="display-limit" className="text-sm text-gray-600">
-                        Display:
-                      </label>
-                      <Select value={displayLimit.toString()} onValueChange={handleDisplayLimitChange}>
-                        <SelectTrigger id="display-limit" className="w-[100px] h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="10">10</SelectItem>
-                          <SelectItem value="25">25</SelectItem>
-                          <SelectItem value="50">50</SelectItem>
-                          <SelectItem value="100">100</SelectItem>
-                          <SelectItem value="200">200</SelectItem>
-                          <SelectItem value="500">500</SelectItem>
-                          <SelectItem value="1000">1000</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+            )}
+          </CardHeader>
+          <CardContent className="flex-1 overflow-hidden">
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="w-8 h-8 mx-auto mb-3 bg-primary rounded-lg flex items-center justify-center">
+                  <span className="text-primary-foreground text-sm">📝</span>
                 </div>
-              )}
-            </CardHeader>
-            <CardContent className="flex-1 overflow-hidden">
-              {isLoading ? (
-                <div className="text-center py-8">
-                  <div className="w-8 h-8 mx-auto mb-3 bg-indigo-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-sm">📝</span>
-                  </div>
-                  <p className="text-neutral-600">Loading transcriptions...</p>
+                <p className="text-muted-foreground">Loading transcriptions...</p>
+              </div>
+            ) : history.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 bg-secondary rounded-full flex items-center justify-center">
+                  <Mic className="w-8 h-8 text-muted-foreground" />
                 </div>
-              ) : history.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-neutral-100 rounded-full flex items-center justify-center">
-                    <Mic className="w-8 h-8 text-neutral-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-neutral-900 mb-2">
-                    No transcriptions yet
-                  </h3>
-                  <p className="text-neutral-600 mb-4 max-w-sm mx-auto">
-                    Press your hotkey to start recording and create your first
-                    transcription.
-                  </p>
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-w-md mx-auto">
-                    <h4 className="font-medium text-neutral-800 mb-2">
-                      Quick Start:
-                    </h4>
-                    <ol className="text-sm text-neutral-600 text-left space-y-1">
-                      <li>1. Click in any text field</li>
-                      <li>
-                        2. Press{" "}
-                        <kbd className="bg-white px-2 py-1 rounded text-xs font-mono border border-neutral-300">
-                          {hotkey}
-                        </kbd>{" "}
-                        to start recording
-                      </li>
-                      <li>3. Speak your text</li>
-                      <li>
-                        4. Press{" "}
-                        <kbd className="bg-white px-2 py-1 rounded text-xs font-mono border border-neutral-300">
-                          {hotkey}
-                        </kbd>{" "}
-                        again to stop
-                      </li>
-                      <li>5. Your text will appear automatically!</li>
-                    </ol>
-                  </div>
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  No transcriptions yet
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
+                  Press your hotkey to start recording and create your first
+                  transcription.
+                </p>
+                <div className="bg-secondary/50 border border-border rounded-lg p-4 max-w-md mx-auto">
+                  <h4 className="font-medium text-foreground mb-2">
+                    Quick Start:
+                  </h4>
+                  <ol className="text-sm text-muted-foreground text-left space-y-1">
+                    <li>1. Click in any text field</li>
+                    <li>
+                      2. Press{" "}
+                      <kbd className="bg-background px-2 py-1 rounded text-xs font-mono border border-border">
+                        {hotkey}
+                      </kbd>{" "}
+                      to start recording
+                    </li>
+                    <li>3. Speak your text</li>
+                    <li>
+                      4. Press{" "}
+                      <kbd className="bg-background px-2 py-1 rounded text-xs font-mono border border-border">
+                        {hotkey}
+                      </kbd>{" "}
+                      again to stop
+                    </li>
+                    <li>5. Your text will appear automatically!</li>
+                  </ol>
                 </div>
-              ) : (
-                <div className="space-y-3 h-full overflow-y-auto">
-                  {history.map((item, index) => (
-                    <TranscriptionItem
-                      key={item.id}
-                      item={item}
-                      index={index}
-                      total={history.length}
-                      onCopy={copyToClipboard}
-                      onDelete={deleteTranscription}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            ) : (
+              <div className="space-y-3 h-full overflow-y-auto">
+                {history.map((item, index) => (
+                  <TranscriptionItem
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    total={history.length}
+                    onCopy={copyToClipboard}
+                    onDelete={deleteTranscription}
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

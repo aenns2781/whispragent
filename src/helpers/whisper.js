@@ -90,16 +90,16 @@ class WhisperManager {
       audioBlobType: audioBlob?.constructor?.name,
       audioBlobSize: audioBlob?.byteLength || audioBlob?.size || 0
     });
-    
+
     // First check if FFmpeg is available
     const ffmpegCheck = await this.checkFFmpegAvailability();
     debugLogger.logWhisperPipeline('FFmpeg availability check', ffmpegCheck);
-    
+
     if (!ffmpegCheck.available) {
       debugLogger.error('FFmpeg not available', ffmpegCheck);
       throw new Error(`FFmpeg not available: ${ffmpegCheck.error || 'Unknown error'}`);
     }
-    
+
     const tempAudioPath = await this.createTempAudioFile(audioBlob);
     const model = options.model || "base";
     const language = options.language || null;
@@ -122,7 +122,7 @@ class WhisperManager {
     const tempDir = os.tmpdir();
     const filename = `whisper_audio_${crypto.randomUUID()}.wav`;
     const tempAudioPath = path.join(tempDir, filename);
-    
+
     debugLogger.logAudioData('createTempAudioFile', audioBlob);
     debugLogger.log('Creating temp file at:', tempAudioPath);
 
@@ -139,11 +139,11 @@ class WhisperManager {
       debugLogger.error('Unsupported audio data type:', typeof audioBlob, audioBlob);
       throw new Error(`Unsupported audio data type: ${typeof audioBlob}`);
     }
-    
+
     debugLogger.log('Buffer created, size:', buffer.length);
 
     await fsPromises.writeFile(tempAudioPath, buffer);
-    
+
     // Verify file was written correctly
     const stats = await fsPromises.stat(tempAudioPath);
     const fileInfo = {
@@ -153,24 +153,24 @@ class WhisperManager {
       permissions: stats.mode.toString(8)
     };
     debugLogger.logWhisperPipeline('Temp audio file created', fileInfo);
-    
+
     if (stats.size === 0) {
       debugLogger.error('Audio file is empty after writing');
       throw new Error("Audio file is empty");
     }
-    
+
     return tempAudioPath;
   }
 
   async runWhisperProcess(tempAudioPath, model, language) {
     const pythonCmd = await this.findPythonExecutable();
     const whisperScriptPath = this.getWhisperScriptPath();
-    
+
     // Check if whisper script exists
     if (!fs.existsSync(whisperScriptPath)) {
       throw new Error(`Whisper script not found at: ${whisperScriptPath}`);
     }
-    
+
     const args = [whisperScriptPath, tempAudioPath, "--model", model];
     if (language) {
       args.push("--language", language);
@@ -185,7 +185,7 @@ class WhisperManager {
       try {
         ffmpegPath = require("ffmpeg-static");
         debugLogger.logFFmpegDebug('Initial ffmpeg-static path', ffmpegPath);
-        
+
         // Add Windows .exe extension if missing
         if (process.platform === "win32" && !ffmpegPath.endsWith(".exe")) {
           ffmpegPath += ".exe";
@@ -199,10 +199,10 @@ class WhisperManager {
           ];
 
           debugLogger.log('FFmpeg not found at primary path, checking alternatives');
-          
+
           for (const possiblePath of possiblePaths) {
             const exists = fs.existsSync(possiblePath);
-            
+
             if (exists) {
               ffmpegPath = possiblePath;
               debugLogger.log('FFmpeg found at:', ffmpegPath);
@@ -216,7 +216,7 @@ class WhisperManager {
           debugLogger.error('Bundled FFmpeg not found at:', ffmpegPath);
           throw new Error(`Bundled FFmpeg not found at ${ffmpegPath}`);
         }
-        
+
         // Validate it's actually executable
         try {
           fs.accessSync(ffmpegPath, fs.constants.X_OK);
@@ -228,10 +228,10 @@ class WhisperManager {
 
       } catch (e) {
         debugLogger.log('Bundled FFmpeg not available, trying system FFmpeg');
-        
+
         // Try system FFmpeg with validation
         const systemFFmpeg = process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
-        
+
         try {
           const versionResult = await runCommand(systemFFmpeg, ["--version"], { timeout: TIMEOUTS.QUICK_CHECK });
           ffmpegPath = systemFFmpeg;
@@ -251,7 +251,7 @@ class WhisperManager {
         FFMPEG_EXECUTABLE: absoluteFFmpegPath,
         FFMPEG_BINARY: absoluteFFmpegPath,
       };
-      
+
       debugLogger.logFFmpegDebug('Setting FFmpeg env vars', absoluteFFmpegPath);
 
       // Add ffmpeg directory to PATH if we have a valid path
@@ -263,7 +263,7 @@ class WhisperManager {
         if (!currentPath.includes(ffmpegDir)) {
           enhancedEnv.PATH = `${ffmpegDir}${pathSeparator}${currentPath}`;
         }
-        
+
         // CRITICAL: Also create a symlink or use the actual unpacked path
         // The issue is that the ffmpeg path points to the ASAR archive, but we need the unpacked version
         if (ffmpegPath.includes('app.asar') && !ffmpegPath.includes('app.asar.unpacked')) {
@@ -282,7 +282,7 @@ class WhisperManager {
       } else {
         debugLogger.error('No valid FFmpeg path found, transcription may fail');
       }
-      
+
       // Add common system paths for macOS GUI launches
       if (process.platform === "darwin") {
         const commonPaths = [
@@ -294,10 +294,10 @@ class WhisperManager {
           "/usr/sbin",
           "/sbin"
         ];
-        
+
         const currentPath = enhancedEnv.PATH || "";
         const pathsToAdd = commonPaths.filter(p => !currentPath.includes(p));
-        
+
         if (pathsToAdd.length > 0) {
           enhancedEnv.PATH = `${currentPath}:${pathsToAdd.join(":")}`;
           debugLogger.log('Added system paths for GUI launch');
@@ -382,7 +382,7 @@ class WhisperManager {
           const platformHelp =
             process.platform === "win32"
               ? 'Install Python 3.11+ from python.org with the "Install launcher" option, or set OPENWHISPR_PYTHON to the full path (for example C:\\\\Python312\\\\python.exe).'
-              : "Install Python 3.11+ (for example `brew install python@3.11`) or set OPENWHISPR_PYTHON to the interpreter you want OpenWhispr to use.";
+              : "Install Python 3.11+ (for example `brew install python@3.11`) or set OPENWHISPR_PYTHON to the interpreter you want Tribe Whisper to use.";
           const fallbackHelp =
             "You can also disable Local Whisper or enable the OpenAI fallback in Settings to continue using cloud transcription.";
           const message = [
@@ -420,7 +420,7 @@ class WhisperManager {
       }
 
       const result = JSON.parse(jsonLine);
-      
+
       if (!result.text || result.text.trim().length === 0) {
         return { success: false, message: "No audio detected" };
       }
@@ -561,9 +561,9 @@ class WhisperManager {
     try {
       // Clear cached Python command since we're installing new one
       this.pythonCmd = null;
-      
+
       const result = await this.pythonInstaller.installPython(progressCallback);
-      
+
       // After installation, try to find Python again
       try {
         await this.findPythonExecutable();
@@ -571,7 +571,7 @@ class WhisperManager {
       } catch (findError) {
         throw new Error("Python installed but not found in PATH. Please restart the application.");
       }
-      
+
     } catch (error) {
       console.error("Python installation failed:", error);
       throw error;
@@ -586,10 +586,10 @@ class WhisperManager {
     return new Promise((resolve) => {
       const testProcess = spawn(pythonPath, ["--version"]);
       let output = "";
-      
+
       testProcess.stdout.on("data", (data) => output += data);
       testProcess.stderr.on("data", (data) => output += data);
-      
+
       testProcess.on("close", (code) => {
         if (code === 0) {
           const match = output.match(/Python (\d+)\.(\d+)/i);
@@ -598,7 +598,7 @@ class WhisperManager {
           resolve(null);
         }
       });
-      
+
       testProcess.on("error", () => resolve(null));
     });
   }
@@ -656,7 +656,7 @@ class WhisperManager {
 
   async checkFFmpegAvailability() {
     debugLogger.logWhisperPipeline('checkFFmpegAvailability - start', {});
-    
+
     try {
       const pythonCmd = await this.findPythonExecutable();
       const whisperScriptPath = this.getWhisperScriptPath();
@@ -670,11 +670,11 @@ class WhisperManager {
           resourcesPath: process.resourcesPath,
           __dirname: __dirname
         });
-        
+
         // Always check if the path exists and handle ASAR unpacking
         if (!fs.existsSync(ffmpegPath)) {
           debugLogger.log('FFmpeg not found at initial path, checking alternatives');
-          
+
           const possiblePaths = [
             // Direct ASAR replacement
             ffmpegPath.replace("app.asar", "app.asar.unpacked"),
@@ -688,12 +688,12 @@ class WhisperManager {
 
           // Check alternative paths
           debugLogger.log('Checking alternative FFmpeg paths for availability check');
-          
+
           for (const possiblePath of possiblePaths) {
             const exists = fs.existsSync(possiblePath);
             // Check path existence
             debugLogger.logFFmpegDebug('Checking availability path', possiblePath);
-            
+
             if (exists) {
               ffmpegPath = possiblePath;
               // Found FFmpeg
@@ -702,7 +702,7 @@ class WhisperManager {
             }
           }
         }
-        
+
         // Final validation
         if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
           debugLogger.log('FFmpeg not found at any location');
@@ -749,7 +749,7 @@ class WhisperManager {
             outputLength: output.length,
             stderrLength: stderr.length
           });
-          
+
           if (code === 0) {
             try {
               const result = JSON.parse(output);
@@ -790,14 +790,14 @@ class WhisperManager {
 
   async installWhisper() {
     const pythonCmd = await this.findPythonExecutable();
-    
+
     // Upgrade pip first to avoid version issues
     try {
       await this.upgradePip(pythonCmd);
     } catch (error) {
       const cleanUpgradeError = this.sanitizeErrorMessage(error.message);
       debugLogger.log("First pip upgrade attempt failed:", cleanUpgradeError);
-      
+
       // Try user install for pip upgrade
       try {
         await runCommand(pythonCmd, ["-m", "pip", "install", "--user", "--upgrade", "pip"], { timeout: TIMEOUTS.PIP_UPGRADE });
@@ -816,7 +816,7 @@ class WhisperManager {
         }
       }
     }
-    
+
     const buildInstallArgs = ({ user = false, legacy = false } = {}) => {
       const args = ["-m", "pip", "install"];
       if (legacy) {
@@ -828,12 +828,12 @@ class WhisperManager {
       args.push("-U", "openai-whisper");
       return args;
     };
-    
+
     try {
       return await runCommand(pythonCmd, buildInstallArgs(), { timeout: TIMEOUTS.DOWNLOAD });
     } catch (error) {
       const cleanMessage = this.sanitizeErrorMessage(error.message);
-      
+
       if (this.shouldRetryWithUserInstall(cleanMessage)) {
         try {
           return await runCommand(pythonCmd, buildInstallArgs({ user: true }), { timeout: TIMEOUTS.DOWNLOAD });
@@ -845,7 +845,7 @@ class WhisperManager {
           throw new Error(this.formatWhisperInstallError(userMessage));
         }
       }
-      
+
       if (this.isTomlResolverError(cleanMessage)) {
         try {
           return await runCommand(pythonCmd, buildInstallArgs({ legacy: true }), { timeout: TIMEOUTS.DOWNLOAD });
@@ -857,7 +857,7 @@ class WhisperManager {
           throw new Error(this.formatWhisperInstallError(legacyMessage));
         }
       }
-      
+
       throw new Error(this.formatWhisperInstallError(cleanMessage));
     }
   }
@@ -1026,7 +1026,7 @@ class WhisperManager {
         });
 
         checkProcess.on("error", (error) => {
-              reject(new Error(`Model status check error: ${error.message}`));
+          reject(new Error(`Model status check error: ${error.message}`));
         });
       });
     } catch (error) {
@@ -1073,7 +1073,7 @@ class WhisperManager {
         });
 
         listProcess.on("error", (error) => {
-              reject(new Error(`Model list error: ${error.message}`));
+          reject(new Error(`Model list error: ${error.message}`));
         });
       });
     } catch (error) {
@@ -1128,7 +1128,7 @@ class WhisperManager {
         });
 
         deleteProcess.on("error", (error) => {
-              reject(new Error(`Model delete error: ${error.message}`));
+          reject(new Error(`Model delete error: ${error.message}`));
         });
       });
     } catch (error) {

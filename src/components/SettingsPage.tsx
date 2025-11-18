@@ -148,12 +148,12 @@ export default function SettingsPage({
     setCloudReasoningBaseUrl(normalizedReasoningBase);
 
     // Update reasoning settings
-    updateReasoningSettings({ 
-      useReasoningModel, 
+    updateReasoningSettings({
+      useReasoningModel,
       reasoningModel,
       cloudReasoningBaseUrl: normalizedReasoningBase
     });
-    
+
     // Save API keys to backend based on provider
     if (localReasoningProvider === "openai" && openaiApiKey) {
       await window.electronAPI?.saveOpenAIKey(openaiApiKey);
@@ -164,7 +164,7 @@ export default function SettingsPage({
     if (localReasoningProvider === "gemini" && geminiApiKey) {
       await window.electronAPI?.saveGeminiKey(geminiApiKey);
     }
-    
+
     updateApiKeys({
       ...(localReasoningProvider === "openai" &&
         openaiApiKey.trim() && { openaiApiKey }),
@@ -173,7 +173,7 @@ export default function SettingsPage({
       ...(localReasoningProvider === "gemini" &&
         geminiApiKey.trim() && { geminiApiKey }),
     });
-    
+
     // Save the provider separately since it's computed from the model
     localStorage.setItem("reasoningProvider", localReasoningProvider);
 
@@ -181,16 +181,14 @@ export default function SettingsPage({
       localReasoningProvider === 'custom'
         ? 'Custom'
         : REASONING_PROVIDERS[
-            localReasoningProvider as keyof typeof REASONING_PROVIDERS
-          ]?.name || localReasoningProvider;
+          localReasoningProvider as keyof typeof REASONING_PROVIDERS
+        ]?.name || localReasoningProvider;
 
     showAlertDialog({
       title: "Reasoning Settings Saved",
-      description: `AI text enhancement ${
-        useReasoningModel ? "enabled" : "disabled"
-      } with ${
-        providerLabel
-      } ${reasoningModel}`,
+      description: `AI text enhancement ${useReasoningModel ? "enabled" : "disabled"
+        } with ${providerLabel
+        } ${reasoningModel}`,
     });
   }, [
     useReasoningModel,
@@ -215,7 +213,7 @@ export default function SettingsPage({
       if (geminiApiKey) {
         await window.electronAPI?.saveGeminiKey(geminiApiKey);
       }
-      
+
       updateApiKeys({ openaiApiKey, anthropicApiKey, geminiApiKey });
       updateTranscriptionSettings({ allowLocalFallback, fallbackWhisperModel });
 
@@ -223,24 +221,22 @@ export default function SettingsPage({
         if (openaiApiKey) {
           await window.electronAPI?.createProductionEnvFile(openaiApiKey);
         }
-        
+
         const savedKeys: string[] = [];
         if (openaiApiKey) savedKeys.push("OpenAI");
         if (anthropicApiKey) savedKeys.push("Anthropic");
         if (geminiApiKey) savedKeys.push("Gemini");
-        
+
         showAlertDialog({
           title: "API Keys Saved",
-          description: `${savedKeys.join(", ")} API key${savedKeys.length > 1 ? 's' : ''} saved successfully! Your credentials have been securely recorded.${
-            allowLocalFallback ? " Local Whisper fallback is enabled." : ""
-          }`,
+          description: `${savedKeys.join(", ")} API key${savedKeys.length > 1 ? 's' : ''} saved successfully! Your credentials have been securely recorded.${allowLocalFallback ? " Local Whisper fallback is enabled." : ""
+            }`,
         });
       } catch (envError) {
         showAlertDialog({
           title: "API Key Saved",
-          description: `OpenAI API key saved successfully and will be available for transcription${
-            allowLocalFallback ? " with Local Whisper fallback enabled" : ""
-          }`,
+          description: `OpenAI API key saved successfully and will be available for transcription${allowLocalFallback ? " with Local Whisper fallback enabled" : ""
+            }`,
         });
       }
     } catch (error) {
@@ -264,7 +260,7 @@ export default function SettingsPage({
   ]);
 
   const resetAccessibilityPermissions = () => {
-    const message = `🔄 RESET ACCESSIBILITY PERMISSIONS\n\nIf you've rebuilt or reinstalled OpenWhispr and automatic inscription isn't functioning, you may have obsolete permissions from the previous version.\n\n📋 STEP-BY-STEP RESTORATION:\n\n1️⃣ Open System Settings (or System Preferences)\n   • macOS Ventura+: Apple Menu → System Settings\n   • Older macOS: Apple Menu → System Preferences\n\n2️⃣ Navigate to Privacy & Security → Accessibility\n\n3️⃣ Look for obsolete OpenWhispr entries:\n   • Any entries named "OpenWhispr"\n   • Any entries named "Electron"\n   • Any entries with unclear or generic names\n   • Entries pointing to old application locations\n\n4️⃣ Remove ALL obsolete entries:\n   • Select each old entry\n   • Click the minus (-) button\n   • Enter your password if prompted\n\n5️⃣ Add the current OpenWhispr:\n   • Click the plus (+) button\n   • Navigate to and select the CURRENT OpenWhispr app\n   • Ensure the checkbox is ENABLED\n\n6️⃣ Restart OpenWhispr completely\n\n💡 This is very common during development when rebuilding applications!\n\nClick OK when you're ready to open System Settings.`;
+    const message = `🔄 RESET ACCESSIBILITY PERMISSIONS\n\nIf you've rebuilt or reinstalled Tribe Whisper and automatic inscription isn't functioning, you may have obsolete permissions from the previous version.\n\n📋 STEP-BY-STEP RESTORATION:\n\n1️⃣ Open System Settings (or System Preferences)\n   • macOS Ventura+: Apple Menu → System Settings\n   • Older macOS: Apple Menu → System Preferences\n\n2️⃣ Navigate to Privacy & Security → Accessibility\n\n3️⃣ Look for obsolete Tribe Whisper entries:\n   • Any entries named "Tribe Whisper"\n   • Any entries named "Electron"\n   • Any entries with unclear or generic names\n   • Entries pointing to old application locations\n\n4️⃣ Remove ALL obsolete entries:\n   • Select each old entry\n   • Click the minus (-) button\n   • Enter your password if prompted\n\n5️⃣ Add the current Tribe Whisper:\n   • Click the plus (+) button\n   • Navigate to and select the CURRENT Tribe Whisper app\n   • Ensure the checkbox is ENABLED\n\n6️⃣ Restart Tribe Whisper completely\n\n💡 This is very common during development when rebuilding applications!\n\nClick OK when you're ready to open System Settings.`;
 
     showConfirmDialog({
       title: "Reset Accessibility Permissions",
@@ -306,7 +302,7 @@ export default function SettingsPage({
       console.error("Failed to update hotkey:", error);
       showAlertDialog({
         title: "Error",
-        description: `Failed to update hotkey: ${error.message}`,
+        description: `Failed to update hotkey: ${(error as Error).message}`,
       });
     }
   };
@@ -365,8 +361,8 @@ export default function SettingsPage({
         showAlertDialog({
           title: "Launch Setting Updated",
           description: enabled
-            ? "OpenWhispr will now start automatically when you log in."
-            : "OpenWhispr will no longer start automatically at login.",
+            ? "Tribe Whisper will now start automatically when you log in."
+            : "Tribe Whisper will no longer start automatically at login.",
         });
       } else {
         showAlertDialog({
@@ -378,7 +374,7 @@ export default function SettingsPage({
       console.error("Failed to toggle launch on startup:", error);
       showAlertDialog({
         title: "Error",
-        description: `Failed to update setting: ${error.message}`,
+        description: `Failed to update setting: ${(error as Error).message}`,
       });
     }
   }, [showAlertDialog]);
@@ -391,16 +387,16 @@ export default function SettingsPage({
             {/* Hotkey Section */}
             <div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Dictation Hotkey
                 </h3>
-                <p className="text-sm text-gray-600 mb-6">
+                <p className="text-sm text-muted-foreground mb-6">
                   Configure the key you press to start and stop voice dictation.
                 </p>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Activation Key
                   </label>
                   <Input
@@ -409,17 +405,17 @@ export default function SettingsPage({
                     onChange={(e) => setDictationKey(e.target.value)}
                     className="text-center text-lg font-mono"
                   />
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     Press this key from anywhere to start/stop dictation
                   </p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-3">
+                <div className="bg-secondary p-4 rounded-lg">
+                  <h4 className="font-medium text-foreground mb-3">
                     Click any key to select it:
                   </h4>
                   <React.Suspense
                     fallback={
-                      <div className="h-32 flex items-center justify-center text-gray-500">
+                      <div className="h-32 flex items-center justify-center text-muted-foreground">
                         Loading keyboard...
                       </div>
                     }
@@ -440,13 +436,13 @@ export default function SettingsPage({
 
                 {/* Screenshot Modifier Key */}
                 <div className="mt-6 space-y-4">
-                  <h4 className="font-medium text-gray-900">Screenshot Mode</h4>
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                    <p className="text-sm text-blue-800 mb-3">
+                  <h4 className="font-medium text-foreground">Screenshot Mode</h4>
+                  <div className="bg-secondary p-4 rounded-lg border border-border">
+                    <p className="text-sm text-muted-foreground mb-3">
                       Hold this modifier key while pressing your hotkey to capture a screenshot with your voice command.
                     </p>
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-blue-900">
+                      <label className="block text-sm font-medium text-foreground">
                         Screenshot Modifier Key
                       </label>
                       <Select
@@ -455,10 +451,12 @@ export default function SettingsPage({
                           setScreenshotModifier(value);
                           localStorage.setItem("screenshotModifier", value);
                           // Update the hotkey manager with new modifier
-                          window.electronAPI?.updateScreenshotModifier?.(value);
+                          if ('updateScreenshotModifier' in (window.electronAPI || {})) {
+                            (window.electronAPI as any).updateScreenshotModifier(value);
+                          }
                         }}
                       >
-                        <SelectTrigger className="w-full bg-white">
+                        <SelectTrigger className="w-full bg-background">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -475,8 +473,8 @@ export default function SettingsPage({
                           </SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-blue-700 mt-2">
-                        Current shortcut: <kbd className="bg-white px-2 py-1 rounded text-xs font-mono border border-blue-200">
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Current shortcut: <kbd className="bg-background px-2 py-1 rounded text-xs font-mono border border-border">
                           {screenshotModifier === 'CmdOrCtrl'
                             ? (typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl')
                             : screenshotModifier.replace('CmdOrCtrl', typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl')}
@@ -492,10 +490,10 @@ export default function SettingsPage({
             {/* Permissions Section */}
             <div className="border-t pt-8">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Permissions
                 </h3>
-                <p className="text-sm text-gray-600 mb-6">
+                <p className="text-sm text-muted-foreground mb-6">
                   Test and manage app permissions for microphone and
                   accessibility.
                 </p>
@@ -547,21 +545,21 @@ export default function SettingsPage({
             {/* Launch on Startup Section */}
             <div className="border-t pt-8">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Startup Behavior
                 </h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  Configure how OpenWhispr behaves when you start your computer.
+                <p className="text-sm text-muted-foreground mb-6">
+                  Configure how Tribe Whisper behaves when you start your computer.
                 </p>
               </div>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl">
                   <div className="flex-1 mr-4">
-                    <h4 className="font-medium text-gray-900 mb-1">
+                    <h4 className="font-medium text-foreground mb-1">
                       Launch at Startup
                     </h4>
-                    <p className="text-sm text-gray-600">
-                      Automatically start OpenWhispr when you log into your computer
+                    <p className="text-sm text-muted-foreground">
+                      Automatically start Tribe Whisper when you log into your computer
                     </p>
                   </div>
                   <Toggle
@@ -575,40 +573,40 @@ export default function SettingsPage({
             {/* About Section */}
             <div className="border-t pt-8">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  About OpenWhispr
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  About Tribe Whisper
                 </h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  OpenWhispr transcribes speech and captures screenshots with AI-powered processing. Press your hotkey to dictate, address your agent by name for commands, highlight text to enhance it, or use {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl'}+hotkey to capture screenshots.
+                <p className="text-sm text-muted-foreground mb-6">
+                  Tribe Whisper transcribes speech and captures screenshots with AI-powered processing. Press your hotkey to dictate, address your agent by name for commands, highlight text to enhance it, or use {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl'}+hotkey to capture screenshots.
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-6">
-                <div className="text-center p-4 border border-gray-200 rounded-xl bg-white">
-                  <div className="w-8 h-8 mx-auto mb-2 bg-indigo-600 rounded-lg flex items-center justify-center">
+                <div className="text-center p-4 border border-border rounded-xl bg-card">
+                  <div className="w-8 h-8 mx-auto mb-2 bg-primary rounded-lg flex items-center justify-center">
                     <Keyboard className="w-4 h-4 text-white" />
                   </div>
-                  <p className="font-medium text-gray-800 mb-1">
+                  <p className="font-medium text-foreground mb-1">
                     Default Hotkey
                   </p>
-                  <p className="text-gray-600 font-mono text-xs">
+                  <p className="text-muted-foreground font-mono text-xs">
                     {formatHotkeyLabel(dictationKey)}
                   </p>
                 </div>
-                <div className="text-center p-4 border border-gray-200 rounded-xl bg-white">
-                  <div className="w-8 h-8 mx-auto mb-2 bg-emerald-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-sm">🏷️</span>
+                <div className="text-center p-4 border border-border rounded-xl bg-card">
+                  <div className="w-8 h-8 mx-auto mb-2 bg-secondary rounded-lg flex items-center justify-center">
+                    <span className="text-foreground text-sm">🏷️</span>
                   </div>
-                  <p className="font-medium text-gray-800 mb-1">Version</p>
-                  <p className="text-gray-600 text-xs">
+                  <p className="font-medium text-foreground mb-1">Version</p>
+                  <p className="text-muted-foreground text-xs">
                     {currentVersion || "0.1.0"}
                   </p>
                 </div>
-                <div className="text-center p-4 border border-gray-200 rounded-xl bg-white">
-                  <div className="w-8 h-8 mx-auto mb-2 bg-green-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-sm">✓</span>
+                <div className="text-center p-4 border border-border rounded-xl bg-card">
+                  <div className="w-8 h-8 mx-auto mb-2 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-green-500 text-sm">✓</span>
                   </div>
-                  <p className="font-medium text-gray-800 mb-1">Status</p>
-                  <p className="text-green-600 text-xs font-medium">Active</p>
+                  <p className="font-medium text-foreground mb-1">Status</p>
+                  <p className="text-green-500 text-xs font-medium">Active</p>
                 </div>
               </div>
 
@@ -628,7 +626,7 @@ export default function SettingsPage({
                     });
                   }}
                   variant="outline"
-                  className="w-full text-amber-600 border-amber-300 hover:bg-amber-50 hover:border-amber-400"
+                  className="w-full text-amber-500 border-amber-500/50 hover:bg-amber-500/10 hover:border-amber-500"
                 >
                   <span className="mr-2">🔄</span>
                   Reset Onboarding
@@ -663,16 +661,16 @@ export default function SettingsPage({
                     });
                   }}
                   variant="outline"
-                  className="w-full text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                  className="w-full text-destructive border-destructive/50 hover:bg-destructive/10 hover:border-destructive"
                 >
                   <span className="mr-2">🗑️</span>
                   Clean Up All App Data
                 </Button>
               </div>
 
-              <div className="space-y-3 mt-6 p-4 bg-rose-50 border border-rose-200 rounded-xl">
-                <h4 className="font-medium text-rose-900">Local Model Storage</h4>
-                <p className="text-sm text-rose-800">
+              <div className="space-y-3 mt-6 p-4 bg-secondary border border-border rounded-xl">
+                <h4 className="font-medium text-foreground">Local Model Storage</h4>
+                <p className="text-sm text-muted-foreground">
                   Remove all downloaded Whisper models from your cache directory to reclaim disk space. You can re-download any model later.
                 </p>
                 <Button
@@ -683,7 +681,7 @@ export default function SettingsPage({
                 >
                   {isRemovingModels ? "Removing models..." : "Remove Downloaded Models"}
                 </Button>
-                <p className="text-xs text-rose-700">
+                <p className="text-xs text-muted-foreground">
                   Current cache location: <code>{cachePathHint}</code>
                 </p>
               </div>
@@ -695,7 +693,7 @@ export default function SettingsPage({
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4">
                 Speech to Text Processing
               </h3>
               <ProcessingModeSelector
@@ -708,8 +706,8 @@ export default function SettingsPage({
             </div>
 
             {!useLocalWhisper && (
-              <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                <h4 className="font-medium text-blue-900">OpenAI-Compatible Cloud Setup</h4>
+              <div className="space-y-4 p-4 bg-secondary border border-border rounded-xl">
+                <h4 className="font-medium text-foreground">OpenAI-Compatible Cloud Setup</h4>
                 <ApiKeyInput
                   apiKey={openaiApiKey}
                   setApiKey={setOpenaiApiKey}
@@ -720,7 +718,7 @@ export default function SettingsPage({
                         href="https://platform.openai.com"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 underline"
+                        className="text-primary underline"
                       >
                         Get an API key
                       </a>
@@ -729,7 +727,7 @@ export default function SettingsPage({
                   }
                 />
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-blue-900">
+                  <label className="block text-sm font-medium text-foreground">
                     Custom Base URL (optional)
                   </label>
                   <Input
@@ -748,7 +746,7 @@ export default function SettingsPage({
                       Reset to Default
                     </Button>
                   </div>
-                  <p className="text-xs text-blue-800">
+                  <p className="text-xs text-muted-foreground">
                     Requests for cloud transcription use this OpenAI-compatible base URL. Leave empty to fall back to
                     <code className="ml-1">{API_ENDPOINTS.TRANSCRIPTION_BASE}</code>.
                   </p>
@@ -757,76 +755,76 @@ export default function SettingsPage({
             )}
 
             {useLocalWhisper && whisperHook.whisperInstalled && (
-            <div className="space-y-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
-              <h4 className="font-medium text-purple-900">
-                Local Whisper Model
-              </h4>
-              <WhisperModelPicker
-                selectedModel={whisperModel}
-                onModelSelect={setWhisperModel}
-                variant="settings"
+              <div className="space-y-4 p-4 bg-secondary border border-border rounded-xl">
+                <h4 className="font-medium text-foreground">
+                  Local Whisper Model
+                </h4>
+                <WhisperModelPicker
+                  selectedModel={whisperModel}
+                  onModelSelect={setWhisperModel}
+                  variant="settings"
+                />
+              </div>
+            )}
+
+            <div className="space-y-4 p-4 bg-card border border-border rounded-xl">
+              <h4 className="font-medium text-foreground">Preferred Language</h4>
+              <LanguageSelector
+                value={preferredLanguage}
+                onChange={(value) => {
+                  setPreferredLanguage(value);
+                  updateTranscriptionSettings({ preferredLanguage: value });
+                }}
+                className="w-full"
               />
             </div>
-          )}
 
-          <div className="space-y-4 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-            <h4 className="font-medium text-gray-900">Preferred Language</h4>
-            <LanguageSelector
-              value={preferredLanguage}
-              onChange={(value) => {
-                setPreferredLanguage(value);
-                updateTranscriptionSettings({ preferredLanguage: value });
+            <Button
+              onClick={() => {
+                const normalizedTranscriptionBase = (cloudTranscriptionBaseUrl || '').trim();
+                setCloudTranscriptionBaseUrl(normalizedTranscriptionBase);
+
+                updateTranscriptionSettings({
+                  useLocalWhisper,
+                  whisperModel,
+                  preferredLanguage,
+                  cloudTranscriptionBaseUrl: normalizedTranscriptionBase,
+                });
+
+                if (!useLocalWhisper && openaiApiKey.trim()) {
+                  updateApiKeys({ openaiApiKey });
+                }
+
+                const descriptionParts = [
+                  `Transcription mode: ${useLocalWhisper ? 'Local Whisper' : 'Cloud'}.`,
+                  `Language: ${preferredLanguage}.`,
+                ];
+
+                if (!useLocalWhisper) {
+                  const baseLabel = normalizedTranscriptionBase || API_ENDPOINTS.TRANSCRIPTION_BASE;
+                  descriptionParts.push(`Endpoint: ${baseLabel}.`);
+                }
+
+                showAlertDialog({
+                  title: "Settings Saved",
+                  description: descriptionParts.join(' '),
+                });
               }}
               className="w-full"
-            />
+            >
+              Save Transcription Settings
+            </Button>
           </div>
-
-          <Button
-            onClick={() => {
-              const normalizedTranscriptionBase = (cloudTranscriptionBaseUrl || '').trim();
-              setCloudTranscriptionBaseUrl(normalizedTranscriptionBase);
-
-              updateTranscriptionSettings({
-                useLocalWhisper,
-                whisperModel,
-                preferredLanguage,
-                cloudTranscriptionBaseUrl: normalizedTranscriptionBase,
-              });
-
-              if (!useLocalWhisper && openaiApiKey.trim()) {
-                updateApiKeys({ openaiApiKey });
-              }
-
-              const descriptionParts = [
-                `Transcription mode: ${useLocalWhisper ? 'Local Whisper' : 'Cloud'}.`,
-                `Language: ${preferredLanguage}.`,
-              ];
-
-              if (!useLocalWhisper) {
-                const baseLabel = normalizedTranscriptionBase || API_ENDPOINTS.TRANSCRIPTION_BASE;
-                descriptionParts.push(`Endpoint: ${baseLabel}.`);
-              }
-
-              showAlertDialog({
-                title: "Settings Saved",
-                description: descriptionParts.join(' '),
-              });
-            }}
-            className="w-full"
-          >
-            Save Transcription Settings
-          </Button>
-        </div>
-      );
+        );
 
       case "aiModels":
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 AI Text Enhancement
               </h3>
-              <p className="text-sm text-gray-600 mb-6">
+              <p className="text-sm text-muted-foreground mb-6">
                 Configure how AI models clean up and format your transcriptions.
                 This handles commands like "scratch that", creates proper lists,
                 and fixes obvious errors while preserving your natural tone.
@@ -865,20 +863,20 @@ export default function SettingsPage({
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 Agent Configuration
               </h3>
-              <p className="text-sm text-gray-600 mb-6">
+              <p className="text-sm text-muted-foreground mb-6">
                 Customize your AI assistant's name and behavior to make
                 interactions more personal and effective.
               </p>
             </div>
 
-            <div className="space-y-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl">
-              <h4 className="font-medium text-purple-900 mb-3">
+            <div className="space-y-4 p-4 bg-primary/10 border border-primary/20 rounded-xl">
+              <h4 className="font-medium text-primary mb-3">
                 💡 How to use agent names:
               </h4>
-              <ul className="text-sm text-purple-800 space-y-2">
+              <ul className="text-sm text-primary/80 space-y-2">
                 <li>
                   • Say "Hey {agentName}, write a formal email" for specific
                   instructions
@@ -898,8 +896,8 @@ export default function SettingsPage({
               </ul>
             </div>
 
-            <div className="space-y-4 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-              <h4 className="font-medium text-gray-900">Current Agent Name</h4>
+            <div className="space-y-4 p-4 bg-card border border-border rounded-xl">
+              <h4 className="font-medium text-foreground">Current Agent Name</h4>
               <div className="flex gap-3">
                 <Input
                   placeholder="e.g., Assistant, Jarvis, Alex..."
@@ -925,11 +923,11 @@ export default function SettingsPage({
               </p>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium text-blue-900 mb-2">
+            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
+              <h4 className="font-medium text-primary mb-2">
                 🎯 Example Usage:
               </h4>
-              <div className="text-sm text-blue-800 space-y-1">
+              <div className="text-sm text-primary/80 space-y-1">
                 <p>
                   • "Hey {agentName}, write an email to my team about the
                   meeting"
@@ -953,15 +951,15 @@ export default function SettingsPage({
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 AI Prompt Management
               </h3>
-              <p className="text-sm text-gray-600 mb-6">
-                View and customize the prompts that power OpenWhispr's AI text processing. 
+              <p className="text-sm text-muted-foreground mb-6">
+                View and customize the prompts that power OpenWhispr's AI text processing.
                 Adjust these to change how your transcriptions are formatted and enhanced.
               </p>
             </div>
-            
+
             <PromptStudio />
           </div>
         );
@@ -988,7 +986,7 @@ export default function SettingsPage({
         onOpenChange={(open) => !open && hideAlertDialog()}
         title={alertDialog.title}
         description={alertDialog.description}
-        onOk={() => {}}
+        onOk={() => { }}
       />
 
       {renderSectionContent()}

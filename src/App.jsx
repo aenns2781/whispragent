@@ -11,15 +11,15 @@ const SoundWaveIcon = ({ size = 16 }) => {
   return (
     <div className="flex items-center justify-center gap-1">
       <div
-        className={`bg-white rounded-full`}
+        className={`bg-foreground rounded-full`}
         style={{ width: size * 0.25, height: size * 0.6 }}
       ></div>
       <div
-        className={`bg-white rounded-full`}
+        className={`bg-foreground rounded-full`}
         style={{ width: size * 0.25, height: size }}
       ></div>
       <div
-        className={`bg-white rounded-full`}
+        className={`bg-foreground rounded-full`}
         style={{ width: size * 0.25, height: size * 0.6 }}
       ></div>
     </div>
@@ -33,9 +33,8 @@ const VoiceWaveIndicator = ({ isListening }) => {
       {[...Array(4)].map((_, i) => (
         <div
           key={i}
-          className={`w-0.5 bg-white rounded-full transition-all duration-150 ${
-            isListening ? "animate-pulse h-4" : "h-2"
-          }`}
+          className={`w-0.5 bg-foreground rounded-full transition-all duration-150 ${isListening ? "animate-pulse h-4" : "h-2"
+            }`}
           style={{
             animationDelay: isListening ? `${i * 0.1}s` : "0s",
             animationDuration: isListening ? `${0.6 + i * 0.1}s` : "0s",
@@ -60,12 +59,12 @@ const Tooltip = ({ children, content, emoji }) => {
       </div>
       {isVisible && (
         <div
-          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-1 py-1 text-white bg-gradient-to-r from-neutral-800 to-neutral-700 rounded-md whitespace-nowrap z-10 transition-opacity duration-150"
+          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-1 py-1 text-popover-foreground bg-popover border border-border rounded-md whitespace-nowrap z-10 transition-opacity duration-150"
           style={{ fontSize: "9.7px" }}
         >
           {emoji && <span className="mr-1">{emoji}</span>}
           {content}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-neutral-800"></div>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-popover"></div>
         </div>
       )}
     </div>
@@ -389,22 +388,22 @@ export default function App() {
     switch (micState) {
       case "idle":
         return {
-          className: `${baseClasses} bg-black/50 cursor-pointer`,
+          className: `${baseClasses} bg-background/80 backdrop-blur-sm cursor-pointer`,
           tooltip: `Press [${hotkey}] to speak`,
         };
       case "hover":
         return {
-          className: `${baseClasses} bg-black/50 cursor-pointer`,
+          className: `${baseClasses} bg-background/80 backdrop-blur-sm cursor-pointer`,
           tooltip: `Press [${hotkey}] to speak`,
         };
       case "recording":
         return {
-          className: `${baseClasses} bg-blue-600 cursor-pointer`,
+          className: `${baseClasses} bg-primary cursor-pointer`,
           tooltip: "Recording...",
         };
       case "processing":
         return {
-          className: `${baseClasses} bg-purple-600 cursor-not-allowed`,
+          className: `${baseClasses} bg-primary/80 cursor-not-allowed`,
           tooltip: "Processing...",
         };
       default:
@@ -436,7 +435,7 @@ export default function App() {
                 if (dragStartPos && !hasDragged) {
                   const distance = Math.sqrt(
                     Math.pow(e.clientX - dragStartPos.x, 2) +
-                      Math.pow(e.clientY - dragStartPos.y, 2)
+                    Math.pow(e.clientY - dragStartPos.y, 2)
                   );
                   if (distance > 5) {
                     // 5px threshold for drag
@@ -481,8 +480,8 @@ export default function App() {
                   micState === "processing"
                     ? "not-allowed !important"
                     : isDragging
-                    ? "grabbing !important"
-                    : "pointer !important",
+                      ? "grabbing !important"
+                      : "pointer !important",
                 transition:
                   "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease-out",
               }}
@@ -511,19 +510,19 @@ export default function App() {
 
               {/* State indicator ring for recording */}
               {micState === "recording" && (
-                <div className="absolute inset-0 rounded-full border-2 border-blue-300 animate-pulse"></div>
+                <div className="absolute inset-0 rounded-full border-2 border-primary animate-pulse"></div>
               )}
 
               {/* State indicator ring for processing */}
               {micState === "processing" && (
-                <div className="absolute inset-0 rounded-full border-2 border-purple-300 opacity-50"></div>
+                <div className="absolute inset-0 rounded-full border-2 border-primary opacity-50"></div>
               )}
             </button>
           </Tooltip>
           {isCommandMenuOpen && (
             <div
               ref={commandMenuRef}
-              className="absolute bottom-full right-0 mb-3 w-48 rounded-lg border border-white/10 bg-neutral-900/95 text-white shadow-lg backdrop-blur-sm"
+              className="absolute bottom-full right-0 mb-3 w-48 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg backdrop-blur-sm"
               onMouseEnter={() => {
                 setWindowInteractivity(true);
               }}
@@ -534,21 +533,21 @@ export default function App() {
               }}
             >
               <button
-                className="w-full px-3 py-2 text-left text-sm font-medium hover:bg-white/10 focus:bg-white/10 focus:outline-none"
+                className="w-full px-3 py-2 text-left text-sm font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
                 onClick={() => {
                   toggleListening();
                 }}
               >
                 {isRecording ? "Stop listening" : "Start listening"}
               </button>
-              <div className="h-px bg-white/10" />
+              <div className="h-px bg-border" />
               <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-white/10 focus:bg-white/10 focus:outline-none"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
                 onClick={() => {
-                setIsCommandMenuOpen(false);
-                setWindowInteractivity(false);
-                handleClose();
-              }}
+                  setIsCommandMenuOpen(false);
+                  setWindowInteractivity(false);
+                  handleClose();
+                }}
               >
                 Hide this for now
               </button>

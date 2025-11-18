@@ -1,6 +1,6 @@
 {
-  "appId": "com.herotools.openwispr",
-  "productName": "OpenWhispr",
+  "appId": "ai.tribe.whisper",
+  "productName": "Tribe Whisper",
   "directories": {
     "output": "dist"
   },
@@ -60,8 +60,8 @@
     "entitlementsInherit": "resources/entitlements.mac.plist",
     "extendInfo": {
       "LSUIElement": false,
-      "NSMicrophoneUsageDescription": "OpenWhispr needs microphone access for speech-to-text transcription.",
-      "NSAccessibilityUsageDescription": "OpenWhispr needs accessibility permissions to paste transcribed text into other applications."
+      "NSMicrophoneUsageDescription": "Tribe Whisper needs microphone access for speech-to-text transcription.",
+      "NSAccessibilityUsageDescription": "Tribe Whisper needs accessibility permissions to paste transcribed text into other applications."
     }
   },
   "win": {
@@ -112,7 +112,7 @@
     "include": "resources/nsis/cleanup-models.nsh"
   },
   "dmg": {
-    "title": "OpenWhispr",
+    "title": "Tribe Whisper",
     "icon": "src/assets/icon.icns",
     "background": "src/assets/dmg-background.png",
     "window": {

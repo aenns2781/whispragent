@@ -25,16 +25,16 @@ export default function ApiKeyInput({
   const { pasteFromClipboardWithFallback } = useClipboard();
 
   const variantClasses =
-    variant === "purple" ? "border-purple-300 focus:border-purple-500" : "";
+    variant === "purple" ? "border-primary focus:border-primary" : "";
 
   const buttonVariantClasses =
     variant === "purple"
-      ? "border-purple-300 text-purple-700 hover:bg-purple-50"
+      ? "border-primary text-primary hover:bg-primary/10"
       : "";
 
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-neutral-700 mb-2">
+      <label className="block text-sm font-medium text-foreground mb-2">
         {label}
       </label>
       <div className="flex gap-3">
@@ -54,7 +54,7 @@ export default function ApiKeyInput({
         </Button>
       </div>
       {helpText && (
-        <p className="text-xs text-neutral-600 mt-2">{helpText}</p>
+        <p className="text-xs text-muted-foreground mt-2">{helpText}</p>
       )}
     </div>
   );

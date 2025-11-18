@@ -1,7 +1,7 @@
 {
-  "name": "open-whispr",
+  "name": "tribe-whisper",
   "version": "1.0.12",
-  "description": "A desktop dictation application using OpenAI Whisper for speech-to-text transcription",
+  "description": "A desktop dictation application for Tribe AI using OpenAI Whisper",
   "main": "main.js",
   "private": true,
   "scripts": {

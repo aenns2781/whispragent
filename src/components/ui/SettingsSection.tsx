@@ -16,9 +16,9 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   return (
     <div className={`space-y-4 ${className}`}>
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
         {description && (
-          <p className="text-sm text-gray-600 mb-4">{description}</p>
+          <p className="text-sm text-muted-foreground mb-4">{description}</p>
         )}
       </div>
       {children}
@@ -39,15 +39,15 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
   variant = "default",
   className = "",
 }) => {
-  const baseClasses = "space-y-4 p-4 rounded-xl border";
+  const baseClasses = "rounded-xl border p-4";
   const variantClasses = {
-    default: "bg-gray-50 border-gray-200",
-    highlighted: "bg-blue-50 border-blue-200",
+    default: "bg-card border-border",
+    highlighted: "bg-secondary border-border",
   };
 
   return (
     <div className={`${baseClasses} ${variantClasses[variant]} ${className}`}>
-      {title && <h4 className="font-medium text-gray-900">{title}</h4>}
+      {title && <h4 className="font-medium text-foreground">{title}</h4>}
       {children}
     </div>
   );

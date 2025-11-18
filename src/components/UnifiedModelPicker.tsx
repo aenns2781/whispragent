@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { Alert, AlertDescription } from "./ui/alert";
-import { 
-  RefreshCw, 
-  Download, 
-  Trash2, 
+import {
+  RefreshCw,
+  Download,
+  Trash2,
   AlertCircle,
   ExternalLink,
-  Globe 
+  Globe
 } from "lucide-react";
 import { useDialogs } from "../hooks/useDialogs";
 import { useToast } from "./ui/Toast";
@@ -47,47 +47,47 @@ interface UnifiedModelPickerProps {
 
 const VARIANT_STYLES = {
   onboarding: {
-    container: "bg-gray-50 p-4 rounded-lg",
-    progress: "bg-blue-50 border-b border-blue-200",
-    progressText: "text-blue-900",
-    progressBar: "bg-blue-200",
-    progressFill: "bg-gradient-to-r from-blue-500 to-blue-600",
-    header: "font-medium text-gray-900 mb-3",
+    container: "bg-card p-4 rounded-lg border border-border",
+    progress: "bg-secondary border-b border-border",
+    progressText: "text-foreground",
+    progressBar: "bg-secondary",
+    progressFill: "bg-primary",
+    header: "font-medium text-foreground mb-3",
     modelCard: {
-      selected: "border-blue-500 bg-blue-50",
-      default: "border-gray-200 bg-white hover:border-gray-300",
+      selected: "border-primary bg-primary/10",
+      default: "border-border bg-card hover:border-primary/50",
     },
     badges: {
-      selected: "text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full font-medium",
-      downloaded: "text-xs text-green-600 bg-green-100 px-2 py-1 rounded",
+      selected: "text-xs text-primary bg-primary/10 px-2 py-1 rounded-full font-medium",
+      downloaded: "text-xs text-green-500 bg-green-500/10 px-2 py-1 rounded",
     },
     buttons: {
-      download: "bg-blue-600 hover:bg-blue-700",
-      select: "border-gray-300 text-gray-700 hover:bg-gray-50",
-      delete: "text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200",
-      refresh: "border-gray-300 text-gray-700 hover:bg-gray-50",
+      download: "bg-primary hover:bg-primary/90 text-primary-foreground",
+      select: "border-border text-foreground hover:bg-secondary",
+      delete: "text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20",
+      refresh: "border-border text-foreground hover:bg-secondary",
     },
   },
   settings: {
-    container: "bg-white border border-purple-200 rounded-lg overflow-hidden",
-    progress: "bg-purple-50 border-b border-purple-200",
-    progressText: "text-purple-900",
-    progressBar: "bg-purple-200",
-    progressFill: "bg-gradient-to-r from-purple-500 to-purple-600",
-    header: "font-medium text-purple-900",
+    container: "bg-card border border-border rounded-lg overflow-hidden",
+    progress: "bg-secondary border-b border-border",
+    progressText: "text-foreground",
+    progressBar: "bg-secondary",
+    progressFill: "bg-primary",
+    header: "font-medium text-foreground",
     modelCard: {
-      selected: "border-purple-500 bg-purple-50",
-      default: "border-purple-200 bg-white hover:border-purple-300",
+      selected: "border-primary bg-primary/10",
+      default: "border-border bg-card hover:border-primary/50",
     },
     badges: {
-      selected: "text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full font-medium",
-      downloaded: "text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded-md",
+      selected: "text-xs text-primary bg-primary/10 px-2 py-1 rounded-full font-medium",
+      downloaded: "text-xs text-green-500 bg-green-500/10 px-2 py-1 rounded-md",
     },
     buttons: {
-      download: "bg-purple-600 hover:bg-purple-700",
-      select: "border-purple-300 text-purple-700 hover:bg-purple-50",
-      delete: "text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200",
-      refresh: "border-purple-300 text-purple-700 hover:bg-purple-50",
+      download: "bg-primary hover:bg-primary/90 text-primary-foreground",
+      select: "border-primary text-primary hover:bg-primary/10",
+      delete: "text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20",
+      refresh: "border-primary text-primary hover:bg-primary/10",
     },
   },
 };
@@ -117,11 +117,10 @@ export function UnifiedModelPickerCompact({
         <button
           key={model.value}
           onClick={() => onModelSelect(model.value)}
-          className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-            selectedModel === model.value
-              ? 'border-indigo-500 bg-indigo-50'
-              : 'border-gray-200 bg-white hover:border-gray-300'
-          }`}
+          className={`w-full p-3 rounded-lg border-2 text-left transition-all ${selectedModel === model.value
+            ? 'border-primary bg-primary/10'
+            : 'border-border bg-card hover:border-primary/50'
+            }`}
         >
           <div className="flex items-center justify-between">
             <div>
@@ -129,16 +128,16 @@ export function UnifiedModelPickerCompact({
                 {model.icon ? (
                   <img src={model.icon} alt="" className="w-4 h-4" aria-hidden="true" />
                 ) : (
-                  <Globe className="w-4 h-4 text-gray-400" aria-hidden="true" />
+                  <Globe className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
                 )}
-                <span className="font-medium text-gray-900">{model.label}</span>
+                <span className="font-medium text-foreground">{model.label}</span>
               </div>
               {model.description && (
-                <div className="text-xs text-gray-600 mt-1">{model.description}</div>
+                <div className="text-xs text-muted-foreground mt-1">{model.description}</div>
               )}
             </div>
             {selectedModel === model.value && (
-              <span className="text-xs text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full font-medium">
+              <span className="text-xs text-primary bg-primary/10 px-2 py-1 rounded-full font-medium">
                 ✓ Selected
               </span>
             )}
@@ -202,7 +201,7 @@ export default function UnifiedModelPicker({
   const loadModels = useCallback(async () => {
     try {
       setLoadingModels(true);
-      
+
       if (modelType === 'whisper') {
         const result = await window.electronAPI.listWhisperModels();
         if (result.success) {
@@ -211,14 +210,14 @@ export default function UnifiedModelPicker({
             id: m.model,
             name: m.model.charAt(0).toUpperCase() + m.model.slice(1),
             size: m.size_mb ? `${m.size_mb}MB` : 'Unknown',
-            description: {
+            description: ({
               tiny: "Fastest, lower quality",
               base: "Good balance (recommended)",
               small: "Better quality, slower",
               medium: "High quality",
               large: "Best quality, slowest",
               turbo: "Fast with good quality"
-            }[m.model] || "Model",
+            } as Record<string, string>)[m.model] || "Model",
             type: 'whisper' as const,
             isDownloaded: m.downloaded,
             recommended: m.model === 'base'
@@ -229,13 +228,13 @@ export default function UnifiedModelPicker({
         console.log('[UnifiedModelPicker] Loading LLM models...');
         const result = await window.electronAPI.modelGetAll();
         console.log('[UnifiedModelPicker] Got result:', result);
-        
+
         if (!result || !Array.isArray(result)) {
           console.error('[UnifiedModelPicker] Invalid result format:', result);
           setModels([]);
           return;
         }
-        
+
         const llmModels: Model[] = result.map((m: any) => ({
           ...m,
           type: 'llm' as const,
@@ -324,7 +323,7 @@ export default function UnifiedModelPicker({
       } else {
         await window.electronAPI.modelDownload(modelId);
       }
-      
+
       await loadModels();
     } catch (error: any) {
       if (!error.toString().includes("interrupted by user")) {
@@ -478,9 +477,8 @@ export default function UnifiedModelPicker({
             return (
               <div
                 key={modelId}
-                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
-                  isSelected ? styles.modelCard.selected : styles.modelCard.default
-                }`}
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all ${isSelected ? styles.modelCard.selected : styles.modelCard.default
+                  }`}
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">

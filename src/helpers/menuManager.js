@@ -5,7 +5,7 @@ class MenuManager {
     if (process.platform === "darwin") {
       const template = [
         {
-          label: "OpenWhispr",
+          label: "Tribe Whisper",
           submenu: [
             { role: "about" },
             { type: "separator" },
@@ -15,7 +15,7 @@ class MenuManager {
             { role: "hideOthers" },
             { role: "unhide" },
             { type: "separator" },
-            { role: "quit", label: "Quit OpenWhispr" },
+            { role: "quit", label: "Quit Tribe Whisper" },
           ],
         },
       ];
@@ -29,7 +29,7 @@ class MenuManager {
       // On macOS, create a proper application menu
       const template = [
         {
-          label: "OpenWhispr",
+          label: "Tribe Whisper",
           submenu: [
             { role: "about" },
             { type: "separator" },
@@ -39,7 +39,7 @@ class MenuManager {
             { role: "hideOthers" },
             { role: "unhide" },
             { type: "separator" },
-            { role: "quit", label: "Quit OpenWhispr" },
+            { role: "quit", label: "Quit Tribe Whisper" },
           ],
         },
         {
@@ -102,7 +102,7 @@ class MenuManager {
           ],
         },
       ];
-      
+
       const menu = Menu.buildFromTemplate(template);
       Menu.setApplicationMenu(menu);
     } else {
@@ -140,7 +140,7 @@ class MenuManager {
           ],
         },
       ];
-      
+
       const menu = Menu.buildFromTemplate(template);
       controlPanelWindow.setMenu(menu);
     }

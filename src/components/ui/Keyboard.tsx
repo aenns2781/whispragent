@@ -36,14 +36,13 @@ const Key: React.FC<KeyProps> = ({ keyValue, isSelected, onClick, width = "w-12"
         ${isPressed ? 'translate-y-1 shadow-inner' : 'translate-y-0 shadow-lg'}
         hover:translate-y-0.5 hover:shadow-md
         focus:outline-none focus:ring-2 focus:ring-indigo-300
-        ${
-          isSelected
-            ? 'bg-indigo-500 text-white border-2 border-indigo-600'
-            : disabled
-            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            : 'bg-white text-gray-800 border-2 border-gray-300 hover:border-gray-400'
+        ${isSelected
+          ? 'bg-primary text-primary-foreground border-2 border-primary'
+          : disabled
+            ? 'bg-muted text-muted-foreground cursor-not-allowed'
+            : 'bg-card text-foreground border-2 border-border hover:border-primary/50'
         }
-        ${isPressed ? 'bg-gray-100' : ''}
+        ${isPressed ? 'bg-accent' : ''}
       `}
     >
       {displayValue ?? (keyValue === 'Space' ? '' : keyValue)}
@@ -55,13 +54,13 @@ export default function Keyboard({ selectedKey, setSelectedKey }: KeyboardProps)
   const isMac = typeof navigator !== "undefined" && /Mac|Darwin/.test(navigator.platform);
   const canUseGlobe = isMac;
   const functionKeys = ['Esc', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'];
-  
+
   const numberRow = ['`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='];
-  
+
   const qwertyRow = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\'];
-  
+
   const asdfRow = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'"];
-  
+
   const zxcvRow = ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/'];
 
   const handleKeyClick = (key: string) => {
@@ -75,7 +74,7 @@ export default function Keyboard({ selectedKey, setSelectedKey }: KeyboardProps)
   }, [canUseGlobe, selectedKey, setSelectedKey]);
 
   return (
-    <div className="p-6 bg-gradient-to-b from-gray-100 to-gray-200 rounded-2xl shadow-2xl border border-gray-300">
+    <div className="p-6 bg-secondary/30 rounded-2xl shadow-2xl border border-border">
       {/* Function Keys Row */}
       <div className="flex justify-center gap-2 mb-4">
         {functionKeys.map((key) => (
@@ -201,7 +200,7 @@ export default function Keyboard({ selectedKey, setSelectedKey }: KeyboardProps)
             keyValue="Globe"
             displayValue={<span role="img" aria-label="Globe">🌐</span>}
             isSelected={false}
-            onClick={() => {}}
+            onClick={() => { }}
             width="w-16"
             disabled
           />
@@ -238,9 +237,9 @@ export default function Keyboard({ selectedKey, setSelectedKey }: KeyboardProps)
       {/* Selected Key Display */}
       {selectedKey && (
         <div className="mt-6 text-center">
-          <div className="inline-flex items-center px-4 py-2 bg-indigo-100 border-2 border-indigo-300 rounded-lg">
-            <span className="text-sm text-indigo-700 mr-2">Selected:</span>
-            <kbd className="px-3 py-1 bg-white border border-indigo-200 rounded font-mono text-lg font-semibold text-indigo-900">
+          <div className="inline-flex items-center px-4 py-2 bg-primary/10 border-2 border-primary/30 rounded-lg">
+            <span className="text-sm text-primary mr-2">Selected:</span>
+            <kbd className="px-3 py-1 bg-card border border-border rounded font-mono text-lg font-semibold text-foreground">
               {formatHotkeyLabel(selectedKey)}
             </kbd>
           </div>

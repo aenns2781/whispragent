@@ -217,17 +217,17 @@ class ClipboardManager {
     // Define paste tools in preference order based on display server
     const candidates = isWayland
       ? [
-          // Wayland tools
-          { cmd: "wtype", args: ["-M", "ctrl", "-p", "v", "-m", "ctrl"] },
-          // ydotool requires uinput permissions but included as fallback
-          { cmd: "ydotool", args: ["key", "29:1", "47:1", "47:0", "29:0"] },
-          // X11 fallback for XWayland
-          { cmd: "xdotool", args: ["key", "ctrl+v"] },
-        ]
+        // Wayland tools
+        { cmd: "wtype", args: ["-M", "ctrl", "-p", "v", "-m", "ctrl"] },
+        // ydotool requires uinput permissions but included as fallback
+        { cmd: "ydotool", args: ["key", "29:1", "47:1", "47:0", "29:0"] },
+        // X11 fallback for XWayland
+        { cmd: "xdotool", args: ["key", "ctrl+v"] },
+      ]
       : [
-          // X11 tools
-          { cmd: "xdotool", args: ["key", "ctrl+v"] },
-        ];
+        // X11 tools
+        { cmd: "xdotool", args: ["key", "ctrl+v"] },
+      ];
 
     // Filter to only available tools
     const available = candidates.filter((c) => commandExists(c.cmd));
@@ -338,17 +338,17 @@ class ClipboardManager {
 
     let dialogMessage;
     if (isStuckPermission) {
-      dialogMessage = `🔒 OpenWhispr needs Accessibility permissions, but it looks like you may have OLD PERMISSIONS from a previous version.
+      dialogMessage = `🔒 Tribe Whisper needs Accessibility permissions, but it looks like you may have OLD PERMISSIONS from a previous version.
 
-❗ COMMON ISSUE: If you've rebuilt/reinstalled OpenWhispr, the old permissions may be "stuck" and preventing new ones.
+❗ COMMON ISSUE: If you've rebuilt/reinstalled Tribe Whisper, the old permissions may be "stuck" and preventing new ones.
 
 🔧 To fix this:
 1. Open System Settings → Privacy & Security → Accessibility
-2. Look for ANY old "OpenWhispr" entries and REMOVE them (click the - button)
+2. Look for ANY old "Tribe Whisper" entries and REMOVE them (click the - button)
 3. Also remove any entries that say "Electron" or have unclear names
-4. Click the + button and manually add the NEW OpenWhispr app
+4. Click the + button and manually add the NEW Tribe Whisper app
 5. Make sure the checkbox is enabled
-6. Restart OpenWhispr
+6. Restart Tribe Whisper
 
 ⚠️ This is especially common during development when rebuilding the app.
 
@@ -356,7 +356,7 @@ class ClipboardManager {
 
 Would you like to open System Settings now?`;
     } else {
-      dialogMessage = `🔒 OpenWhispr needs Accessibility permissions to paste text into other applications.
+      dialogMessage = `🔒 Tribe Whisper needs Accessibility permissions to paste text into other applications.
 
 📋 Current status: Clipboard copy works, but pasting (Cmd+V simulation) fails.
 
@@ -364,8 +364,8 @@ Would you like to open System Settings now?`;
 1. Open System Settings (or System Preferences on older macOS)
 2. Go to Privacy & Security → Accessibility
 3. Click the lock icon and enter your password
-4. Add OpenWhispr to the list and check the box
-5. Restart OpenWhispr
+4. Add Tribe Whisper to the list and check the box
+5. Restart Tribe Whisper
 
 ⚠️ Without this permission, dictated text will only be copied to clipboard but won't paste automatically.
 

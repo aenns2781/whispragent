@@ -27,23 +27,21 @@ export default function StepProgress({
         return (
           <div key={index} className="flex">
             <div
-              className={`flex items-center gap-2 ${
-                isActive
-                  ? "text-blue-600"
+              className={`flex items-center gap-2 ${isActive
+                  ? "text-primary"
                   : isCompleted
-                  ? "text-green-600"
-                  : "text-stone-400"
-              }`}
+                    ? "text-green-600"
+                    : "text-muted-foreground"
+                }`}
               style={{ fontFamily: "Noto Sans, sans-serif" }}
             >
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center border-2 flex-shrink-0 transition-all duration-200 ${
-                  isActive
-                    ? "border-blue-600 bg-blue-50 shadow-sm"
+                className={`w-6 h-6 rounded-full flex items-center justify-center border-2 flex-shrink-0 transition-all duration-200 ${isActive
+                    ? "border-primary bg-primary/10 shadow-sm"
                     : isCompleted
-                    ? "border-green-600 bg-green-50 shadow-sm"
-                    : "border-stone-300 bg-white"
-                }`}
+                      ? "border-green-600 bg-green-500/10 shadow-sm"
+                      : "border-border bg-card"
+                  }`}
               >
                 {isCompleted ? (
                   <Check className="w-4 h-4" />
@@ -57,9 +55,8 @@ export default function StepProgress({
             </div>
             {index < steps.length - 1 && (
               <div
-                className={`flex-1 h-0.5 mx-3 rounded-full transition-colors duration-200 ${
-                  isCompleted ? "bg-green-600" : "bg-stone-300"
-                }`}
+                className={`flex-1 h-0.5 mx-3 rounded-full transition-colors duration-200 ${isCompleted ? "bg-green-600" : "bg-border"
+                  }`}
               />
             )}
           </div>

@@ -38,7 +38,7 @@ const CONTROL_PANEL_CONFIG = {
     webSecurity: false,
     spellcheck: false,
   },
-  title: "OpenWhispr Control Panel",
+  title: "Tribe Whisper Control Panel",
   resizable: true,
   show: false,
   titleBarStyle: "hiddenInset",
@@ -83,7 +83,7 @@ class WindowPositionUtil {
         skipTransformProcessType: true, // Keep Dock/Command-Tab behaviour
       });
       window.setFullScreenable(false);
-      
+
       // Ensure window level is maintained
       if (window.isVisible()) {
         window.setAlwaysOnTop(true, "floating", 1);
@@ -96,13 +96,13 @@ class WindowPositionUtil {
       // Linux and other platforms
       window.setAlwaysOnTop(true, "screen-saver");
     }
-    
+
     // Bring window to front if visible
     if (window.isVisible()) {
       window.moveTop();
     }
   }
-  
+
   static setupControlPanel(window) {
     // Control panel should behave like a normal application window
     // This is only called once during window creation

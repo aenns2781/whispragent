@@ -98,12 +98,12 @@ const ProviderIcon = ({ provider }: { provider: string }) => {
       default: return <Brain className={iconClass} />;
     }
   };
-  
+
   // Try to load SVG if it exists and we haven't had an error
   if (!svgError) {
     return (
       <>
-        <img 
+        <img
           src={`/assets/icons/providers/${provider}.svg`}
           alt={`${provider} icon`}
           className={iconClass}
@@ -114,7 +114,7 @@ const ProviderIcon = ({ provider }: { provider: string }) => {
       </>
     );
   }
-  
+
   return getFallbackIcon();
 };
 
@@ -256,8 +256,8 @@ export default function AIModelSelectorEnhanced({
         const rawModels = Array.isArray(payload?.data)
           ? payload.data
           : Array.isArray(payload?.models)
-          ? payload.models
-          : [];
+            ? payload.models
+            : [];
 
         const mappedModels = (rawModels as Array<any>)
           .map((item) => {
@@ -395,11 +395,11 @@ export default function AIModelSelectorEnhanced({
       setSelectedMode('cloud');
       setSelectedCloudProvider(localReasoningProvider);
     }
-    
+
     // Check downloaded models
     checkDownloadedModels();
   }, []);
-  
+
   useEffect(() => {
     if (selectedCloudProvider !== 'custom') {
       return;
@@ -437,7 +437,7 @@ export default function AIModelSelectorEnhanced({
       console.error('Failed to check downloaded models:', error);
     }
   };
-  
+
   // Handle model download with minimal code
   const downloadModel = async (modelId: string) => {
     setDownloadingModel(modelId);
@@ -454,7 +454,7 @@ export default function AIModelSelectorEnhanced({
 
   const handleModeChange = async (newMode: 'cloud' | 'local') => {
     setSelectedMode(newMode);
-    
+
     if (newMode === 'cloud') {
       // Switch to cloud mode
       setLocalReasoningProvider(selectedCloudProvider);
@@ -473,14 +473,14 @@ export default function AIModelSelectorEnhanced({
       }
 
       const provider = REASONING_PROVIDERS[selectedCloudProvider as keyof typeof REASONING_PROVIDERS];
-      if (provider?.models?.length > 0) {
+      if (provider?.models && provider.models.length > 0) {
         setReasoningModel(provider.models[0].value);
       }
     } else {
       // Switch to local mode
       setLocalReasoningProvider(selectedLocalProvider);
       const provider = modelRegistry.getProvider(selectedLocalProvider);
-      if (provider?.models?.length > 0) {
+      if (provider?.models && provider.models.length > 0) {
         setReasoningModel(provider.models[0].id);
       }
     }
@@ -489,7 +489,7 @@ export default function AIModelSelectorEnhanced({
   const handleCloudProviderChange = (provider: string) => {
     setSelectedCloudProvider(provider);
     setLocalReasoningProvider(provider);
-    
+
     // Update model to first available
     if (provider === 'custom') {
       setCustomBaseInput(cloudReasoningBaseUrl);
@@ -515,7 +515,7 @@ export default function AIModelSelectorEnhanced({
     setLocalReasoningProvider(provider);
     // Update model to first available
     const providerData = modelRegistry.getProvider(provider);
-    if (providerData?.models?.length > 0) {
+    if (providerData?.models && providerData.models.length > 0) {
       setReasoningModel(providerData.models[0].id);
     }
   };
@@ -523,7 +523,7 @@ export default function AIModelSelectorEnhanced({
   const getProviderColor = (provider: string) => {
     const colors: Record<string, string> = {
       'openai': 'green',
-      'anthropic': 'purple', 
+      'anthropic': 'purple',
       'gemini': 'blue',
       'qwen': 'indigo',
       'mistral': 'orange',
@@ -537,381 +537,371 @@ export default function AIModelSelectorEnhanced({
   return (
     <div className="space-y-6">
       {/* Title and description */}
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-        <h3 className="text-sm font-medium text-blue-800">
+      <div className="p-4 bg-secondary border border-border rounded-xl">
+        <h3 className="text-sm font-medium text-foreground">
           Agent Mode Configuration
         </h3>
-        <p className="text-xs text-blue-700 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           Configure the AI model that powers your agent mode. This is triggered when you say the agent's name, highlight text, or capture a screenshot.
         </p>
       </div>
 
       <>
-          {/* Cloud vs Local Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <button
-              onClick={() => handleModeChange('cloud')}
-              className={`p-4 border-2 rounded-xl text-left transition-all cursor-pointer ${
-                selectedMode === 'cloud'
-                  ? "border-indigo-500 bg-indigo-50"
-                  : "border-neutral-200 bg-white hover:border-neutral-300"
+        {/* Cloud vs Local Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button
+            onClick={() => handleModeChange('cloud')}
+            className={`p-4 border-2 rounded-xl text-left transition-all cursor-pointer ${selectedMode === 'cloud'
+              ? "border-primary bg-primary/10"
+              : "border-border bg-card hover:border-primary/50"
               }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <Cloud className="w-6 h-6 text-blue-600" />
-                  <h4 className="font-medium text-neutral-900">Cloud AI</h4>
-                </div>
-                <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                  Powerful
-                </span>
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <Cloud className="w-6 h-6 text-primary" />
+                <h4 className="font-medium text-foreground">Cloud AI</h4>
               </div>
-              <p className="text-sm text-neutral-600">
-                Advanced models via API. Fast and capable, requires internet.
-              </p>
-            </button>
+              <span className="text-xs text-green-500 bg-green-500/10 px-2 py-1 rounded-full">
+                Powerful
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Advanced models via API. Fast and capable, requires internet.
+            </p>
+          </button>
 
-            <button
-              onClick={() => handleModeChange('local')}
-              className={`p-4 border-2 rounded-xl text-left transition-all cursor-pointer ${
-                selectedMode === 'local'
-                  ? "border-indigo-500 bg-indigo-50"
-                  : "border-neutral-200 bg-white hover:border-neutral-300"
+          <button
+            onClick={() => handleModeChange('local')}
+            className={`p-4 border-2 rounded-xl text-left transition-all cursor-pointer ${selectedMode === 'local'
+              ? "border-primary bg-primary/10"
+              : "border-border bg-card hover:border-primary/50"
               }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <Lock className="w-6 h-6 text-purple-600" />
-                  <h4 className="font-medium text-neutral-900">Local AI</h4>
-                </div>
-                <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                  Private
-                </span>
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <Lock className="w-6 h-6 text-primary" />
+                <h4 className="font-medium text-foreground">Local AI</h4>
               </div>
-              <p className="text-sm text-neutral-600">
-                Runs on your device. Complete privacy, works offline.
-              </p>
-            </button>
-          </div>
+              <span className="text-xs text-primary bg-primary/10 px-2 py-1 rounded-full">
+                Private
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Runs on your device. Complete privacy, works offline.
+            </p>
+          </button>
+        </div>
 
-          {/* Provider Content */}
-          {selectedMode === 'cloud' ? (
-            <div className="space-y-4">
-              {/* Cloud Provider Tabs */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="flex bg-gray-50 border-b border-gray-200">
-                  {cloudProviders.map((provider) => {
-                    const isSelected = selectedCloudProvider === provider;
-                    const color = getProviderColor(provider);
-                    const providerDisplayName =
-                      provider === 'custom'
-                        ? 'Custom'
-                        : REASONING_PROVIDERS[provider as keyof typeof REASONING_PROVIDERS]?.name || provider;
-                    return (
-                      <button
-                        key={provider}
-                        onClick={() => handleCloudProviderChange(provider)}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 font-medium transition-all ${
-                          isSelected
-                            ? `text-${color}-700 border-b-2`
-                            : 'text-gray-600 hover:bg-gray-100'
+        {/* Provider Content */}
+        {selectedMode === 'cloud' ? (
+          <div className="space-y-4">
+            {/* Cloud Provider Tabs */}
+            <div className="border border-border rounded-xl overflow-hidden">
+              <div className="flex bg-secondary border-b border-border">
+                {cloudProviders.map((provider) => {
+                  const isSelected = selectedCloudProvider === provider;
+                  const providerDisplayName =
+                    provider === 'custom'
+                      ? 'Custom'
+                      : REASONING_PROVIDERS[provider as keyof typeof REASONING_PROVIDERS]?.name || provider;
+                  return (
+                    <button
+                      key={provider}
+                      onClick={() => handleCloudProviderChange(provider)}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 font-medium transition-all ${isSelected
+                        ? `text-primary border-b-2 border-primary bg-primary/5`
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                         }`}
-                        style={isSelected ? {
-                          borderBottomColor: `rgb(99 102 241)`,
-                          backgroundColor: 'rgb(238 242 255)'
-                        } : {}}
-                      >
-                        <ProviderIcon provider={provider} />
-                        <span>{providerDisplayName}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                    >
+                      <ProviderIcon provider={provider} />
+                      <span>{providerDisplayName}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                <div className="p-4">
-                  {/* Use UnifiedModelPickerCompact for cloud models */}
-                  {selectedCloudProvider === 'custom' ? (
-                    <>
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-gray-900">Endpoint Settings</h4>
-                        <Input
-                          value={customBaseInput}
-                          onChange={(event) => setCustomBaseInput(event.target.value)}
-                          placeholder="https://api.openai.com/v1"
-                          className="text-sm"
-                        />
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={handleResetCustomBase}
-                          >
-                            Reset to Default
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={handleRefreshCustomModels}
-                            disabled={customModelsLoading || (!trimmedCustomBase && !hasSavedCustomBase)}
-                          >
-                            {customModelsLoading ? 'Loading models...' : isCustomBaseDirty ? 'Apply & Refresh' : 'Refresh Models'}
-                          </Button>
-                        </div>
-                        {isCustomBaseDirty && (
-                          <p className="text-xs text-amber-600">Apply the new base URL to refresh models.</p>
-                        )}
-                        <p className="text-xs text-gray-600">
-                          We'll query <code>{hasCustomBase ? `${effectiveReasoningBase}/models` : `${defaultOpenAIBase}/models`}</code> for available models.
+              <div className="p-4">
+                {/* Use UnifiedModelPickerCompact for cloud models */}
+                {selectedCloudProvider === 'custom' ? (
+                  <>
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-foreground">Endpoint Settings</h4>
+                      <Input
+                        value={customBaseInput}
+                        onChange={(event) => setCustomBaseInput(event.target.value)}
+                        placeholder="https://api.openai.com/v1"
+                        className="text-sm"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleResetCustomBase}
+                        >
+                          Reset to Default
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleRefreshCustomModels}
+                          disabled={customModelsLoading || (!trimmedCustomBase && !hasSavedCustomBase)}
+                        >
+                          {customModelsLoading ? 'Loading models...' : isCustomBaseDirty ? 'Apply & Refresh' : 'Refresh Models'}
+                        </Button>
+                      </div>
+                      {isCustomBaseDirty && (
+                        <p className="text-xs text-amber-500">Apply the new base URL to refresh models.</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        We'll query <code>{hasCustomBase ? `${effectiveReasoningBase}/models` : `${defaultOpenAIBase}/models`}</code> for available models.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 pt-4 border-t border-border">
+                      <h4 className="font-medium text-foreground">Authentication</h4>
+                      <ApiKeyInput
+                        apiKey={openaiApiKey}
+                        setApiKey={setOpenaiApiKey}
+                        helpText="Optional. Added as a Bearer token for your custom endpoint."
+                      />
+                    </div>
+
+                    <div className="space-y-3 pt-4 border-t border-border">
+                      <h4 className="text-sm font-medium text-foreground">Available Models</h4>
+                      {!hasCustomBase && (
+                        <p className="text-xs text-amber-500">
+                          Enter a base URL to load models.
                         </p>
-                      </div>
+                      )}
+                      {hasCustomBase && (
+                        <>
+                          {customModelsLoading && (
+                            <p className="text-xs text-primary">Fetching model list...</p>
+                          )}
+                          {customModelsError && (
+                            <p className="text-xs text-destructive">{customModelsError}</p>
+                          )}
+                          {!customModelsLoading && !customModelsError && customModelOptions.length === 0 && (
+                            <p className="text-xs text-amber-500">
+                              No models returned by this endpoint.
+                            </p>
+                          )}
+                        </>
+                      )}
+                      <UnifiedModelPickerCompact
+                        models={selectedCloudModels}
+                        selectedModel={reasoningModel}
+                        onModelSelect={setReasoningModel}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-foreground">Select Model</h4>
+                      <UnifiedModelPickerCompact
+                        models={selectedCloudModels}
+                        selectedModel={reasoningModel}
+                        onModelSelect={setReasoningModel}
+                      />
+                    </div>
 
-                      <div className="space-y-3 pt-4 border-t border-gray-200">
-                        <h4 className="font-medium text-gray-900">Authentication</h4>
-                        <ApiKeyInput
-                          apiKey={openaiApiKey}
-                          setApiKey={setOpenaiApiKey}
-                          helpText="Optional. Added as a Bearer token for your custom endpoint."
-                        />
-                      </div>
+                    {/* API Key Configuration */}
+                    <div className="mt-4 pt-4 border-t border-border">
+                      {selectedCloudProvider === 'openai' && (
+                        <div className="space-y-3">
+                          <h4 className="font-medium text-foreground">API Configuration</h4>
+                          <ApiKeyInput
+                            apiKey={openaiApiKey}
+                            setApiKey={setOpenaiApiKey}
+                            helpText={
+                              <>
+                                Need an API key?{" "}
+                                <a
+                                  href="https://platform.openai.com"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary underline"
+                                >
+                                  platform.openai.com
+                                </a>
+                              </>
+                            }
+                          />
+                        </div>
+                      )}
 
-                      <div className="space-y-3 pt-4 border-t border-gray-200">
-                        <h4 className="text-sm font-medium text-gray-700">Available Models</h4>
-                        {!hasCustomBase && (
-                          <p className="text-xs text-amber-600">
-                            Enter a base URL to load models.
-                          </p>
-                        )}
-                        {hasCustomBase && (
-                          <>
-                            {customModelsLoading && (
-                              <p className="text-xs text-blue-600">Fetching model list...</p>
-                            )}
-                            {customModelsError && (
-                              <p className="text-xs text-red-600">{customModelsError}</p>
-                            )}
-                            {!customModelsLoading && !customModelsError && customModelOptions.length === 0 && (
-                              <p className="text-xs text-amber-600">
-                                No models returned by this endpoint.
-                              </p>
-                            )}
-                          </>
-                        )}
-                        <UnifiedModelPickerCompact
-                          models={selectedCloudModels}
-                          selectedModel={reasoningModel}
-                          onModelSelect={setReasoningModel}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-gray-700">Select Model</h4>
-                        <UnifiedModelPickerCompact
-                          models={selectedCloudModels}
-                          selectedModel={reasoningModel}
-                          onModelSelect={setReasoningModel}
-                        />
-                      </div>
-
-                  {/* API Key Configuration */}
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        {selectedCloudProvider === 'openai' && (
-                          <div className="space-y-3">
-                            <h4 className="font-medium text-gray-900">API Configuration</h4>
-                            <ApiKeyInput
-                              apiKey={openaiApiKey}
-                              setApiKey={setOpenaiApiKey}
-                              helpText={
-                                <>
-                                  Need an API key?{" "}
-                                  <a
-                                    href="https://platform.openai.com"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 underline"
-                                  >
-                                    platform.openai.com
-                                  </a>
-                                </>
-                              }
+                      {selectedCloudProvider === 'anthropic' && (
+                        <div className="space-y-3">
+                          <h4 className="font-medium text-foreground">API Configuration</h4>
+                          <div className="flex gap-2">
+                            <Input
+                              type="password"
+                              placeholder="sk-ant-..."
+                              value={anthropicApiKey}
+                              onChange={(e) => setAnthropicApiKey(e.target.value)}
+                              className="flex-1 text-sm"
                             />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => pasteFromClipboard(setAnthropicApiKey)}
+                            >
+                              Paste
+                            </Button>
                           </div>
-                        )}
+                          <p className="text-xs text-muted-foreground">
+                            Get your API key from console.anthropic.com
+                          </p>
+                        </div>
+                      )}
 
-                        {selectedCloudProvider === 'anthropic' && (
-                          <div className="space-y-3">
-                            <h4 className="font-medium text-gray-900">API Configuration</h4>
-                            <div className="flex gap-2">
-                              <Input
-                                type="password"
-                                placeholder="sk-ant-..."
-                                value={anthropicApiKey}
-                                onChange={(e) => setAnthropicApiKey(e.target.value)}
-                                className="flex-1 text-sm"
-                              />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => pasteFromClipboard(setAnthropicApiKey)}
-                              >
-                                Paste
-                              </Button>
-                            </div>
-                            <p className="text-xs text-gray-600">
-                              Get your API key from console.anthropic.com
-                            </p>
+                      {selectedCloudProvider === 'gemini' && (
+                        <div className="space-y-3">
+                          <h4 className="font-medium text-foreground">API Configuration</h4>
+                          <div className="flex gap-2">
+                            <Input
+                              type="password"
+                              placeholder="AIza..."
+                              value={geminiApiKey}
+                              onChange={(e) => setGeminiApiKey(e.target.value)}
+                              className="flex-1 text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => pasteFromClipboard(setGeminiApiKey)}
+                            >
+                              Paste
+                            </Button>
                           </div>
-                        )}
-
-                        {selectedCloudProvider === 'gemini' && (
-                          <div className="space-y-3">
-                            <h4 className="font-medium text-gray-900">API Configuration</h4>
-                            <div className="flex gap-2">
-                              <Input
-                                type="password"
-                                placeholder="AIza..."
-                                value={geminiApiKey}
-                                onChange={(e) => setGeminiApiKey(e.target.value)}
-                                className="flex-1 text-sm"
-                              />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => pasteFromClipboard(setGeminiApiKey)}
-                              >
-                                Paste
-                              </Button>
-                            </div>
-                            <p className="text-xs text-gray-600">
-                              Get your API key from makersuite.google.com/app/apikey
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
+                          <p className="text-xs text-muted-foreground">
+                            Get your API key from makersuite.google.com/app/apikey
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Local Provider Tabs */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="flex bg-gray-50 border-b border-gray-200 overflow-x-auto">
-                  {localProviders.map((provider) => {
-                    const isSelected = selectedLocalProvider === provider;
-                    const providerData = modelRegistry.getProvider(provider);
-                    return (
-                      <button
-                        key={provider}
-                        onClick={() => handleLocalProviderChange(provider)}
-                        className={`flex items-center justify-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${
-                          isSelected
-                            ? 'text-purple-700 border-b-2'
-                            : 'text-gray-600 hover:bg-gray-100'
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Local Provider Tabs */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="flex bg-secondary/50 border-b border-border overflow-x-auto">
+                {localProviders.map((provider) => {
+                  const isSelected = selectedLocalProvider === provider;
+                  const providerData = modelRegistry.getProvider(provider);
+                  return (
+                    <button
+                      key={provider}
+                      onClick={() => handleLocalProviderChange(provider)}
+                      className={`flex items-center justify-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${isSelected
+                        ? 'text-primary border-b-2'
+                        : 'text-muted-foreground hover:bg-secondary'
                         }`}
-                        style={isSelected ? {
-                          borderBottomColor: 'rgb(147 51 234)',
-                          backgroundColor: 'rgb(250 245 255)'
-                        } : {}}
-                      >
-                        <ProviderIcon provider={provider} />
-                        <span>{providerData?.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                      style={isSelected ? {
+                        borderBottomColor: 'rgb(147 51 234)',
+                        backgroundColor: 'rgb(250 245 255)'
+                      } : {}}
+                    >
+                      <ProviderIcon provider={provider} />
+                      <span>{providerData?.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                {/* Local Model List with Download */}
-                <div className="p-4">
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-gray-700">Available Models</h4>
-                    {(() => {
-                      const provider = modelRegistry.getProvider(selectedLocalProvider);
-                      if (!provider || !provider.models) {
-                        return <p className="text-sm text-gray-500">No models available for this provider</p>;
-                      }
-                      
-                      return (
-                        <div className="space-y-2">
-                          {provider.models.map((model) => {
-                            const isDownloaded = downloadedModels.has(model.id);
-                            const isDownloading = downloadingModel === model.id;
-                            const isSelected = reasoningModel === model.id;
-                            
-                            return (
-                              <div
-                                key={model.id}
-                                className={`p-3 rounded-lg border-2 transition-all ${
-                                  isSelected
-                                    ? 'border-purple-500 bg-purple-50'
-                                    : 'border-gray-200 bg-white hover:border-gray-300'
+              {/* Local Model List with Download */}
+              <div className="p-4">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-foreground">Available Models</h4>
+                  {(() => {
+                    const provider = modelRegistry.getProvider(selectedLocalProvider);
+                    if (!provider || !provider.models) {
+                      return <p className="text-sm text-gray-500">No models available for this provider</p>;
+                    }
+
+                    return (
+                      <div className="space-y-2">
+                        {provider.models.map((model) => {
+                          const isDownloaded = downloadedModels.has(model.id);
+                          const isDownloading = downloadingModel === model.id;
+                          const isSelected = reasoningModel === model.id;
+
+                          return (
+                            <div
+                              key={model.id}
+                              className={`p-3 rounded-lg border-2 transition-all ${isSelected
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-border bg-card hover:border-primary/50'
                                 }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex-1">
-                                    <div className="font-medium text-gray-900">{model.name}</div>
-                                    <div className="text-xs text-gray-600 mt-1">{model.description}</div>
-                                    <div className="flex items-center gap-2 mt-1">
-                                      <span className="text-xs text-gray-500">Size: {model.size}</span>
-                                      {isDownloaded && (
-                                        <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded">
-                                          <Check className="inline w-3 h-3 mr-1" />
-                                          Downloaded
-                                        </span>
-                                      )}
-                                      {model.recommended && (
-                                        <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
-                                          Recommended
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    {isDownloaded ? (
-                                      !isSelected && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => setReasoningModel(model.id)}
-                                        >
-                                          Select
-                                        </Button>
-                                      )
-                                    ) : (
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        disabled={isDownloading}
-                                        onClick={() => downloadModel(model.id)}
-                                      >
-                                        {isDownloading ? (
-                                          <>Downloading...</>
-                                        ) : (
-                                          <>
-                                            <Download className="w-3 h-3 mr-1" />
-                                            Download
-                                          </>
-                                        )}
-                                      </Button>
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-foreground">{model.name}</div>
+                                  <div className="text-xs text-muted-foreground mt-1">{model.description}</div>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-xs text-muted-foreground">Size: {model.size}</span>
+                                    {isDownloaded && (
+                                      <span className="text-xs text-green-400 bg-green-500/20 px-2 py-0.5 rounded">
+                                        <Check className="inline w-3 h-3 mr-1" />
+                                        Downloaded
+                                      </span>
+                                    )}
+                                    {model.recommended && (
+                                      <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                                        Recommended
+                                      </span>
                                     )}
                                   </div>
                                 </div>
+                                <div className="flex gap-2">
+                                  {isDownloaded ? (
+                                    !isSelected && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setReasoningModel(model.id)}
+                                      >
+                                        Select
+                                      </Button>
+                                    )
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      disabled={isDownloading}
+                                      onClick={() => downloadModel(model.id)}
+                                    >
+                                      {isDownloading ? (
+                                        <>Downloading...</>
+                                      ) : (
+                                        <>
+                                          <Download className="w-3 h-3 mr-1" />
+                                          Download
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
-                  </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
-          )}
-        </>
+          </div>
+        )}
+      </>
     </div>
   );
 }

@@ -53,18 +53,18 @@ export default function SupportDropdown({ className }: SupportDropdownProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="bg-white border border-gray-200 shadow-lg"
+        className="bg-popover border border-border shadow-lg"
       >
         <DropdownMenuItem
           onClick={handleContactSupport}
-          className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
+          className="cursor-pointer hover:bg-accent focus:bg-accent text-foreground"
         >
           <Mail className="mr-2 h-4 w-4" />
           Contact Support
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={handleSubmitBug}
-          className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
+          className="cursor-pointer hover:bg-accent focus:bg-accent text-foreground"
         >
           <Bug className="mr-2 h-4 w-4" />
           Submit Bug
