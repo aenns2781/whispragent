@@ -47,8 +47,12 @@
     ],
     "icon": "src/assets/icon.icns",
     "gatekeeperAssess": false,
-    "hardenedRuntime": false,
-    "identity": null,
+    "hardenedRuntime": true,
+    "entitlements": "resources/entitlements.mac.plist",
+    "entitlementsInherit": "resources/entitlements.mac.plist",
+    "notarize": {
+      "teamId": "U6PN5B876X"
+    },
     "extendInfo": {
       "LSUIElement": false,
       "NSMicrophoneUsageDescription": "OpenWhispr needs microphone access for speech-to-text transcription.",

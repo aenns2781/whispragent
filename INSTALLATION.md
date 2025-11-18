@@ -11,26 +11,34 @@
 2. Drag **OpenWhispr** to your **Applications** folder
 3. **Don't open it yet!**
 
-### Step 3: Bypass macOS Security (Required for unsigned apps)
+### Step 3: Bypass macOS Security (REQUIRED - App is unsigned)
 
-Since this app isn't signed with an Apple Developer certificate, macOS will block it. Choose **ONE** of these methods:
+**⚠️ IMPORTANT:** This app is **not signed or notarized** with an Apple Developer certificate ($99/year). macOS Gatekeeper will block it with a message saying **"macOS cannot verify that this app is free from malware"**.
 
-#### **Method 1: Terminal Command (Fastest)**
+**For macOS 15+ (2025):** The right-click > Open trick **NO LONGER WORKS**. You MUST use the Terminal command below.
+
+**For macOS 14 and earlier:** You can try right-clicking first, but if blocked, use the Terminal command.
+
+#### **Terminal Command (REQUIRED for macOS 15+)**
 1. Open **Terminal** (Applications > Utilities > Terminal)
-2. Paste this command and press Enter:
+2. Copy and paste this command, then press Enter:
    ```bash
-   sudo xattr -cr /Applications/OpenWhispr.app
+   sudo xattr -rd com.apple.quarantine /Applications/OpenWhispr.app
    ```
-3. Enter your Mac password (you won't see it typing - that's normal)
+3. Enter your Mac password when prompted (you won't see it typing - that's normal)
 4. Press Enter
+5. You can now open OpenWhispr normally!
 
-#### **Method 2: Right-Click (No Terminal)**
+**What this does:** Removes the "quarantine" flag that macOS adds to downloaded apps. This is safe and only affects this one app.
+
+#### **Alternative for older macOS (14 and below only)**
 1. Go to Applications folder
 2. **Right-click** (or Control+click) on **OpenWhispr**
 3. Select **"Open"** from the menu
-4. Click **"Open"** in the dialog that appears
-5. If still blocked, go to **System Settings** > **Privacy & Security**
-6. Scroll down and click **"Open Anyway"**
+4. Click **"Open"** in the dialog
+5. If still blocked: **System Settings** > **Privacy & Security** > Click **"Open Anyway"**
+
+**Note:** If you see "app is damaged" error, the right-click method won't work. Use the Terminal command above.
 
 ### Step 4: First Run Setup
 1. Open **OpenWhispr**
@@ -89,8 +97,9 @@ macOS will prompt you for these when needed.
 
 ## Troubleshooting
 
-**"App is damaged" error:**
-- Run: `sudo xattr -cr /Applications/OpenWhispr.app` in Terminal
+**"App is damaged" or "cannot verify malware" error:**
+- Run: `sudo xattr -rd com.apple.quarantine /Applications/OpenWhispr.app` in Terminal
+- This removes macOS quarantine flag and allows the app to run
 
 **No audio detected:**
 - Check microphone permissions in System Settings

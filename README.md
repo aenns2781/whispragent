@@ -2,6 +2,102 @@
 
 An open source desktop dictation application that converts speech to text using OpenAI Whisper. Features both local and cloud processing options for maximum flexibility and privacy.
 
+## 🚀 Complete Beginner's Setup Guide (Never Coded Before? Start Here!)
+
+**Welcome!** This guide will walk you through setting up OpenWhispr even if you've never used coding tools before.
+
+### Step 1: Install Required Software
+
+**Install Node.js** (this lets you run JavaScript apps):
+1. Go to https://nodejs.org/
+2. Download the "LTS" version (the green button)
+3. Run the installer and click "Next" through all steps
+4. Restart your computer after installation
+
+**Install Git** (this lets you download code from GitHub):
+1. Go to https://git-scm.com/downloads
+2. Download for your operating system (Windows/Mac/Linux)
+3. Run the installer - default settings are fine
+4. On Mac, you can also run this in Terminal: `xcode-select --install`
+
+### Step 2: Download OpenWhispr
+
+1. **Open Terminal/Command Prompt:**
+   - **Mac**: Press `Cmd + Space`, type "Terminal", press Enter
+   - **Windows**: Press `Windows + R`, type "cmd", press Enter
+   - **Linux**: Press `Ctrl + Alt + T`
+
+2. **Navigate to where you want the code:**
+   ```bash
+   cd ~/Documents  # This goes to your Documents folder
+   # Or use: cd ~/Desktop  # for Desktop
+   ```
+
+3. **Download the code:**
+   ```bash
+   git clone https://github.com/aenns2781/whispragent.git
+   ```
+
+4. **Go into the folder:**
+   ```bash
+   cd whispragent
+   ```
+
+### Step 3: Install Dependencies
+
+Still in Terminal/Command Prompt, run:
+```bash
+npm install
+```
+
+**This will take 2-3 minutes.** It's downloading all the libraries the app needs. Just wait for it to finish!
+
+### Step 4: Run the App
+
+```bash
+npm run dev
+```
+
+**That's it!** The app should open and you'll see the setup wizard. Follow the on-screen instructions to:
+- Set your hotkey (default is the backtick key: `)
+- Grant microphone permissions
+- Choose local or cloud processing
+- Name your AI agent
+
+### Step 5: Making Changes (with Claude Code)
+
+**Want to customize the app?**
+
+1. **Install Claude Code** (AI coding assistant):
+   - Download from: https://claude.ai/download
+   - Install and open it
+
+2. **Open this project in Claude Code:**
+   - In Claude Code, click "File" → "Open Folder"
+   - Find and select the `whispragent` folder
+   - Now you can ask Claude to make changes!
+
+**Example requests to Claude Code:**
+- "Change the default hotkey to F2"
+- "Make the dictation window bigger"
+- "Add a button to clear all history"
+- "Change the app colors to dark blue"
+
+3. **After making changes, restart the app:**
+   - Close the app
+   - In Terminal, press `Ctrl+C` to stop it
+   - Run `npm run dev` again to see your changes
+
+### Need Help?
+
+- **The app won't start**: Make sure you ran `npm install` first
+- **"npm: command not found"**: Restart your computer after installing Node.js
+- **"git: command not found"**: Install Git (see Step 1)
+- **Changes not showing**: Stop the app (`Ctrl+C`), then run `npm run dev` again
+- **Want to share with others**: Send them this GitHub link: https://github.com/aenns2781/whispragent
+
+---
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. This means you can freely use, modify, and distribute this software for personal or commercial purposes.
