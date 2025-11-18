@@ -33,8 +33,10 @@
     "resources/macos-globe-listener.swift",
     "resources/bin/macos-globe-listener"
   ],
+  "afterSign": "afterSign.js",
   "mac": {
     "category": "public.app-category.productivity",
+    "type": "distribution",
     "target": [
       {
         "target": "dmg",
@@ -50,9 +52,10 @@
     "hardenedRuntime": true,
     "entitlements": "resources/entitlements.mac.plist",
     "entitlementsInherit": "resources/entitlements.mac.plist",
-    "notarize": {
-      "teamId": "U6PN5B876X"
-    },
+    "signIgnore": [
+      "node_modules/better-sqlite3",
+      "node_modules/ffmpeg-static"
+    ],
     "extendInfo": {
       "LSUIElement": false,
       "NSMicrophoneUsageDescription": "OpenWhispr needs microphone access for speech-to-text transcription.",
