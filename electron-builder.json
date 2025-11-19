@@ -124,7 +124,6 @@
     "provider": "github",
     "owner": "HeroTools",
     "repo": "open-whispr",
-    "private": false,
-    "releaseType": "release"
+    "private": false
   }
 }
