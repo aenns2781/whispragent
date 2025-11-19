@@ -62,7 +62,6 @@
   }
 
   body {
-    background-color: var(--color-background);
     color: var(--color-foreground);
     margin: 0;
     padding: 0;
@@ -73,10 +72,23 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Electron specific styles */
-  html,
-  body,
-  #root {
+  /* Dictation window - transparent background */
+  body.dictation-window {
+    background: transparent;
+  }
+
+  body.dictation-window html,
+  body.dictation-window #root {
+    background: transparent;
+  }
+
+  /* Control panel - dark background */
+  body.control-panel {
+    background-color: var(--color-background);
+  }
+
+  body.control-panel html,
+  body.control-panel #root {
     background: var(--color-background);
   }
 }
@@ -178,4 +190,15 @@ a:hover {
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Window drag regions for Electron */
+.drag-region {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.no-drag-region {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }

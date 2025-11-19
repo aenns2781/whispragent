@@ -11,15 +11,15 @@ const SoundWaveIcon = ({ size = 16 }) => {
   return (
     <div className="flex items-center justify-center gap-1">
       <div
-        className={`bg-foreground rounded-full`}
+        className={`bg-white rounded-full`}
         style={{ width: size * 0.25, height: size * 0.6 }}
       ></div>
       <div
-        className={`bg-foreground rounded-full`}
+        className={`bg-white rounded-full`}
         style={{ width: size * 0.25, height: size }}
       ></div>
       <div
-        className={`bg-foreground rounded-full`}
+        className={`bg-white rounded-full`}
         style={{ width: size * 0.25, height: size * 0.6 }}
       ></div>
     </div>
@@ -33,7 +33,7 @@ const VoiceWaveIndicator = ({ isListening }) => {
       {[...Array(4)].map((_, i) => (
         <div
           key={i}
-          className={`w-0.5 bg-foreground rounded-full transition-all duration-150 ${isListening ? "animate-pulse h-4" : "h-2"
+          className={`w-0.5 bg-white rounded-full transition-all duration-150 ${isListening ? "animate-pulse h-4" : "h-2"
             }`}
           style={{
             animationDelay: isListening ? `${i * 0.1}s` : "0s",
@@ -89,6 +89,12 @@ export default function App() {
     useWindowDrag();
   const [dragStartPos, setDragStartPos] = useState(null);
   const [hasDragged, setHasDragged] = useState(false);
+
+  // Add dictation-window class to body on mount
+  useEffect(() => {
+    document.body.classList.add('dictation-window');
+    return () => document.body.classList.remove('dictation-window');
+  }, []);
 
   const setWindowInteractivity = React.useCallback((shouldCapture) => {
     window.electronAPI?.setMainWindowInteractivity?.(shouldCapture);
@@ -388,12 +394,12 @@ export default function App() {
     switch (micState) {
       case "idle":
         return {
-          className: `${baseClasses} bg-background/80 backdrop-blur-sm cursor-pointer`,
+          className: `${baseClasses} bg-transparent cursor-pointer`,
           tooltip: `Press [${hotkey}] to speak`,
         };
       case "hover":
         return {
-          className: `${baseClasses} bg-background/80 backdrop-blur-sm cursor-pointer`,
+          className: `${baseClasses} bg-white/10 backdrop-blur-sm cursor-pointer`,
           tooltip: `Press [${hotkey}] to speak`,
         };
       case "recording":
@@ -408,7 +414,7 @@ export default function App() {
         };
       default:
         return {
-          className: `${baseClasses} bg-black/50 cursor-pointer`,
+          className: `${baseClasses} bg-transparent cursor-pointer`,
           style: { transform: "scale(0.8)" },
           tooltip: "Click to speak",
         };
@@ -420,8 +426,8 @@ export default function App() {
   return (
     <>
       {/* Fixed bottom-right voice button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="relative">
+      <div className="fixed bottom-6 right-6 z-50 bg-transparent">
+        <div className="relative bg-transparent">
           <Tooltip content={micProps.tooltip}>
             <button
               ref={buttonRef}
@@ -429,6 +435,7 @@ export default function App() {
                 setIsCommandMenuOpen(false);
                 setDragStartPos({ x: e.clientX, y: e.clientY });
                 setHasDragged(false);
+                setWindowInteractivity(true); // Enable interaction for dragging
                 handleMouseDown(e);
               }}
               onMouseMove={(e) => {
@@ -446,6 +453,12 @@ export default function App() {
               onMouseUp={(e) => {
                 handleMouseUp(e);
                 setDragStartPos(null);
+                // Small delay before disabling to ensure drag completes
+                setTimeout(() => {
+                  if (!isHovered && !isCommandMenuOpen) {
+                    setWindowInteractivity(false);
+                  }
+                }, 100);
               }}
               onClick={(e) => {
                 if (!hasDragged) {
@@ -467,7 +480,8 @@ export default function App() {
               }}
               onMouseLeave={() => {
                 setIsHovered(false);
-                if (!isCommandMenuOpen) {
+                // Don't disable if we're currently dragging
+                if (!isCommandMenuOpen && !dragStartPos) {
                   setWindowInteractivity(false);
                 }
               }}

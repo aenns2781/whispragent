@@ -48,6 +48,12 @@ export default function ControlPanel() {
   );
   const [totalCount, setTotalCount] = useState<number>(0);
 
+  // Add control-panel class to body on mount
+  useEffect(() => {
+    document.body.classList.add('control-panel');
+    return () => document.body.classList.remove('control-panel');
+  }, []);
+
   const {
     confirmDialog,
     alertDialog,
