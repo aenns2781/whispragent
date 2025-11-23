@@ -1,4 +1,4 @@
-const { clipboard } = require("electron");
+const { clipboard, nativeImage } = require("electron");
 const { spawn, spawnSync, exec: execCallback } = require("child_process");
 const { promisify } = require("util");
 const exec = promisify(execCallback);
@@ -441,9 +441,26 @@ Would you like to open System Settings now?`;
     }
   }
 
-  async writeClipboard(text) {
+  async writeClipboard(data) {
     try {
-      clipboard.writeText(text);
+      // Check if data is an image data URL
+      if (typeof data === 'string' && data.startsWith('data:image/')) {
+        // Extract base64 data from data URL
+        const base64Data = data.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // Create NativeImage from buffer
+        const image = nativeImage.createFromBuffer(buffer);
+
+        // Write image to clipboard
+        clipboard.writeImage(image);
+        this.safeLog('📋 Image copied to clipboard');
+      } else {
+        // Write as text
+        clipboard.writeText(data);
+        this.safeLog('📋 Text copied to clipboard');
+      }
+
       return { success: true };
     } catch (error) {
       throw error;

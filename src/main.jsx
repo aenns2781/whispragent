@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import ControlPanel from "./components/ControlPanel.tsx";
+import ControlPanelV2 from "./components/ControlPanelV2.tsx";
 import OnboardingFlow from "./components/OnboardingFlow.tsx";
+import ImageGenerationWindow from "./components/ImageGenerationWindow.tsx";
 import { ToastProvider } from "./components/ui/Toast.tsx";
 import "./index.css";
 
@@ -10,13 +11,14 @@ function AppRouter() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if this is the control panel window
+  // Check which window type this is
+  const isImageGeneration = window.location.search.includes("mode=image-generation");
   const isControlPanel =
     window.location.pathname.includes("control") ||
     window.location.search.includes("panel=true");
 
   // Check if this is the dictation panel (main app)
-  const isDictationPanel = !isControlPanel;
+  const isDictationPanel = !isControlPanel && !isImageGeneration;
 
   useEffect(() => {
     // Check if onboarding has been completed
@@ -55,11 +57,19 @@ function AppRouter() {
     );
   }
 
+  // Image generation window - show modal directly
+  if (isImageGeneration) {
+    console.log("Loading ImageGenerationWindow");
+    return <ImageGenerationWindow />;
+  }
+
   if (isControlPanel && showOnboarding) {
+    console.log("Showing onboarding");
     return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
-  return isControlPanel ? <ControlPanel /> : <App />;
+  console.log("isControlPanel:", isControlPanel, "- Loading:", isControlPanel ? "ControlPanelV2" : "App");
+  return isControlPanel ? <ControlPanelV2 /> : <App />;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(

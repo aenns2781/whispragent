@@ -46,10 +46,10 @@ function setupProductionPath() {
       '/Library/Frameworks/Python.framework/Versions/3.10/bin',
       '/Library/Frameworks/Python.framework/Versions/3.9/bin'
     ];
-    
+
     const currentPath = process.env.PATH || '';
     const pathsToAdd = commonPaths.filter(p => !currentPath.includes(p));
-    
+
     if (pathsToAdd.length > 0) {
       process.env.PATH = `${currentPath}:${pathsToAdd.join(':')}`;
     }
@@ -141,11 +141,11 @@ async function startApp() {
   }
 
   // Set up tray
-trayManager.setWindows(
-  windowManager.mainWindow,
-  windowManager.controlPanelWindow
-);
-trayManager.setWindowManager(windowManager);
+  trayManager.setWindows(
+    windowManager.mainWindow,
+    windowManager.controlPanelWindow
+  );
+  trayManager.setWindowManager(windowManager);
   trayManager.setCreateControlPanelCallback(() =>
     windowManager.createControlPanelWindow()
   );
@@ -166,7 +166,20 @@ trayManager.setWindowManager(windowManager);
           !windowManager.mainWindow.isDestroyed()
         ) {
           windowManager.showDictationPanel();
-          windowManager.mainWindow.webContents.send("toggle-dictation");
+          // Send globe-down event for push-to-talk handling
+          windowManager.mainWindow.webContents.send("globe-key-down");
+        }
+      }
+    });
+
+    globeKeyManager.on("globe-up", () => {
+      if (hotkeyManager.getCurrentHotkey && hotkeyManager.getCurrentHotkey() === "GLOBE") {
+        if (
+          windowManager.mainWindow &&
+          !windowManager.mainWindow.isDestroyed()
+        ) {
+          // Send globe-up event for push-to-talk handling
+          windowManager.mainWindow.webContents.send("globe-key-up");
         }
       }
     });
@@ -183,7 +196,7 @@ app.whenReady().then(() => {
     // Keep dock visible for now to maintain command bar access
     // We can hide it later if needed: app.dock.hide()
   }
-  
+
   startApp();
 });
 
@@ -205,7 +218,7 @@ app.on("browser-window-focus", (event, window) => {
       windowManager.enforceMainWindowOnTop();
     }
   }
-  
+
   // Control panel doesn't need any special handling on focus
   // It should behave like a normal window
 });
@@ -226,7 +239,7 @@ app.on("activate", () => {
       // If control panel doesn't exist, create it
       windowManager.createControlPanelWindow();
     }
-    
+
     // Ensure dictation panel maintains its always-on-top status
     if (windowManager && windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
       windowManager.enforceMainWindowOnTop();

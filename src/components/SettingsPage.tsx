@@ -26,7 +26,6 @@ import LanguageSelector from "./ui/LanguageSelector";
 import PromptStudio from "./ui/PromptStudio";
 import { API_ENDPOINTS } from "../config/constants";
 import AIModelSelectorEnhanced from "./AIModelSelectorEnhanced";
-const InteractiveKeyboard = React.lazy(() => import("./ui/Keyboard"));
 
 export type SettingsSectionType =
   | "general"
@@ -83,6 +82,8 @@ export default function SettingsPage({
     setAnthropicApiKey,
     setGeminiApiKey,
     setDictationKey,
+    pushToTalk,
+    setPushToTalk,
     updateTranscriptionSettings,
     updateReasoningSettings,
     updateApiKeys,
@@ -103,6 +104,9 @@ export default function SettingsPage({
 
   // Launch on startup state
   const [launchOnStartup, setLaunchOnStartup] = useState(false);
+
+  // Hotkey recording state
+  const [isRecordingHotkey, setIsRecordingHotkey] = useState(false);
 
   const whisperHook = useWhisper(showAlertDialog);
   const permissionsHook = usePermissions(showAlertDialog);
@@ -142,6 +146,40 @@ export default function SettingsPage({
       clearTimeout(timer);
     };
   }, [whisperHook]);
+
+  // Handle hotkey recording
+  useEffect(() => {
+    if (!isRecordingHotkey) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Ignore modifier keys by themselves
+      if (["Shift", "Control", "Alt", "Meta", "CapsLock"].includes(e.key)) {
+        return;
+      }
+
+      let key = e.key;
+
+      // Map keys to Electron Accelerator format
+      if (key === " ") key = "Space";
+      if (key === "Escape") {
+        setIsRecordingHotkey(false);
+        return;
+      }
+
+      // For single characters, use the character itself (usually lowercase for accelerators unless Shift is held, but Electron handles it)
+      // Actually, for Electron global shortcuts, we usually want the character.
+      // But let's stick to what the user presses.
+
+      setDictationKey(key);
+      setIsRecordingHotkey(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isRecordingHotkey, setDictationKey]);
 
   const saveReasoningSettings = useCallback(async () => {
     const normalizedReasoningBase = (cloudReasoningBaseUrl || '').trim();
@@ -399,33 +437,102 @@ export default function SettingsPage({
                   <label className="block text-sm font-medium text-foreground mb-2">
                     Activation Key
                   </label>
-                  <Input
-                    placeholder="Default: ` (backtick)"
-                    value={dictationKey}
-                    onChange={(e) => setDictationKey(e.target.value)}
-                    className="text-center text-lg font-mono"
-                  />
+
+                  <div className="flex flex-col gap-3">
+                    {/* Current Hotkey Display & Record Button */}
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          value={dictationKey === "GLOBE" ? "Globe (fn)" : formatHotkeyLabel(dictationKey)}
+                          readOnly
+                          className={`text-center text-lg font-mono ${isRecordingHotkey ? "border-primary ring-1 ring-primary" : ""}`}
+                        />
+                        {isRecordingHotkey && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-md border border-primary">
+                            <span className="text-primary font-medium animate-pulse">Press any key...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        variant={isRecordingHotkey ? "destructive" : "secondary"}
+                        onClick={() => {
+                          if (isRecordingHotkey) {
+                            setIsRecordingHotkey(false);
+                          } else {
+                            setIsRecordingHotkey(true);
+                            // Focus a hidden input or just listen to window
+                          }
+                        }}
+                        className="w-32"
+                      >
+                        {isRecordingHotkey ? "Cancel" : "Change"}
+                      </Button>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          setDictationKey("GLOBE");
+                          setIsRecordingHotkey(false);
+                        }}
+                      >
+                        🌐 Use Globe (fn) Key
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          setDictationKey("`");
+                          setIsRecordingHotkey(false);
+                        }}
+                      >
+                        Default (`)
+                      </Button>
+                    </div>
+                  </div>
+
                   <p className="text-xs text-muted-foreground mt-2">
-                    Press this key from anywhere to start/stop dictation
+                    {dictationKey === "GLOBE"
+                      ? "Press the Globe (fn) key to start/stop dictation."
+                      : "Press this key to start/stop dictation."}
                   </p>
                 </div>
-                <div className="bg-secondary p-4 rounded-lg">
-                  <h4 className="font-medium text-foreground mb-3">
-                    Click any key to select it:
-                  </h4>
-                  <React.Suspense
-                    fallback={
-                      <div className="h-32 flex items-center justify-center text-muted-foreground">
-                        Loading keyboard...
-                      </div>
-                    }
-                  >
-                    <InteractiveKeyboard
-                      selectedKey={dictationKey}
-                      setSelectedKey={setDictationKey}
+
+                {/* Hidden listener for hotkey recording */}
+                {isRecordingHotkey && (
+                  <div className="hidden">
+                    <input
+                      autoFocus
+                      onBlur={() => setIsRecordingHotkey(false)}
+                      onKeyDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Ignore modifier-only presses if possible, or handle them
+                        if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) {
+                          return;
+                        }
+
+                        let key = e.key;
+                        // Map common keys to electron-accelerator format if needed
+                        if (key === " ") key = "Space";
+                        if (key.length === 1) key = key.toLowerCase();
+
+                        setDictationKey(key);
+                        setIsRecordingHotkey(false);
+                      }}
                     />
-                  </React.Suspense>
-                </div>
+                  </div>
+                )}
+
+
+
                 <Button
                   onClick={saveKey}
                   disabled={!dictationKey.trim()}
@@ -434,41 +541,28 @@ export default function SettingsPage({
                   Save Hotkey
                 </Button>
 
-                {/* Screenshot Modifier Key */}
-                <div className="mt-6 space-y-4">
-                  <h4 className="font-medium text-foreground">Screenshot Mode</h4>
-                  <div className="bg-secondary p-4 rounded-lg border border-border">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Hold this modifier key while pressing your hotkey to capture a screenshot with your voice command.
+                {/* Simple info box */}
+                {dictationKey && (
+                  <div className="mt-4 p-3 bg-secondary/50 rounded-lg space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Hotkey:</span> Press{" "}
+                      <span className="font-mono font-bold">{formatHotkeyLabel(dictationKey)}</span> to start/stop recording
                     </p>
-                    <div className="space-y-3">
-                      <label className="block text-sm font-medium text-foreground">
-                        Screenshot Modifier Key
-                      </label>
-                      <Select
-                        value={screenshotModifier}
-                        onValueChange={(value) => {
-                          setScreenshotModifier(value);
-                          localStorage.setItem("screenshotModifier", value);
-                          // Update the hotkey manager with new modifier
-                          if ('updateScreenshotModifier' in (window.electronAPI || {})) {
-                            (window.electronAPI as any).updateScreenshotModifier(value);
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="w-full bg-background">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="CmdOrCtrl">
-                            {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Command (⌘)' : 'Control (Ctrl)'}
-                          </SelectItem>
-                          <SelectItem value="Alt">Alt / Option (⌥)</SelectItem>
-                          <SelectItem value="Shift">Shift (⇧)</SelectItem>
-                          <SelectItem value="CmdOrCtrl+Shift">
-                            {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Command + Shift' : 'Ctrl + Shift'}
-                          </SelectItem>
-                          <SelectItem value="CmdOrCtrl+Alt">
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Screenshot:</span> Press{" "}
+                      <span className="font-mono font-bold">
+                        {dictationKey === "GLOBE" ? "Cmd+Shift+G" : `Cmd+${formatHotkeyLabel(dictationKey)}`}
+                      </span> to capture screen with voice
+                    </p>
+                  </div>
+                )}
+
+                {/* Remove the whole modifier dropdown section - keep it simple with just Cmd */}
+                <div style={{ display: 'none' }}>
+                  <Select value={screenshotModifier} onValueChange={() => {}}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CmdOrCtrl">Cmd</SelectItem>
                             {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Command + Option' : 'Ctrl + Alt'}
                           </SelectItem>
                         </SelectContent>
@@ -485,10 +579,10 @@ export default function SettingsPage({
                   </div>
                 </div>
               </div>
-            </div>
+            </div >
 
             {/* Permissions Section */}
-            <div className="border-t pt-8">
+            < div className="border-t pt-8" >
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">
                   Permissions
@@ -540,10 +634,10 @@ export default function SettingsPage({
                   Fix Permission Issues
                 </Button>
               </div>
-            </div>
+            </div >
 
             {/* Launch on Startup Section */}
-            <div className="border-t pt-8">
+            < div className="border-t pt-8" >
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">
                   Startup Behavior
@@ -568,10 +662,10 @@ export default function SettingsPage({
                   />
                 </div>
               </div>
-            </div>
+            </div >
 
             {/* About Section */}
-            <div className="border-t pt-8">
+            < div className="border-t pt-8" >
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">
                   About Tribe Whisper
@@ -685,8 +779,8 @@ export default function SettingsPage({
                   Current cache location: <code>{cachePathHint}</code>
                 </p>
               </div>
-            </div>
-          </div>
+            </div >
+          </div >
         );
 
       case "transcription":
@@ -696,65 +790,12 @@ export default function SettingsPage({
               <h3 className="text-lg font-semibold text-foreground mb-4">
                 Speech to Text Processing
               </h3>
-              <ProcessingModeSelector
-                useLocalWhisper={useLocalWhisper}
-                setUseLocalWhisper={(value) => {
-                  setUseLocalWhisper(value);
-                  updateTranscriptionSettings({ useLocalWhisper: value });
-                }}
-              />
+              <p className="text-sm text-muted-foreground mb-4">
+                Transcription is performed locally on your device using Faster Whisper.
+              </p>
             </div>
 
-            {!useLocalWhisper && (
-              <div className="space-y-4 p-4 bg-secondary border border-border rounded-xl">
-                <h4 className="font-medium text-foreground">OpenAI-Compatible Cloud Setup</h4>
-                <ApiKeyInput
-                  apiKey={openaiApiKey}
-                  setApiKey={setOpenaiApiKey}
-                  helpText={
-                    <>
-                      Supports OpenAI or compatible endpoints.{" "}
-                      <a
-                        href="https://platform.openai.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary underline"
-                      >
-                        Get an API key
-                      </a>
-                      .
-                    </>
-                  }
-                />
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">
-                    Custom Base URL (optional)
-                  </label>
-                  <Input
-                    value={cloudTranscriptionBaseUrl}
-                    onChange={(event) => setCloudTranscriptionBaseUrl(event.target.value)}
-                    placeholder="https://api.openai.com/v1"
-                    className="text-sm"
-                  />
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCloudTranscriptionBaseUrl(API_ENDPOINTS.TRANSCRIPTION_BASE)}
-                    >
-                      Reset to Default
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Requests for cloud transcription use this OpenAI-compatible base URL. Leave empty to fall back to
-                    <code className="ml-1">{API_ENDPOINTS.TRANSCRIPTION_BASE}</code>.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {useLocalWhisper && whisperHook.whisperInstalled && (
+            {whisperHook.whisperInstalled ? (
               <div className="space-y-4 p-4 bg-secondary border border-border rounded-xl">
                 <h4 className="font-medium text-foreground">
                   Local Whisper Model
@@ -764,6 +805,11 @@ export default function SettingsPage({
                   onModelSelect={setWhisperModel}
                   variant="settings"
                 />
+              </div>
+            ) : (
+              <div className="p-4 bg-secondary border border-border rounded-xl">
+                <p className="text-sm text-muted-foreground mb-2">Whisper is not installed.</p>
+                <Button onClick={() => whisperHook.installWhisper()}>Install Whisper</Button>
               </div>
             )}
 

@@ -4,8 +4,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   pasteText: (text) => ipcRenderer.invoke("paste-text", text),
   hideWindow: () => ipcRenderer.invoke("hide-window"),
   showDictationPanel: () => ipcRenderer.invoke("show-dictation-panel"),
+  startDictation: () => ipcRenderer.invoke("start-dictation"),
   onToggleDictation: (callback) => ipcRenderer.on("toggle-dictation", callback),
+  onStopDictation: (callback) => ipcRenderer.on("stop-dictation", callback),
+  onGlobeKeyDown: (callback) => ipcRenderer.on("globe-key-down", callback),
+  onGlobeKeyUp: (callback) => ipcRenderer.on("globe-key-up", callback),
+  onPushToTalkToggle: (callback) => ipcRenderer.on("push-to-talk-toggle", callback),
   onToggleScreenshot: (callback) => ipcRenderer.on("toggle-screenshot", callback),
+  onToggleImageGeneration: (callback) => ipcRenderer.on("toggle-image-generation", callback),
   captureScreenshot: () => ipcRenderer.invoke("capture-screenshot"),
 
   // Database functions
@@ -14,12 +20,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getTranscriptions: (limit) =>
     ipcRenderer.invoke("db-get-transcriptions", limit),
   clearTranscriptions: () => ipcRenderer.invoke("db-clear-transcriptions"),
+  clearTranscriptionHistory: () => ipcRenderer.invoke("db-clear-all-transcriptions"),
   deleteTranscription: (id) =>
     ipcRenderer.invoke("db-delete-transcription", id),
   getTranscriptionCount: () =>
     ipcRenderer.invoke("db-get-transcription-count"),
   getAllTranscriptions: () =>
     ipcRenderer.invoke("db-get-all-transcriptions"),
+
+  // Generated images database functions
+  saveGeneratedImageToDb: (params) =>
+    ipcRenderer.invoke("db-save-generated-image", params),
+  getGeneratedImages: (limit) =>
+    ipcRenderer.invoke("db-get-generated-images", limit),
+  getAllGeneratedImages: () =>
+    ipcRenderer.invoke("db-get-all-generated-images"),
+  deleteGeneratedImage: (id) =>
+    ipcRenderer.invoke("db-delete-generated-image", id),
   onTranscriptionAdded: (callback) => {
     const listener = (_event, transcription) => callback?.(transcription);
     ipcRenderer.on("transcription-added", listener);
@@ -119,7 +136,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // External link opener
   openExternal: (url) => ipcRenderer.invoke("open-external", url),
-  
+
   // Model management functions
   modelGetAll: () => ipcRenderer.invoke("model-get-all"),
   modelCheck: (modelId) => ipcRenderer.invoke("model-check", modelId),
@@ -128,7 +145,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   modelDeleteAll: () => ipcRenderer.invoke("model-delete-all"),
   modelCheckRuntime: () => ipcRenderer.invoke("model-check-runtime"),
   onModelDownloadProgress: (callback) => ipcRenderer.on("model-download-progress", callback),
-  
+
   // Anthropic API
   getAnthropicKey: () => ipcRenderer.invoke("get-anthropic-key"),
   saveAnthropicKey: (key) => ipcRenderer.invoke("save-anthropic-key", key),
@@ -136,22 +153,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Gemini API
   getGeminiKey: () => ipcRenderer.invoke("get-gemini-key"),
   saveGeminiKey: (key) => ipcRenderer.invoke("save-gemini-key", key),
-  
+
   // Local reasoning
-  processLocalReasoning: (text, modelId, agentName, config) => 
+  processLocalReasoning: (text, modelId, agentName, config) =>
     ipcRenderer.invoke("process-local-reasoning", text, modelId, agentName, config),
-  checkLocalReasoningAvailable: () => 
+  checkLocalReasoningAvailable: () =>
     ipcRenderer.invoke("check-local-reasoning-available"),
-  
+
   // Anthropic reasoning
   processAnthropicReasoning: (text, modelId, agentName, config) =>
     ipcRenderer.invoke("process-anthropic-reasoning", text, modelId, agentName, config),
-  
+
   // llama.cpp
   llamaCppCheck: () => ipcRenderer.invoke("llama-cpp-check"),
   llamaCppInstall: () => ipcRenderer.invoke("llama-cpp-install"),
   llamaCppUninstall: () => ipcRenderer.invoke("llama-cpp-uninstall"),
-  
+
   // Debug logging for reasoning pipeline
   logReasoning: (stage, details) =>
     ipcRenderer.invoke("log-reasoning", stage, details),
@@ -166,4 +183,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   removeAllListeners: (channel) => {
     ipcRenderer.removeAllListeners(channel);
   },
+
+  // Gemini image generation
+  generateImage: (params) => ipcRenderer.invoke("generate-image", params),
+  saveGeneratedImage: (params) => ipcRenderer.invoke("save-generated-image", params),
+
+  // Directory dialog
+  openDirectoryDialog: () => ipcRenderer.invoke("open-directory-dialog"),
 });

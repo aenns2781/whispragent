@@ -2,21 +2,31 @@ const { globalShortcut } = require("electron");
 
 class HotkeyManager {
   constructor() {
+    // Default to backtick for all platforms (works best with agent mode)
     this.currentHotkey = "`";
     this.isInitialized = false;
-    this.screenshotModifier = "CmdOrCtrl"; // Default modifier
+    this.screenshotModifier = "CmdOrCtrl"; // Default modifier for screenshots
   }
 
-  setupShortcuts(hotkey = "`", callback, screenshotCallback) {
+  setupShortcuts(hotkey = "`", callback, screenshotCallback, imageGenCallback) {
     if (!callback) {
       throw new Error("Callback function is required for hotkey setup");
     }
 
     // Unregister previous hotkeys
-    if (this.currentHotkey && this.currentHotkey !== "GLOBE") {
-      globalShortcut.unregister(this.currentHotkey);
-      // Unregister with current modifier
-      globalShortcut.unregister(`${this.screenshotModifier}+${this.currentHotkey}`);
+    if (this.currentHotkey) {
+      if (this.currentHotkey === "GLOBE") {
+        // Unregister the Globe screenshot fallback
+        globalShortcut.unregister("CmdOrCtrl+Shift+G");
+        // Unregister image generation hotkey
+        globalShortcut.unregister("Shift+G");
+      } else {
+        globalShortcut.unregister(this.currentHotkey);
+        // Unregister with screenshot modifier
+        globalShortcut.unregister(`${this.screenshotModifier}+${this.currentHotkey}`);
+        // Unregister image generation hotkey
+        globalShortcut.unregister(`Shift+${this.currentHotkey}`);
+      }
     }
 
     try {
@@ -28,6 +38,22 @@ class HotkeyManager {
           };
         }
         this.currentHotkey = hotkey;
+
+        // For Globe key, we still need to register the screenshot modifier with a fallback key
+        // Since Globe+Cmd doesn't work, we'll use Cmd+Shift+G for screenshot mode when Globe is the hotkey
+        if (screenshotCallback) {
+          const screenshotHotkey = "CmdOrCtrl+Shift+G";
+          const screenshotSuccess = globalShortcut.register(screenshotHotkey, screenshotCallback);
+          console.log(`Registered screenshot hotkey "${screenshotHotkey}" (for Globe mode):`, screenshotSuccess);
+        }
+
+        // Register image generation hotkey (Shift+G for Globe mode)
+        if (imageGenCallback) {
+          const imageGenHotkey = "Shift+G";
+          const imageGenSuccess = globalShortcut.register(imageGenHotkey, imageGenCallback);
+          console.log(`Registered image generation hotkey "${imageGenHotkey}" (for Globe mode):`, imageGenSuccess);
+        }
+
         return { success: true, hotkey };
       }
 
@@ -38,13 +64,21 @@ class HotkeyManager {
       // Register modifier+hotkey for screenshot mode if callback provided
       let screenshotSuccess = true;
       if (screenshotCallback) {
-        // Use configured modifier
+        // Use configured modifier for screenshots (Cmd/Ctrl + key)
         const screenshotHotkey = `${this.screenshotModifier}+${hotkey}`;
         screenshotSuccess = globalShortcut.register(screenshotHotkey, screenshotCallback);
         console.log(`Registered screenshot hotkey "${screenshotHotkey}":`, screenshotSuccess);
       }
 
-      if (success && screenshotSuccess) {
+      // Register Shift+hotkey for image generation if callback provided
+      let imageGenSuccess = true;
+      if (imageGenCallback) {
+        const imageGenHotkey = `Shift+${hotkey}`;
+        imageGenSuccess = globalShortcut.register(imageGenHotkey, imageGenCallback);
+        console.log(`Registered image generation hotkey "${imageGenHotkey}":`, imageGenSuccess);
+      }
+
+      if (success && screenshotSuccess && imageGenSuccess) {
         this.currentHotkey = hotkey;
         return { success: true, hotkey };
       } else {
@@ -60,7 +94,7 @@ class HotkeyManager {
     }
   }
 
-  async initializeHotkey(mainWindow, callback, screenshotCallback) {
+  async initializeHotkey(mainWindow, callback, screenshotCallback, imageGenCallback) {
     if (!mainWindow || !callback) {
       throw new Error("mainWindow and callback are required");
     }
@@ -76,27 +110,29 @@ class HotkeyManager {
       console.log("Using default screenshot modifier: CmdOrCtrl");
     }
 
-    // Set up default hotkey first
-    this.setupShortcuts("`", callback, screenshotCallback);
+    // Set up default hotkey first (backtick for all platforms)
+    const defaultHotkey = "`";
+    this.setupShortcuts(defaultHotkey, callback, screenshotCallback, imageGenCallback);
 
     // Listen for window to be ready, then get saved hotkey
     mainWindow.webContents.once("did-finish-load", () => {
       setTimeout(() => {
-        this.loadSavedHotkey(mainWindow, callback, screenshotCallback);
+        this.loadSavedHotkey(mainWindow, callback, screenshotCallback, imageGenCallback);
       }, 1000);
     });
 
     this.isInitialized = true;
   }
 
-  async loadSavedHotkey(mainWindow, callback, screenshotCallback) {
+  async loadSavedHotkey(mainWindow, callback, screenshotCallback, imageGenCallback) {
     try {
+      const defaultHotkey = "`";
       const savedHotkey = await mainWindow.webContents.executeJavaScript(`
-        localStorage.getItem("dictationKey") || "\`"
+        localStorage.getItem("dictationKey") || "${defaultHotkey}"
       `);
 
-      if (savedHotkey && savedHotkey !== "`") {
-        const result = this.setupShortcuts(savedHotkey, callback, screenshotCallback);
+      if (savedHotkey && savedHotkey !== defaultHotkey) {
+        const result = this.setupShortcuts(savedHotkey, callback, screenshotCallback, imageGenCallback);
         if (result.success) {
           // Hotkey initialized from localStorage
         }
@@ -106,13 +142,13 @@ class HotkeyManager {
     }
   }
 
-  async updateHotkey(hotkey, callback, screenshotCallback) {
+  async updateHotkey(hotkey, callback, screenshotCallback, imageGenCallback) {
     if (!callback) {
       throw new Error("Callback function is required for hotkey update");
     }
 
     try {
-      const result = this.setupShortcuts(hotkey, callback, screenshotCallback);
+      const result = this.setupShortcuts(hotkey, callback, screenshotCallback, imageGenCallback);
       if (result.success) {
         return { success: true, message: `Hotkey updated to: ${hotkey}` };
       } else {
@@ -139,14 +175,14 @@ class HotkeyManager {
     return globalShortcut.isRegistered(hotkey);
   }
 
-  updateScreenshotModifier(newModifier, callback, screenshotCallback) {
+  updateScreenshotModifier(newModifier, callback, screenshotCallback, imageGenCallback) {
     // Store the new modifier
     this.screenshotModifier = newModifier;
     console.log("Updating screenshot modifier to:", newModifier);
 
     // Re-register shortcuts with the new modifier
     if (this.currentHotkey && callback && screenshotCallback) {
-      return this.setupShortcuts(this.currentHotkey, callback, screenshotCallback);
+      return this.setupShortcuts(this.currentHotkey, callback, screenshotCallback, imageGenCallback);
     }
 
     return { success: true, message: "Screenshot modifier updated" };

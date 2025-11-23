@@ -10,6 +10,7 @@ export interface TranscriptionSettings {
   allowLocalFallback: boolean;
   fallbackWhisperModel: string;
   preferredLanguage: string;
+  pushToTalk: boolean;
   cloudTranscriptionBaseUrl?: string;
 }
 
@@ -33,7 +34,7 @@ export interface ApiKeySettings {
 export function useSettings() {
   const [useLocalWhisper, setUseLocalWhisper] = useLocalStorage(
     "useLocalWhisper",
-    false,
+    true,
     {
       serialize: String,
       deserialize: (value) => value === "true",
@@ -91,6 +92,15 @@ export function useSettings() {
     {
       serialize: String,
       deserialize: String,
+    }
+  );
+
+  const [pushToTalk, setPushToTalk] = useLocalStorage(
+    "pushToTalk",
+    false,
+    {
+      serialize: String,
+      deserialize: (value) => value === "true",
     }
   );
 
@@ -165,8 +175,8 @@ export function useSettings() {
     }
   );
 
-  // Hotkey
-  const [dictationKey, setDictationKey] = useLocalStorage("dictationKey", "", {
+  // Hotkey - backtick is default for all platforms (works best with agent mode)
+  const [dictationKey, setDictationKey] = useLocalStorage("dictationKey", "`", {
     serialize: String,
     deserialize: String,
   });
@@ -189,6 +199,8 @@ export function useSettings() {
         setFallbackWhisperModel(settings.fallbackWhisperModel);
       if (settings.preferredLanguage !== undefined)
         setPreferredLanguage(settings.preferredLanguage);
+      if (settings.pushToTalk !== undefined)
+        setPushToTalk(settings.pushToTalk);
       if (settings.cloudTranscriptionBaseUrl !== undefined)
         setCloudTranscriptionBaseUrl(settings.cloudTranscriptionBaseUrl);
     },
@@ -199,6 +211,7 @@ export function useSettings() {
       setAllowLocalFallback,
       setFallbackWhisperModel,
       setPreferredLanguage,
+      setPushToTalk,
       setCloudTranscriptionBaseUrl,
     ]
   );
@@ -270,13 +283,15 @@ export function useSettings() {
       };
       setReasoningModel(
         providerModels[provider as keyof typeof providerModels] ||
-          "gpt-4o-mini"
+        "gpt-4o-mini"
       );
     },
     setOpenaiApiKey,
     setAnthropicApiKey,
     setGeminiApiKey,
     setDictationKey,
+    pushToTalk,
+    setPushToTalk,
     updateTranscriptionSettings,
     updateReasoningSettings,
     updateApiKeys,

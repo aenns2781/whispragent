@@ -620,7 +620,7 @@ class WhisperManager {
       const result = await new Promise((resolve) => {
         const checkProcess = spawn(pythonCmd, [
           "-c",
-          'import whisper; print("OK")',
+          'import faster_whisper; print("OK")',
         ]);
 
         let output = "";
@@ -825,22 +825,30 @@ class WhisperManager {
       if (user) {
         args.push("--user");
       }
-      args.push("-U", "openai-whisper");
+      args.push("-U", "faster-whisper");
       return args;
     };
 
+    this.whisperInstalled = null; // Invalidate cache
+
     try {
-      return await runCommand(pythonCmd, buildInstallArgs(), { timeout: TIMEOUTS.DOWNLOAD });
+      await runCommand(pythonCmd, buildInstallArgs(), { timeout: TIMEOUTS.DOWNLOAD });
+      this.whisperInstalled = { installed: true, working: true }; // Update cache on success
+      return { success: true };
     } catch (error) {
       const cleanMessage = this.sanitizeErrorMessage(error.message);
 
       if (this.shouldRetryWithUserInstall(cleanMessage)) {
         try {
-          return await runCommand(pythonCmd, buildInstallArgs({ user: true }), { timeout: TIMEOUTS.DOWNLOAD });
+          await runCommand(pythonCmd, buildInstallArgs({ user: true }), { timeout: TIMEOUTS.DOWNLOAD });
+          this.whisperInstalled = { installed: true, working: true }; // Update cache on success
+          return { success: true };
         } catch (userError) {
           const userMessage = this.sanitizeErrorMessage(userError.message);
           if (this.isTomlResolverError(userMessage)) {
-            return await runCommand(pythonCmd, buildInstallArgs({ user: true, legacy: true }), { timeout: TIMEOUTS.DOWNLOAD });
+            await runCommand(pythonCmd, buildInstallArgs({ user: true, legacy: true }), { timeout: TIMEOUTS.DOWNLOAD });
+            this.whisperInstalled = { installed: true, working: true }; // Update cache on success
+            return { success: true };
           }
           throw new Error(this.formatWhisperInstallError(userMessage));
         }
@@ -848,11 +856,15 @@ class WhisperManager {
 
       if (this.isTomlResolverError(cleanMessage)) {
         try {
-          return await runCommand(pythonCmd, buildInstallArgs({ legacy: true }), { timeout: TIMEOUTS.DOWNLOAD });
+          await runCommand(pythonCmd, buildInstallArgs({ legacy: true }), { timeout: TIMEOUTS.DOWNLOAD });
+          this.whisperInstalled = { installed: true, working: true }; // Update cache on success
+          return { success: true };
         } catch (legacyError) {
           const legacyMessage = this.sanitizeErrorMessage(legacyError.message);
           if (this.shouldRetryWithUserInstall(legacyMessage)) {
-            return await runCommand(pythonCmd, buildInstallArgs({ user: true, legacy: true }), { timeout: TIMEOUTS.DOWNLOAD });
+            await runCommand(pythonCmd, buildInstallArgs({ user: true, legacy: true }), { timeout: TIMEOUTS.DOWNLOAD });
+            this.whisperInstalled = { installed: true, working: true }; // Update cache on success
+            return { success: true };
           }
           throw new Error(this.formatWhisperInstallError(legacyMessage));
         }

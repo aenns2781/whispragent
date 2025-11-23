@@ -87,6 +87,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   } = useSettings();
 
   const [apiKey, setApiKey] = useState(openaiApiKey);
+  // Default to backtick for all platforms (works best with all features)
   const [hotkey, setHotkey] = useState(dictationKey || "`");
   const [transcriptionBaseUrl, setTranscriptionBaseUrl] = useState(cloudTranscriptionBaseUrl);
   const [reasoningBaseUrl, setReasoningBaseUrl] = useState(cloudReasoningBaseUrl);
@@ -275,7 +276,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const steps = [
     { title: "Welcome", icon: Sparkles },
-    { title: "Privacy", icon: Lock },
     { title: "Setup", icon: Settings },
     { title: "Permissions", icon: Shield },
     { title: "Hotkey", icon: Keyboard },
@@ -466,308 +466,184 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           </div>
         );
 
-      case 1: // Choose Mode
-        return (
-          <div
-            className="space-y-6"
-            style={{ fontFamily: "Noto Sans, sans-serif" }}
-          >
-            <div className="text-center">
-              <h2
-                className="text-2xl font-bold text-foreground mb-2"
-                style={{ fontFamily: "Noto Sans, sans-serif" }}
-              >
-                Choose Your Processing Mode
-              </h2>
-              <p
-                className="text-muted-foreground"
-                style={{ fontFamily: "Noto Sans, sans-serif" }}
-              >
-                How would you like to convert your speech to text?
-              </p>
-            </div>
-
-            <ProcessingModeSelector
-              useLocalWhisper={useLocalWhisper}
-              setUseLocalWhisper={updateProcessingMode}
-            />
-          </div>
-        );
-
-      case 2: // Setup Processing
+      case 1: // Setup Processing (Local Only)
         return (
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-foreground mb-2">
-                {useLocalWhisper
-                  ? "Local Processing Setup"
-                  : "Cloud Processing Setup"}
+                Privacy-First Setup
               </h2>
               <p className="text-muted-foreground">
-                {useLocalWhisper
-                  ? "Let's install and configure Whisper on your device"
-                  : "Enter your OpenAI API key to get started"}
+                All transcription happens locally on your device using Faster Whisper
               </p>
             </div>
 
-            {useLocalWhisper ? (
-              <div className="space-y-4">
-                {/* Python Installation Section */}
-                {!pythonHook.hasChecked ? (
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 mx-auto bg-secondary rounded-full flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                    </div>
-                    <h3 className="font-semibold text-foreground">
-                      Looking for Python...
+            {/* Privacy Explanation */}
+            <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
+              <h4 className="font-medium text-green-400 mb-2 flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                100% Local Transcription
+              </h4>
+              <div className="text-sm text-green-200/80 space-y-1">
+                <p>• Your voice recordings are processed entirely on your device</p>
+                <p>• Zero audio data is sent to any server or cloud service</p>
+                <p>• Works completely offline - no internet required for transcription</p>
+                <p>• Agent mode (optional) only sends transcribed <strong>text</strong>, never audio</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Python Installation Section */}
+              {!pythonHook.hasChecked ? (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 mx-auto bg-secondary rounded-full flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  </div>
+                  <h3 className="font-semibold text-foreground">
+                    Looking for Python...
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    Tribe Whisper is scanning for your existing Python install (including <code>py.exe</code> and any paths supplied via <code>OPENWHISPR_PYTHON</code>). Sit tight—if we find one, we’ll skip this step automatically.
+                  </p>
+                </div>
+              ) : !pythonHook.pythonInstalled ? (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
+                    <Download className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-2">
+                      Install Python
                     </h3>
-                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                      Tribe Whisper is scanning for your existing Python install (including <code>py.exe</code> and any paths supplied via <code>OPENWHISPR_PYTHON</code>). Sit tight—if we find one, we’ll skip this step automatically.
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Python is required for local processing. We'll install it automatically for you.
                     </p>
                   </div>
-                ) : !pythonHook.pythonInstalled ? (
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
-                      <Download className="w-8 h-8 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-2">
-                        Install Python
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Python is required for local processing. We'll install it automatically for you.
-                      </p>
-                    </div>
 
-                    {pythonHook.installingPython ? (
-                      <div className="bg-secondary p-4 rounded-lg">
-                        <div className="flex items-center justify-center gap-3 mb-3">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                          <span className="font-medium text-primary">
-                            Installing Python...
-                          </span>
+                  {pythonHook.installingPython ? (
+                    <div className="bg-secondary p-4 rounded-lg">
+                      <div className="flex items-center justify-center gap-3 mb-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                        <span className="font-medium text-primary">
+                          Installing Python...
+                        </span>
+                      </div>
+                      {pythonHook.installProgress && (
+                        <div className="text-xs text-primary bg-background p-2 rounded font-mono">
+                          {pythonHook.installProgress}
                         </div>
-                        {pythonHook.installProgress && (
-                          <div className="text-xs text-primary bg-background p-2 rounded font-mono">
-                            {pythonHook.installProgress}
-                          </div>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-2">
-                          This may take a few minutes. Please keep the app open.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <Button
-                          onClick={() => {
-                            pythonHook.installPython();
-                          }}
-                          className="w-full bg-primary hover:bg-primary/90"
-                          disabled={pythonHook.isChecking}
-                        >
-                          {pythonHook.isChecking ? "Please Wait..." : "Install Python"}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-center text-primary"
-                          disabled={pythonHook.isChecking}
-                          onClick={() =>
-                            showConfirmDialog({
-                              title: "Use existing Python?",
-                              description:
-                                "We’ll skip the installer and search for the interpreter already on your system (including OPENWHISPR_PYTHON and the Windows py launcher). Continue?",
-                              confirmText: "Use Existing Python",
-                              cancelText: "Keep Installing",
-                              onConfirm: () => {
-                                pythonHook.checkPythonInstallation();
-                              },
-                            })
-                          }
-                        >
-                          Use Existing Python Instead
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : !whisperHook.whisperInstalled ? (
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
-                      <Download className="w-8 h-8 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-2">
-                        Install Whisper
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Python is ready! Now we'll install Whisper for speech recognition.
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        This may take a few minutes. Please keep the app open.
                       </p>
                     </div>
-
-                    {whisperHook.installingWhisper ? (
-                      <div className="bg-primary/10 p-4 rounded-lg">
-                        <div className="flex items-center justify-center gap-3 mb-3">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                          <span className="font-medium text-primary">
-                            Installing...
-                          </span>
-                        </div>
-                        {whisperHook.installProgress && (
-                          <div className="text-xs text-primary bg-background p-2 rounded font-mono">
-                            {whisperHook.installProgress}
-                          </div>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-2">
-                          This may take a few minutes. Please keep the app open.
-                        </p>
-                      </div>
-                    ) : (
-                      <Button
-                        onClick={whisperHook.installWhisper}
-                        className="w-full"
-                      >
-                        Install Whisper
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center mb-4">
-                        <Check className="w-8 h-8 text-green-500" />
-                      </div>
-                      <h3 className="font-semibold text-green-500 mb-2">
-                        Whisper Installed!
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Now choose your model quality:
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-3">
-                        Choose your model quality below
-                      </label>
-                      <p className="text-xs text-muted-foreground">
-                        Download and select the model that best fits your needs.
-                      </p>
-                    </div>
-
-                    <WhisperModelPicker
-                      selectedModel={whisperModel}
-                      onModelSelect={setWhisperModel}
-                      variant="onboarding"
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="text-center">
-                  <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center mb-4">
-                    <Key className="w-8 h-8 text-primary" />
-                  </div>
-                </div>
-
-                <ApiKeyInput
-                  apiKey={apiKey}
-                  setApiKey={setApiKey}
-                  label="OpenAI API Key"
-                  helpText={
-                    <>
-                      Need an API key?{" "}
-                      <a
-                        href="https://platform.openai.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary underline"
-                      >
-                        platform.openai.com
-                      </a>
-                    </>
-                  }
-                />
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">Custom transcription base URL (optional)</label>
-                  <Input
-                    value={transcriptionBaseUrl}
-                    onChange={(event) => setTranscriptionBaseUrl(event.target.value)}
-                    placeholder="https://api.openai.com/v1"
-                    className="text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">Cloud transcription requests default to <code>{API_ENDPOINTS.TRANSCRIPTION_BASE}</code>. Enter an OpenAI-compatible base URL to override.</p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">Custom reasoning base URL (optional)</label>
-                  <Input
-                    value={reasoningBaseUrl}
-                    onChange={(event) => setReasoningBaseUrl(event.target.value)}
-                    placeholder="https://api.openai.com/v1"
-                    className="text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">We'll load AI models from this endpoint's /v1/models route during setup. Leave empty to use the default OpenAI endpoint.</p>
-                </div>
-
-                <div className="space-y-3 pt-4 border-t border-border">
-                  <h4 className="font-medium text-primary">Reasoning Model</h4>
-                  {hasEnteredReasoningBase ? (
-                    <>
-                      {isValidReasoningBase ? (
-                        <p className="text-xs text-primary break-all">
-                          Models load from <code>{reasoningModelsEndpoint}</code>.
-                        </p>
-                      ) : (
-                        <p className="text-xs text-amber-500">
-                          Enter a full base URL including protocol (e.g. https://server/v1).
-                        </p>
-                      )}
-                      {isValidReasoningBase && customModelsLoading && (
-                        <p className="text-xs text-primary">Fetching models...</p>
-                      )}
-                      {isValidReasoningBase && customModelsError && (
-                        <p className="text-xs text-destructive">{customModelsError}</p>
-                      )}
-                      {isValidReasoningBase &&
-                        !customModelsLoading &&
-                        !customModelsError &&
-                        displayedReasoningModels.length === 0 && (
-                          <p className="text-xs text-amber-500">
-                            No models returned by this endpoint.
-                          </p>
-                        )}
-                    </>
                   ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Using OpenAI defaults from <code>{reasoningModelsEndpoint}</code>.
-                    </p>
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => {
+                          pythonHook.installPython();
+                        }}
+                        className="w-full bg-primary hover:bg-primary/90"
+                        disabled={pythonHook.isChecking}
+                      >
+                        {pythonHook.isChecking ? "Please Wait..." : "Install Python"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-center text-primary"
+                        disabled={pythonHook.isChecking}
+                        onClick={() =>
+                          showConfirmDialog({
+                            title: "Use existing Python?",
+                            description:
+                              "We’ll skip the installer and search for the interpreter already on your system (including OPENWHISPR_PYTHON and the Windows py launcher). Continue?",
+                            confirmText: "Use Existing Python",
+                            cancelText: "Keep Installing",
+                            onConfirm: () => {
+                              pythonHook.checkPythonInstallation();
+                            },
+                          })
+                        }
+                      >
+                        Use Existing Python Instead
+                      </Button>
+                    </div>
                   )}
-                  <UnifiedModelPickerCompact
-                    models={displayedReasoningModels}
-                    selectedModel={reasoningModel}
-                    onModelSelect={(modelId) =>
-                      updateReasoningSettings({ reasoningModel: modelId })
-                    }
+                </div>
+              ) : !whisperHook.whisperInstalled ? (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
+                    <Download className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-2">
+                      Install Whisper
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Python is ready! Now we'll install Whisper for speech recognition.
+                    </p>
+                  </div>
+
+                  {whisperHook.installingWhisper ? (
+                    <div className="bg-primary/10 p-4 rounded-lg">
+                      <div className="flex items-center justify-center gap-3 mb-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                        <span className="font-medium text-primary">
+                          Installing...
+                        </span>
+                      </div>
+                      {whisperHook.installProgress && (
+                        <div className="text-xs text-primary bg-background p-2 rounded font-mono">
+                          {whisperHook.installProgress}
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        This may take a few minutes. Please keep the app open.
+                      </p>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={whisperHook.installWhisper}
+                      className="w-full"
+                    >
+                      Install Whisper
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center mb-4">
+                      <Check className="w-8 h-8 text-green-500" />
+                    </div>
+                    <h3 className="font-semibold text-green-500 mb-2">
+                      Whisper Installed!
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Now choose your model quality:
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-3">
+                      Choose your model quality below
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Download and select the model that best fits your needs.
+                    </p>
+                  </div>
+
+                  <WhisperModelPicker
+                    selectedModel={whisperModel}
+                    onModelSelect={setWhisperModel}
+                    variant="onboarding"
                   />
                 </div>
+              )}
+            </div>
 
-                <div className="bg-secondary p-4 rounded-lg">
-                  <h4 className="font-medium text-foreground mb-2">
-                    How to get your API key:
-                  </h4>
-                  <ol className="text-sm text-muted-foreground space-y-1">
-                    <li>1. Go to platform.openai.com</li>
-                    <li>2. Sign in to your account</li>
-                    <li>3. Navigate to API Keys</li>
-                    <li>4. Create a new secret key</li>
-                    <li>5. Copy and paste it here</li>
-                  </ol>
-                </div>
-              </div>
-            )}
-
-            {/* Language Selection - shown for both modes */}
+            {/* Language Selection */}
             <div className="space-y-4 p-4 bg-card border border-border rounded-xl">
               <h4 className="font-medium text-foreground mb-3">
                 🌍 Preferred Language
@@ -783,9 +659,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {useLocalWhisper
-                  ? "Helps Whisper better understand your speech"
-                  : "Improves OpenAI transcription speed and accuracy. AI text enhancement is enabled by default."}
+                Helps Whisper better understand your speech
               </p>
             </div>
           </div>
@@ -840,15 +714,13 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               />
             </div>
 
-            <div className="bg-amber-500/20 p-4 rounded-lg border border-amber-500/30">
-              <h4 className="font-medium text-amber-300 mb-2">
-                🔒 Privacy Note
+            <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
+              <h4 className="font-medium text-green-400 mb-2 flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                Privacy Protected
               </h4>
-              <p className="text-sm text-amber-100">
-                Tribe Whisper only uses these permissions for dictation.
-                {useLocalWhisper
-                  ? " With local processing, your voice never leaves your device."
-                  : " Your voice is sent to OpenAI's servers for transcription."}
+              <p className="text-sm text-green-200/80">
+                Tribe Whisper only uses these permissions for dictation. All transcription is done locally on your device - your voice recordings never leave your computer.
               </p>
             </div>
           </div>
@@ -1077,27 +949,11 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>Processing:</span>
-                  <span className="font-medium">
-                    {useLocalWhisper
-                      ? `Local (${whisperModel})`
-                      : "OpenAI Cloud"}
+                  <span>Transcription:</span>
+                  <span className="font-medium text-green-400">
+                    Local ({whisperModel})
                   </span>
                 </div>
-                {!useLocalWhisper && (
-                  <div className="flex justify-between">
-                    <span>Reasoning Model:</span>
-                    <span className="font-medium">{activeReasoningModelLabel}</span>
-                  </div>
-                )}
-                {!useLocalWhisper && hasEnteredReasoningBase && (
-                  <div className="flex justify-between">
-                    <span>Custom Endpoint:</span>
-                    <span className="font-medium break-all">
-                      {normalizedReasoningBaseUrl || trimmedReasoningBase}
-                    </span>
-                  </div>
-                )}
                 <div className="flex justify-between">
                   <span>Hotkey:</span>
                   <kbd className="bg-secondary px-2 py-1 rounded text-xs font-mono border border-border text-foreground">
@@ -1124,6 +980,16 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   </span>
                 </div>
               </div>
+            </div>
+
+            <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
+              <h4 className="font-medium text-green-400 mb-2 flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                Privacy Guarantee
+              </h4>
+              <p className="text-sm text-green-200/80">
+                All voice transcription happens on your device. Your audio never leaves your computer. Agent mode only sends transcribed text to your chosen AI provider when you address it by name.
+              </p>
             </div>
 
             <div className="bg-secondary p-4 rounded-lg">

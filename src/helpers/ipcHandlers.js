@@ -1,4 +1,4 @@
-const { ipcMain, app, shell, BrowserWindow, desktopCapturer } = require("electron");
+const { ipcMain, app, shell, BrowserWindow, desktopCapturer, dialog } = require("electron");
 const AppUtils = require("../utils");
 const debugLogger = require("./debugLogger");
 
@@ -44,17 +44,39 @@ class IPCHandlers {
       return false;
     });
 
-    ipcMain.handle("hide-window", () => {
-      if (process.platform === "darwin") {
-        this.windowManager.hideDictationPanel();
-        if (app.dock) app.dock.show();
+    ipcMain.handle("hide-window", (event) => {
+      // Determine which window is calling this
+      const senderWindow = BrowserWindow.fromWebContents(event.sender);
+
+      if (senderWindow === this.windowManager.imageGenerationWindow) {
+        // Hide image generation window
+        if (this.windowManager.imageGenerationWindow && !this.windowManager.imageGenerationWindow.isDestroyed()) {
+          this.windowManager.imageGenerationWindow.hide();
+        }
       } else {
-        this.windowManager.hideDictationPanel();
+        // Hide dictation panel (default behavior)
+        if (process.platform === "darwin") {
+          this.windowManager.hideDictationPanel();
+          if (app.dock) app.dock.show();
+        } else {
+          this.windowManager.hideDictationPanel();
+        }
       }
     });
 
     ipcMain.handle("show-dictation-panel", () => {
       this.windowManager.showDictationPanel();
+    });
+
+    ipcMain.handle("start-dictation", () => {
+      // Show dictation panel and trigger dictation
+      this.windowManager.showDictationPanel({ focus: false });
+      // Small delay to ensure window is shown before sending event
+      setTimeout(() => {
+        if (this.windowManager.mainWindow && !this.windowManager.mainWindow.isDestroyed()) {
+          this.windowManager.mainWindow.webContents.send("toggle-dictation");
+        }
+      }, 100);
     });
 
     ipcMain.handle("set-main-window-interactivity", (event, shouldCapture) => {
@@ -119,12 +141,46 @@ class IPCHandlers {
       return result;
     });
 
+    ipcMain.handle("db-clear-all-transcriptions", async (event) => {
+      const result = this.databaseManager.clearAllTranscriptions();
+      if (result?.success) {
+        this.broadcastToWindows("transcriptions-cleared", {});
+      }
+      return result;
+    });
+
     ipcMain.handle("db-get-transcription-count", async (event) => {
       return this.databaseManager.getTranscriptionCount();
     });
 
     ipcMain.handle("db-get-all-transcriptions", async (event) => {
       return this.databaseManager.getAllTranscriptions();
+    });
+
+    // Generated images database handlers
+    ipcMain.handle("db-save-generated-image", async (event, params) => {
+      const { prompt, imagePath, model, aspectRatio, resolution } = params;
+      const result = this.databaseManager.saveGeneratedImage(prompt, imagePath, model, aspectRatio, resolution);
+      if (result?.success && result?.generatedImage) {
+        this.broadcastToWindows("generated-image-added", result.generatedImage);
+      }
+      return result;
+    });
+
+    ipcMain.handle("db-get-generated-images", async (event, limit = 50) => {
+      return this.databaseManager.getGeneratedImages(limit);
+    });
+
+    ipcMain.handle("db-get-all-generated-images", async (event) => {
+      return this.databaseManager.getAllGeneratedImages();
+    });
+
+    ipcMain.handle("db-delete-generated-image", async (event, id) => {
+      const result = this.databaseManager.deleteGeneratedImage(id);
+      if (result?.success) {
+        this.broadcastToWindows("generated-image-deleted", { id });
+      }
+      return result;
     });
 
     // Clipboard handlers
@@ -663,6 +719,190 @@ class IPCHandlers {
       } catch (error) {
         console.error("Failed to get launch on startup:", error);
         return { enabled: false, error: error.message };
+      }
+    });
+
+    // Directory dialog handler
+    ipcMain.handle("open-directory-dialog", async () => {
+      try {
+        const result = await dialog.showOpenDialog({
+          properties: ['openDirectory', 'createDirectory']
+        });
+        return result;
+      } catch (error) {
+        console.error('Directory dialog error:', error);
+        return { canceled: true, error: error.message };
+      }
+    });
+
+    // Gemini image generation handlers
+    ipcMain.handle("generate-image", async (event, params) => {
+      try {
+        // Use dynamic import for ES module
+        const { GoogleGenAI } = await import('@google/genai');
+        const { prompt, modelId, aspectRatio, resolution, referenceImages, apiKey, useGoogleSearch } = params;
+
+        if (!apiKey) {
+          throw new Error('Gemini API key not configured');
+        }
+
+        const ai = new GoogleGenAI({ apiKey });
+
+        // Build the contents array
+        let contents = [];
+
+        // Add reference images first (if editing)
+        if (referenceImages && referenceImages.length > 0) {
+          for (const imageData of referenceImages) {
+            // Remove data URL prefix to get base64 data
+            const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+            contents.push({
+              inlineData: {
+                mimeType: 'image/png',
+                data: base64Data
+              }
+            });
+          }
+        }
+
+        // Add text prompt
+        contents.push({ text: prompt });
+
+        // Prepare config
+        const config = {
+          responseModalities: ['TEXT', 'IMAGE']
+        };
+
+        // Add Google Search grounding if enabled
+        if (useGoogleSearch) {
+          config.tools = [{ google_search: {} }];
+        }
+
+        // Add image config if aspect ratio or resolution specified
+        if (aspectRatio || (modelId.includes('pro') && resolution)) {
+          config.imageConfig = {};
+
+          if (aspectRatio) {
+            config.imageConfig.aspectRatio = aspectRatio;
+          }
+
+          // Add resolution for Pro models (must be uppercase: 1K, 2K, 4K)
+          if (modelId.includes('pro') && resolution) {
+            config.imageConfig.imageSize = resolution.toUpperCase();
+          }
+        }
+
+        // Log the config being used
+        console.log('\n🔍 Image Generation Config:');
+        console.log('Model:', modelId);
+        console.log('Google Search Enabled:', useGoogleSearch);
+        console.log('Config:', JSON.stringify(config, null, 2));
+
+        // Generate image using generateContent
+        const response = await ai.models.generateContent({
+          model: modelId,
+          contents: contents,
+          config: config
+        });
+
+        // Extract ALL images from response
+        if (!response.candidates || response.candidates.length === 0) {
+          throw new Error('No candidates in response');
+        }
+
+        const parts = response.candidates[0].content.parts;
+        const images = [];
+
+        for (const part of parts) {
+          if (part.inlineData) {
+            const imageDataUrl = `data:image/png;base64,${part.inlineData.data}`;
+            images.push(imageDataUrl);
+          }
+        }
+
+        if (images.length === 0) {
+          throw new Error('No image generated in response');
+        }
+
+        // Log grounding metadata if present
+        const groundingMetadata = response.candidates[0]?.groundingMetadata || response.groundingMetadata || null;
+
+        if (groundingMetadata) {
+          console.log('\n✅ GOOGLE SEARCH GROUNDING METADATA:');
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+          if (groundingMetadata.webSearchQueries) {
+            console.log('\n📝 Search Queries Used:');
+            groundingMetadata.webSearchQueries.forEach((query, idx) => {
+              console.log(`   ${idx + 1}. "${query}"`);
+            });
+          }
+
+          if (groundingMetadata.groundingChunks) {
+            console.log('\n🔗 Sources Used (Top 3):');
+            groundingMetadata.groundingChunks.slice(0, 3).forEach((chunk, idx) => {
+              if (chunk.web) {
+                console.log(`   ${idx + 1}. ${chunk.web.title || 'Untitled'}`);
+                console.log(`      ${chunk.web.uri}`);
+              }
+            });
+          }
+
+          if (groundingMetadata.searchEntryPoint) {
+            console.log('\n🔍 Search Entry Point: Present (HTML/CSS for search suggestions)');
+          }
+
+          console.log('\n📊 Full Grounding Metadata:');
+          console.log(JSON.stringify(groundingMetadata, null, 2));
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+        } else {
+          console.log('\n⚠️  NO GROUNDING METADATA - Google Search may not have been used');
+          console.log('   This could mean:');
+          console.log('   - The model answered from its own knowledge');
+          console.log('   - The model didn\'t think a search was necessary');
+          console.log('   - Google Search is not enabled for this model\n');
+        }
+
+        // Return all images (backward compatible with single image)
+        return {
+          success: true,
+          image: images[0], // First image for backward compatibility
+          images: images,   // All images
+          groundingMetadata: groundingMetadata
+        };
+      } catch (error) {
+        console.error('Image generation error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("save-generated-image", async (event, params) => {
+      try {
+        const { image, savePath, filename } = params;
+        const fs = require('fs');
+        const path = require('path');
+
+        // Use Downloads folder by default if no savePath provided
+        const targetPath = savePath || app.getPath('downloads');
+
+        // Ensure save directory exists
+        if (!fs.existsSync(targetPath)) {
+          fs.mkdirSync(targetPath, { recursive: true });
+        }
+
+        // Remove data URL prefix to get base64 data
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // Save to file
+        const filePath = path.join(targetPath, filename);
+        fs.writeFileSync(filePath, buffer);
+
+        console.log(`Image saved to: ${filePath}`);
+        return { success: true, filePath };
+      } catch (error) {
+        console.error('Save image error:', error);
+        return { success: false, error: error.message };
       }
     });
   }

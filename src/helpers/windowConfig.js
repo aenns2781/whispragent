@@ -56,6 +56,30 @@ const CONTROL_PANEL_CONFIG = {
   type: 'normal', // Ensure it's a normal window, not a panel
 };
 
+// Image generation window configuration
+const IMAGE_GENERATION_WINDOW_CONFIG = {
+  width: 900,
+  height: 700,
+  webPreferences: {
+    preload: path.join(__dirname, "..", "..", "preload.js"),
+    nodeIntegration: false,
+    contextIsolation: true,
+    enableRemoteModule: false,
+    sandbox: false,
+  },
+  frame: false,
+  alwaysOnTop: true,
+  resizable: false,
+  transparent: true,
+  show: false,
+  skipTaskbar: true,
+  focusable: true,
+  visibleOnAllWorkspaces: true,
+  fullScreenable: false,
+  hasShadow: true,
+  type: process.platform === 'darwin' ? 'panel' : 'normal',
+};
+
 // Window positioning utilities
 class WindowPositionUtil {
   static getMainWindowPosition(display) {
@@ -113,5 +137,6 @@ class WindowPositionUtil {
 module.exports = {
   MAIN_WINDOW_CONFIG,
   CONTROL_PANEL_CONFIG,
+  IMAGE_GENERATION_WINDOW_CONFIG,
   WindowPositionUtil,
 };

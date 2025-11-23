@@ -6,6 +6,7 @@ const DevServerManager = require("./devServerManager");
 const {
   MAIN_WINDOW_CONFIG,
   CONTROL_PANEL_CONFIG,
+  IMAGE_GENERATION_WINDOW_CONFIG,
   WindowPositionUtil,
 } = require("./windowConfig");
 
@@ -13,6 +14,7 @@ class WindowManager {
   constructor() {
     this.mainWindow = null;
     this.controlPanelWindow = null;
+    this.imageGenerationWindow = null;
     this.tray = null;
     this.hotkeyManager = new HotkeyManager();
     this.dragManager = new DragManager();
@@ -122,7 +124,24 @@ class WindowManager {
       console.log("Sent toggle-screenshot event to renderer");
     };
 
-    await this.hotkeyManager.initializeHotkey(this.mainWindow, callback, screenshotCallback);
+    const imageGenCallback = () => {
+      console.log("Image generation hotkey triggered!");
+
+      // Show/create image generation window
+      if (!this.imageGenerationWindow || this.imageGenerationWindow.isDestroyed()) {
+        this.createImageGenerationWindow();
+      } else {
+        if (this.imageGenerationWindow.isMinimized()) {
+          this.imageGenerationWindow.restore();
+        }
+        if (!this.imageGenerationWindow.isVisible()) {
+          this.imageGenerationWindow.show();
+        }
+        this.imageGenerationWindow.focus();
+      }
+    };
+
+    await this.hotkeyManager.initializeHotkey(this.mainWindow, callback, screenshotCallback, imageGenCallback);
   }
 
   async updateHotkey(hotkey) {
@@ -142,7 +161,24 @@ class WindowManager {
       console.log("Sent toggle-screenshot event to renderer");
     };
 
-    return await this.hotkeyManager.updateHotkey(hotkey, callback, screenshotCallback);
+    const imageGenCallback = () => {
+      console.log("Image generation hotkey triggered!");
+
+      // Show/create image generation window
+      if (!this.imageGenerationWindow || this.imageGenerationWindow.isDestroyed()) {
+        this.createImageGenerationWindow();
+      } else {
+        if (this.imageGenerationWindow.isMinimized()) {
+          this.imageGenerationWindow.restore();
+        }
+        if (!this.imageGenerationWindow.isVisible()) {
+          this.imageGenerationWindow.show();
+        }
+        this.imageGenerationWindow.focus();
+      }
+    };
+
+    return await this.hotkeyManager.updateHotkey(hotkey, callback, screenshotCallback, imageGenCallback);
   }
 
   async startWindowDrag() {
@@ -170,7 +206,24 @@ class WindowManager {
       console.log("Sent toggle-screenshot event to renderer");
     };
 
-    return this.hotkeyManager.updateScreenshotModifier(modifier, callback, screenshotCallback);
+    const imageGenCallback = () => {
+      console.log("Image generation hotkey triggered!");
+
+      // Show/create image generation window
+      if (!this.imageGenerationWindow || this.imageGenerationWindow.isDestroyed()) {
+        this.createImageGenerationWindow();
+      } else {
+        if (this.imageGenerationWindow.isMinimized()) {
+          this.imageGenerationWindow.restore();
+        }
+        if (!this.imageGenerationWindow.isVisible()) {
+          this.imageGenerationWindow.show();
+        }
+        this.imageGenerationWindow.focus();
+      }
+    };
+
+    return this.hotkeyManager.updateScreenshotModifier(modifier, callback, screenshotCallback, imageGenCallback);
   }
 
   async createControlPanelWindow() {
@@ -234,6 +287,60 @@ class WindowManager {
       }
     }
     this.controlPanelWindow.loadURL(appUrl);
+  }
+
+  async createImageGenerationWindow() {
+    if (this.imageGenerationWindow && !this.imageGenerationWindow.isDestroyed()) {
+      if (this.imageGenerationWindow.isMinimized()) {
+        this.imageGenerationWindow.restore();
+      }
+      if (!this.imageGenerationWindow.isVisible()) {
+        this.imageGenerationWindow.show();
+      }
+      this.imageGenerationWindow.focus();
+      return;
+    }
+
+    this.imageGenerationWindow = new BrowserWindow({
+      ...IMAGE_GENERATION_WINDOW_CONFIG,
+      center: true,
+    });
+
+    this.imageGenerationWindow.once("ready-to-show", () => {
+      this.imageGenerationWindow.show();
+      this.imageGenerationWindow.focus();
+      WindowPositionUtil.setupAlwaysOnTop(this.imageGenerationWindow);
+    });
+
+    this.imageGenerationWindow.on("close", (event) => {
+      if (!this.isQuitting) {
+        event.preventDefault();
+        this.imageGenerationWindow.hide();
+      }
+    });
+
+    this.imageGenerationWindow.on("closed", () => {
+      this.imageGenerationWindow = null;
+    });
+
+    console.log("📸 Loading image generation window...");
+    await this.loadImageGenerationWindow();
+  }
+
+  async loadImageGenerationWindow() {
+    // Load with a special URL parameter to indicate it's the image generation window
+    const baseUrl = DevServerManager.getAppUrl(false);
+    const appUrl = `${baseUrl}?mode=image-generation`;
+
+    if (process.env.NODE_ENV === "development") {
+      const isReady = await DevServerManager.waitForDevServer();
+      if (!isReady) {
+        console.error(
+          "Dev server not ready for image generation window, loading anyway..."
+        );
+      }
+    }
+    this.imageGenerationWindow.loadURL(appUrl);
   }
 
   showDictationPanel(options = {}) {

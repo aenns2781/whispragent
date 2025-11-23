@@ -136,10 +136,10 @@ class AudioManager {
         this.onStateChange?.({ isRecording: false, isProcessing: true });
 
         const audioBlob = new Blob(this.audioChunks, { type: "audio/wav" });
-        
+
         if (audioBlob.size === 0) {
         }
-        
+
         await this.processAudio(audioBlob);
 
         // Clean up stream
@@ -152,11 +152,11 @@ class AudioManager {
 
       return true;
     } catch (error) {
-      
+
       // Provide more specific error messages
       let errorTitle = "Recording Error";
       let errorDescription = `Failed to access microphone: ${error.message}`;
-      
+
       if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
         errorTitle = "Microphone Access Denied";
         errorDescription = "Please grant microphone permission in your system settings and try again.";
@@ -167,7 +167,7 @@ class AudioManager {
         errorTitle = "Microphone In Use";
         errorDescription = "The microphone is being used by another application. Please close other apps and try again.";
       }
-      
+
       this.onError?.({
         title: errorTitle,
         description: errorDescription,
@@ -187,18 +187,10 @@ class AudioManager {
 
   async processAudio(audioBlob) {
     try {
-      // Get user preferences
-      const useLocalWhisper =
-        localStorage.getItem("useLocalWhisper") === "true";
+      // ALWAYS use local Whisper - this is the only transcription method
       const whisperModel = localStorage.getItem("whisperModel") || "base";
-      
 
-      let result;
-      if (useLocalWhisper) {
-        result = await this.processWithLocalWhisper(audioBlob, whisperModel);
-      } else {
-        result = await this.processWithOpenAIAPI(audioBlob);
-      }
+      const result = await this.processWithLocalWhisper(audioBlob, whisperModel);
       this.onTranscriptionComplete?.(result);
     } catch (error) {
       // Don't show error here if it's "No audio detected" - already shown elsewhere
@@ -215,7 +207,7 @@ class AudioManager {
   }
 
   async processWithLocalWhisper(audioBlob, model = "base") {
-    
+
     // Analyze audio levels first
     const audioAnalysis = await this.analyzeAudioLevels(audioBlob);
     if (audioAnalysis && audioAnalysis.isSilent) {
@@ -226,7 +218,7 @@ class AudioManager {
       });
       // Still continue to try transcription in case analysis was wrong
     }
-    
+
     try {
       const arrayBuffer = await audioBlob.arrayBuffer();
 
@@ -241,7 +233,7 @@ class AudioManager {
         arrayBuffer,
         options
       );
-      
+
 
       if (result.success && result.text) {
         const text = await this.processTranscription(result.text, "local");
@@ -269,70 +261,32 @@ class AudioManager {
         throw error;
       }
 
-      const allowOpenAIFallback = localStorage.getItem("allowOpenAIFallback") === "true";
-      const isLocalMode = localStorage.getItem("useLocalWhisper") === "true";
-
-      if (allowOpenAIFallback && isLocalMode) {
-        try {
-          const fallbackResult = await this.processWithOpenAIAPI(audioBlob);
-          return { ...fallbackResult, source: "openai-fallback" };
-        } catch (fallbackError) {
-          throw new Error(`Local Whisper failed: ${error.message}. OpenAI fallback also failed: ${fallbackError.message}`);
-        }
-      } else {
-        throw new Error(`Local Whisper failed: ${error.message}`);
-      }
+      // No fallback to OpenAI - local Whisper is the only transcription method
+      throw new Error(`Local Whisper failed: ${error.message}`);
     }
   }
 
-  async getAPIKey() {
-    if (this.cachedApiKey) {
-      return this.cachedApiKey;
-    }
-
-    let apiKey = await window.electronAPI.getOpenAIKey();
-    if (
-      !apiKey ||
-      apiKey.trim() === "" ||
-      apiKey === "your_openai_api_key_here"
-    ) {
-      apiKey = localStorage.getItem("openaiApiKey");
-    }
-
-    if (
-      !apiKey ||
-      apiKey.trim() === "" ||
-      apiKey === "your_openai_api_key_here"
-    ) {
-      throw new Error(
-        "OpenAI API key not found. Please set your API key in the .env file or Control Panel."
-      );
-    }
-
-    this.cachedApiKey = apiKey;
-    return apiKey;
-  }
 
   async analyzeAudioLevels(audioBlob) {
     try {
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const arrayBuffer = await audioBlob.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      
+
       const channelData = audioBuffer.getChannelData(0);
       let sum = 0;
       let max = 0;
-      
+
       for (let i = 0; i < channelData.length; i++) {
         const sample = Math.abs(channelData[i]);
         sum += sample;
         max = Math.max(max, sample);
       }
-      
+
       const average = sum / channelData.length;
       const duration = audioBuffer.duration;
-      
-      
+
+
       return {
         duration,
         averageLevel: average,
@@ -344,92 +298,6 @@ class AudioManager {
     }
   }
 
-  // Convert audio to optimal format for API (reduces upload time)
-  async optimizeAudio(audioBlob) {
-    return new Promise((resolve) => {
-      const audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
-      const reader = new FileReader();
-
-      reader.onload = async () => {
-        try {
-          const arrayBuffer = reader.result;
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-          // Convert to 16kHz mono for smaller size and faster upload
-          const sampleRate = 16000;
-          const channels = 1;
-          const length = Math.floor(audioBuffer.duration * sampleRate);
-          const offlineContext = new OfflineAudioContext(
-            channels,
-            length,
-            sampleRate
-          );
-
-          const source = offlineContext.createBufferSource();
-          source.buffer = audioBuffer;
-          source.connect(offlineContext.destination);
-          source.start();
-
-          const renderedBuffer = await offlineContext.startRendering();
-
-          // Convert to WAV blob
-          const wavBlob = this.audioBufferToWav(renderedBuffer);
-          resolve(wavBlob);
-        } catch (error) {
-          // If optimization fails, use original
-          resolve(audioBlob);
-        }
-      };
-
-      reader.onerror = () => resolve(audioBlob);
-      reader.readAsArrayBuffer(audioBlob);
-    });
-  }
-
-  // Convert AudioBuffer to WAV format
-  audioBufferToWav(buffer) {
-    const length = buffer.length;
-    const arrayBuffer = new ArrayBuffer(44 + length * 2);
-    const view = new DataView(arrayBuffer);
-    const sampleRate = buffer.sampleRate;
-    const channelData = buffer.getChannelData(0);
-
-    // WAV header
-    const writeString = (offset, string) => {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
-    };
-
-    writeString(0, "RIFF");
-    view.setUint32(4, 36 + length * 2, true);
-    writeString(8, "WAVE");
-    writeString(12, "fmt ");
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(36, "data");
-    view.setUint32(40, length * 2, true);
-
-    // Convert samples to 16-bit PCM
-    let offset = 44;
-    for (let i = 0; i < length; i++) {
-      const sample = Math.max(-1, Math.min(1, channelData[i]));
-      view.setInt16(
-        offset,
-        sample < 0 ? sample * 0x8000 : sample * 0x7fff,
-        true
-      );
-      offset += 2;
-    }
-
-    return new Blob([arrayBuffer], { type: "audio/wav" });
-  }
 
   async processWithReasoningModel(text, clipboardContext = null, abortSignal = null) {
     console.error("🎯 CALVIN PROCESSING STARTED!");
@@ -498,49 +366,27 @@ class AudioManager {
   }
 
   async isReasoningAvailable() {
-    // Check if we're in renderer process (has localStorage)
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const storedValue = localStorage.getItem("useReasoningModel");
+    // ALWAYS return true - agent mode should always be available
+    // We don't need a toggle for this fundamental feature
+    console.log("🔍 Agent mode is ALWAYS enabled");
+    debugLogger.logReasoning("REASONING_ALWAYS_ENABLED", {
+      enabled: true,
+      reason: "Agent mode is a core feature and always available"
+    });
 
-      console.log("🔍 Checking if reasoning is enabled:");
-      console.log("   - useReasoningModel value:", storedValue);
-      console.log("   - Type:", typeof storedValue);
-
-      // Debug log the actual stored value
-      debugLogger.logReasoning("REASONING_STORAGE_CHECK", {
-        storedValue,
-        typeOfStoredValue: typeof storedValue,
-        isTrue: storedValue === "true",
-        isTruthy: !!storedValue && storedValue !== "false"
+    try {
+      const isAvailable = await ReasoningService.isAvailable();
+      debugLogger.logReasoning("REASONING_SERVICE_AVAILABILITY", {
+        isAvailable
       });
-
-      // Check for both "true" string and truthy values (but not "false")
-      const useReasoning = storedValue === "true" || (!!storedValue && storedValue !== "false");
-
-      console.log("   - Reasoning enabled?", useReasoning);
-
-      if (!useReasoning) return false;
-      
-      try {
-        const isAvailable = await ReasoningService.isAvailable();
-        
-        debugLogger.logReasoning("REASONING_AVAILABILITY", {
-          isAvailable,
-          reasoningEnabled: useReasoning,
-          finalDecision: useReasoning && isAvailable
-        });
-        
-        return isAvailable;
-      } catch (error) {
-        debugLogger.logReasoning("REASONING_AVAILABILITY_ERROR", {
-          error: error.message,
-          stack: error.stack
-        });
-        return false;
-      }
+      return isAvailable;
+    } catch (error) {
+      debugLogger.logReasoning("REASONING_AVAILABILITY_ERROR", {
+        error: error.message,
+        stack: error.stack
+      });
+      return true; // Still return true even if service check fails - agent mode should be available
     }
-    // If not in renderer, reasoning is not available
-    return false;
   }
 
   async processTranscription(text, source) {
@@ -582,6 +428,16 @@ class AudioManager {
     // NO "regular mode" - it's either pure transcription or agent mode
     const reasoningEnabled = await this.isReasoningAvailable();
     const useReasoning = reasoningEnabled && (isAgentAddressed || hasHighlightedText || hasScreenshot);
+
+    // Enhanced debug logging
+    console.error("🔍 AGENT MODE DECISION FACTORS:");
+    console.error("   - Reasoning enabled:", reasoningEnabled);
+    console.error("   - Agent addressed:", isAgentAddressed);
+    console.error("   - Has highlighted text:", hasHighlightedText);
+    console.error("   - Has screenshot:", hasScreenshot);
+    console.error("   - Captured context exists:", !!this.capturedContext);
+    console.error("   - Window captured context exists:", !!window.capturedHighlightedContext);
+    console.error("   - FINAL DECISION - Use agent mode:", useReasoning);
 
     const reasoningModel = (typeof window !== 'undefined' && window.localStorage)
       ? (localStorage.getItem("reasoningModel") || "gpt-5.1")
@@ -744,7 +600,7 @@ class AudioManager {
         this.abortController = null;
       }
     }
-    
+
     debugLogger.logReasoning("USING_STANDARD_CLEANUP", {
       reason: useReasoning ? "Reasoning failed" : "Reasoning not enabled"
     });
@@ -759,123 +615,6 @@ class AudioManager {
     return normalizedText;
   }
 
-  async processWithOpenAIAPI(audioBlob) {
-    try {
-      // Parallel: get API key (cached) and optimize audio
-      const [apiKey, optimizedAudio] = await Promise.all([
-        this.getAPIKey(),
-        this.optimizeAudio(audioBlob),
-      ]);
-
-      const formData = new FormData();
-      formData.append("file", optimizedAudio, "audio.wav");
-      formData.append("model", "whisper-1");
-
-      // Add language hint if set (improves processing speed)
-      const language = localStorage.getItem("preferredLanguage");
-      if (language && language !== "auto") {
-        formData.append("language", language);
-      }
-
-      const response = await fetch(
-        this.getTranscriptionEndpoint(),
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API Error: ${response.status} ${errorText}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.text) {
-        const text = await this.processTranscription(result.text, "openai");
-        const source = await this.isReasoningAvailable() ? "openai-reasoned" : "openai";
-        return { success: true, text, source };
-      } else {
-        throw new Error("No text transcribed");
-      }
-    } catch (error) {
-
-      // Try fallback to Local Whisper ONLY if enabled AND we're in OpenAI mode
-      const allowLocalFallback =
-        localStorage.getItem("allowLocalFallback") === "true";
-      const isOpenAIMode = localStorage.getItem("useLocalWhisper") !== "true";
-
-      if (allowLocalFallback && isOpenAIMode) {
-        const fallbackModel =
-          localStorage.getItem("fallbackWhisperModel") || "base";
-        try {
-          const arrayBuffer = await audioBlob.arrayBuffer();
-
-          // Get language preference for fallback as well
-          const language = localStorage.getItem("preferredLanguage");
-          const options = { model: fallbackModel };
-          if (language && language !== "auto") {
-            options.language = language;
-          }
-
-          const result = await window.electronAPI.transcribeLocalWhisper(
-            arrayBuffer,
-            options
-          );
-
-          if (result.success && result.text) {
-            const text = await this.processTranscription(result.text, "local-fallback");
-            if (text) {
-              return { success: true, text, source: "local-fallback" };
-            }
-          }
-          // If local fallback fails, throw the original OpenAI error
-          throw error;
-        } catch (fallbackError) {
-          throw new Error(
-            `OpenAI API failed: ${error.message}. Local fallback also failed: ${fallbackError.message}`
-          );
-        }
-      }
-
-      throw error;
-    }
-  }
-
-  getTranscriptionEndpoint() {
-    try {
-      const stored = typeof localStorage !== "undefined"
-        ? localStorage.getItem("cloudTranscriptionBaseUrl") || ""
-        : "";
-      const trimmed = stored.trim();
-      const base = trimmed ? trimmed : API_ENDPOINTS.TRANSCRIPTION_BASE;
-      const normalizedBase = normalizeBaseUrl(base);
-
-      if (!normalizedBase) {
-        return API_ENDPOINTS.TRANSCRIPTION;
-      }
-
-      // Security: Only allow HTTPS endpoints (except localhost for development)
-      const isLocalhost = normalizedBase.includes('://localhost') || normalizedBase.includes('://127.0.0.1');
-      if (!normalizedBase.startsWith('https://') && !isLocalhost) {
-        console.warn('Non-HTTPS endpoint rejected for security. Using default.');
-        return API_ENDPOINTS.TRANSCRIPTION;
-      }
-
-      if (/\/audio\/(transcriptions|translations)$/i.test(normalizedBase)) {
-        return normalizedBase;
-      }
-
-      return buildApiUrl(normalizedBase, '/audio/transcriptions');
-    } catch (error) {
-      console.warn('Failed to resolve transcription endpoint:', error);
-      return API_ENDPOINTS.TRANSCRIPTION;
-    }
-  }
 
   async safePaste(text) {
     try {

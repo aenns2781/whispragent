@@ -4,6 +4,7 @@ import { useToast } from "./components/ui/Toast";
 import { LoadingDots } from "./components/ui/LoadingDots";
 import { useHotkey } from "./hooks/useHotkey";
 import { useWindowDrag } from "./hooks/useWindowDrag";
+import { useSettings } from "./hooks/useSettings";
 import AudioManager from "./helpers/audioManager";
 
 // Sound Wave Icon Component (for idle/hover states)
@@ -113,70 +114,78 @@ export default function App() {
     }
   }, [isCommandMenuOpen, isHovered, setWindowInteractivity]);
 
+  // Keep track of state for event listeners without re-subscribing
+  const stateRef = useRef({ isProcessing });
+  const isRecordingRef = useRef(false); // Synchronous source of truth for recording state
+
+  useEffect(() => {
+    stateRef.current = { isProcessing };
+  }, [isProcessing]);
+
   const startRecording = async (withScreenshot = false) => {
     try {
-      setError("");
-
-      // Capture screenshot if requested
+      // If screenshot mode, capture screenshot FIRST before starting recording
       let capturedScreenshot = null;
       if (withScreenshot) {
-        console.error("📸 CAPTURING SCREENSHOT...");
+        console.error("📸 CAPTURING SCREENSHOT BEFORE RECORDING...");
+        const screenshotResult = await window.electronAPI.captureScreenshot();
+        if (screenshotResult.success) {
+          capturedScreenshot = screenshotResult.screenshot;
+          window.capturedScreenshot = capturedScreenshot;
+          console.error("✅ SCREENSHOT CAPTURED - Now starting recording...");
+        } else if (screenshotResult.error?.includes('permission')) {
+          console.error("❌ Screen recording permission denied");
+          alert("Screen recording permission required!");
+          return; // Don't start recording if screenshot failed
+        } else {
+          console.error("❌ Screenshot failed:", screenshotResult.error);
+          // Continue with recording even if screenshot fails
+        }
+      }
+
+      // 1. Immediate UI feedback & State Lock
+      isRecordingRef.current = true;
+      setIsRecording(true);
+      setError("");
+
+      // 2. Start Audio Stream
+      const streamPromise = navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // 3. Capture Context in background (don't block recording start)
+      const captureContextPromise = (async () => {
+        let capturedContext = null;
+        let originalClipboard = null;
+
         try {
-          const screenshotResult = await window.electronAPI.captureScreenshot();
-          if (screenshotResult.success) {
-            capturedScreenshot = screenshotResult.screenshot;
-            console.error("✅ Screenshot captured successfully");
-            // Store for later use
-            window.capturedScreenshot = capturedScreenshot;
-          } else if (screenshotResult.error?.includes('permission')) {
-            // Permission denied - show error and don't start recording
-            console.error("❌ Screen recording permission denied");
-            alert("Screen recording permission required! Please grant permission in System Settings > Privacy & Security > Screen Recording.");
-            return; // Exit early, don't start recording
+
+          // Highlighted Text
+          console.error("🎤 RECORDING STARTED - Checking for highlighted text...");
+          originalClipboard = await window.electronAPI.readClipboard();
+          await window.electronAPI.simulateCopy();
+          // Short delay for copy to complete
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const newClipboard = await window.electronAPI.readClipboard();
+
+          if (newClipboard !== originalClipboard && newClipboard) {
+            capturedContext = newClipboard;
+            console.error("✅ HIGHLIGHTED TEXT CAPTURED!");
           }
         } catch (error) {
-          console.error("❌ Screenshot capture failed:", error);
+          console.error("❌ Capture error:", error);
         }
+
+        return { capturedContext, originalClipboard };
+      })();
+
+      // 4. Initialize Recorder
+      const stream = await streamPromise;
+
+      // Check if user cancelled while we were initializing
+      if (!isRecordingRef.current) {
+        console.log("Recording cancelled during initialization");
+        stream.getTracks().forEach(t => t.stop());
+        return;
       }
-
-      // Capture any highlighted text BEFORE starting recording
-      console.error("🎤 RECORDING STARTED - Checking for highlighted text...");
-      let capturedContext = null;
-      let originalClipboard = null;
-
-      try {
-        // Save the current clipboard content first
-        originalClipboard = await window.electronAPI.readClipboard();
-        console.error("📋 Original clipboard content saved");
-
-        // Try to copy any highlighted text
-        console.error("📋 Attempting to copy highlighted text with Cmd+C...");
-        const copyResult = await window.electronAPI.simulateCopy();
-        console.error("📋 Copy command executed:", copyResult);
-
-        // Wait for copy to complete
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Read the potentially new clipboard content
-        const newClipboard = await window.electronAPI.readClipboard();
-
-        // If clipboard changed, we captured highlighted text
-        if (newClipboard !== originalClipboard && newClipboard) {
-          capturedContext = newClipboard;
-          console.error("✅ HIGHLIGHTED TEXT CAPTURED! Length:", capturedContext.length);
-          console.error("✅ Preview:", capturedContext.substring(0, 100) + "...");
-        } else {
-          console.error("ℹ️ No highlighted text detected (clipboard unchanged)");
-        }
-      } catch (error) {
-        console.error("❌ Capture error:", error);
-      }
-
-      // Store captured context to pass to audio processing later
-      window.capturedHighlightedContext = capturedContext;
-      window.originalClipboardContent = originalClipboard;
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       mediaRecorderRef.current = new window.MediaRecorder(stream);
       audioChunksRef.current = [];
@@ -190,15 +199,27 @@ export default function App() {
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/wav",
         });
-        // Start processing immediately without waiting
+
+        // Ensure context capture is finished before processing
+        try {
+          const { capturedContext, originalClipboard } = await captureContextPromise;
+          window.capturedHighlightedContext = capturedContext;
+          window.originalClipboardContent = originalClipboard;
+        } catch (e) {
+          console.error("Context capture failed:", e);
+        }
+
+        // Start processing
         processAudio(audioBlob);
         stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorderRef.current.start();
-      setIsRecording(true);
+      // isRecording is already true
     } catch (err) {
       console.error("Recording error:", err);
+      isRecordingRef.current = false;
+      setIsRecording(false); // Revert state on error
       toast({
         title: "Recording Error",
         description: "Failed to access microphone: " + err.message,
@@ -207,11 +228,23 @@ export default function App() {
     }
   };
 
+  const lastToggleTimeRef = useRef(0);
+
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    console.log("stopRecording called - current state:", isRecordingRef.current);
+
+    // Always update state immediately to prevent double-triggers
+    if (!isRecordingRef.current) {
+      console.log("Already stopped, ignoring");
+      return;
+    }
+
+    isRecordingRef.current = false;
+    setIsRecording(false);
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      console.log("Stopping MediaRecorder...");
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      // Don't set processing immediately - let the onstop handler do it
     }
   };
 
@@ -234,7 +267,8 @@ export default function App() {
       audioManagerRef.current = audioManager;
       audioManager.setCallbacks({
         onStateChange: ({ isRecording, isProcessing }) => {
-          setIsRecording(isRecording);
+          // Only update processing state here, recording state is managed manually
+          // setIsRecording(isRecording); 
           setIsProcessing(isProcessing);
         },
         onError: (error) => {
@@ -285,11 +319,6 @@ export default function App() {
   };
 
   useEffect(() => {
-    setWindowInteractivity(false);
-    return () => setWindowInteractivity(false);
-  }, [setWindowInteractivity]);
-
-  useEffect(() => {
     if (!isCommandMenuOpen) {
       return;
     }
@@ -309,19 +338,33 @@ export default function App() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isCommandMenuOpen]);
 
+  const { dictationKey } = useSettings();
+
   useEffect(() => {
-    let recording = false;
     const handleToggle = () => {
+      // Simplified debouncing - only prevent if VERY rapid (under 200ms)
+      const now = Date.now();
+      if (now - lastToggleTimeRef.current < 200) {
+        console.log("Ignoring rapid toggle (debounce)");
+        return;
+      }
+      lastToggleTimeRef.current = now;
+
+      const { isProcessing } = stateRef.current;
+      const isRecording = isRecordingRef.current;
+
+      console.log("Toggle hotkey pressed - Recording:", isRecording, "Processing:", isProcessing);
       setIsCommandMenuOpen(false);
-      if (!recording && !isRecording && !isProcessing) {
-        startRecording(false); // Normal recording without screenshot
-        recording = true;
+
+      // Simple toggle logic
+      if (!isRecording && !isProcessing) {
+        console.log("Starting recording...");
+        startRecording(false);
       } else if (isRecording) {
+        console.log("Stopping recording...");
         stopRecording();
-        recording = false;
       } else if (isProcessing) {
-        // Cancel the processing when hotkey pressed during processing
-        console.log("Cancelling agent processing...");
+        console.log("Cancelling processing...");
         if (audioManagerRef.current) {
           audioManagerRef.current.cancelProcessing();
         }
@@ -329,27 +372,59 @@ export default function App() {
       }
     };
 
-    const handleScreenshotToggle = () => {
-      console.error("📸 SCREENSHOT TOGGLE EVENT RECEIVED!");
-      setIsCommandMenuOpen(false);
-      if (!recording && !isRecording && !isProcessing) {
-        console.error("📸 Starting recording with screenshot...");
-        startRecording(true); // Recording with screenshot
-        recording = true;
-      } else if (isRecording) {
-        console.error("📸 Stopping recording...");
+    const handleStopDictation = () => {
+      // This is for special stop events (like Globe key up)
+      const isRecording = isRecordingRef.current;
+      if (isRecording) {
         stopRecording();
-        recording = false;
       }
     };
 
+    // Globe key specific handlers
+    const handleGlobeKeyDown = () => {
+      // Same as toggle for Globe key
+      handleToggle();
+    };
+
+    const handleGlobeKeyUp = () => {
+      // Globe key up doesn't do anything in toggle mode
+      // Could be used for push-to-talk in future
+    };
+
+    const handleScreenshotToggle = () => {
+      const { isProcessing } = stateRef.current;
+      const isRecording = isRecordingRef.current;
+
+      setIsCommandMenuOpen(false);
+
+      if (!isRecording && !isProcessing) {
+        startRecording(true);
+      } else if (isRecording) {
+        stopRecording();
+      }
+    };
+
+    // Clean up any existing listeners to prevent duplicates
+    window.electronAPI.removeAllListeners("toggle-dictation");
+    window.electronAPI.removeAllListeners("stop-dictation");
+    window.electronAPI.removeAllListeners("toggle-screenshot");
+    window.electronAPI.removeAllListeners("globe-key-down");
+    window.electronAPI.removeAllListeners("globe-key-up");
+
     window.electronAPI.onToggleDictation(handleToggle);
+    window.electronAPI.onStopDictation(handleStopDictation);
     window.electronAPI.onToggleScreenshot(handleScreenshotToggle);
+    window.electronAPI.onGlobeKeyDown(handleGlobeKeyDown);
+    window.electronAPI.onGlobeKeyUp(handleGlobeKeyUp);
 
     return () => {
-      // No need to remove listener, as it's handled in preload
+      window.electronAPI.removeAllListeners("toggle-dictation");
+      window.electronAPI.removeAllListeners("stop-dictation");
+      window.electronAPI.removeAllListeners("toggle-screenshot");
+      window.electronAPI.removeAllListeners("globe-key-down");
+      window.electronAPI.removeAllListeners("globe-key-up");
     };
-  }, [isRecording, isProcessing]);
+  }, [dictationKey]); // Re-bind when key changes
 
   const toggleListening = () => {
     setIsCommandMenuOpen(false);

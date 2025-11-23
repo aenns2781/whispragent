@@ -17,7 +17,7 @@ export abstract class BaseReasoningService {
    * Get reasoning prompt
    */
   protected getReasoningPrompt(
-    text: string, 
+    text: string,
     agentName: string | null,
     config: ReasoningConfig = {}
   ): string {
