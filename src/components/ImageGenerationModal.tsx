@@ -69,8 +69,10 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
       setSelectedModel(savedModel);
       setIsCompactMode(true); // Always start in compact mode
       setShowSuccessCheck(false);
-      // Enable Google Search by default for Pro models
-      setUseGoogleSearch(savedModel.includes('pro'));
+      // Enable Google Search and set 4K resolution for Pro models
+      const isPro = savedModel.includes('pro');
+      setUseGoogleSearch(isPro);
+      setResolution(isPro ? '4K' : '1K');
     }
   }, [isOpen]);
 
