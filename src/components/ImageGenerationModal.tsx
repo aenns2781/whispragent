@@ -74,12 +74,14 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
     }
   }, [isOpen]);
 
-  // Auto-enable Google Search when switching to Pro model
+  // Auto-enable Google Search and set 4K resolution when switching to Pro model
   useEffect(() => {
     if (selectedModel.includes('pro')) {
       setUseGoogleSearch(true);
+      setResolution('4K'); // Pro defaults to 4K
     } else {
       setUseGoogleSearch(false);
+      setResolution('1K'); // Non-Pro only supports 1K
     }
   }, [selectedModel]);
 
