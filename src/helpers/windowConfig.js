@@ -58,26 +58,31 @@ const CONTROL_PANEL_CONFIG = {
 
 // Image generation window configuration
 const IMAGE_GENERATION_WINDOW_CONFIG = {
-  width: 900,
-  height: 700,
+  width: 620,  // Smaller width for compact modal
+  height: 80, // Even smaller height for just the input bar
   webPreferences: {
     preload: path.join(__dirname, "..", "..", "preload.js"),
     nodeIntegration: false,
     contextIsolation: true,
     enableRemoteModule: false,
     sandbox: false,
+    backgroundThrottling: false,
   },
   frame: false,
   alwaysOnTop: true,
   resizable: false,
   transparent: true,
+  backgroundColor: '#00000000', // Fully transparent background
   show: false,
   skipTaskbar: true,
   focusable: true,
   visibleOnAllWorkspaces: true,
   fullScreenable: false,
-  hasShadow: true,
+  hasShadow: false, // Remove shadow for cleaner look
+  vibrancy: null, // Explicitly disable vibrancy
+  visualEffectState: 'inactive', // Disable visual effects
   type: process.platform === 'darwin' ? 'panel' : 'normal',
+  roundedCorners: false, // Disable rounded corners if they add background
 };
 
 // Window positioning utilities

@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Switch } from '../ui/switch';
 import { cn } from '../lib/utils';
+import PanelBackground from '../PanelBackground';
 
 const DictationPanel: React.FC = () => {
   const [hotkey, setHotkey] = useState('`');
@@ -44,7 +45,8 @@ const DictationPanel: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <PanelBackground>
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Dictation Settings</h2>
@@ -182,7 +184,8 @@ const DictationPanel: React.FC = () => {
           other keys, try switching back to backtick.
         </p>
       </div>
-    </div>
+      </div>
+    </PanelBackground>
   );
 };
 

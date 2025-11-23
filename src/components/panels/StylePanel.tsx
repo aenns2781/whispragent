@@ -3,6 +3,7 @@ import { Palette, Check, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
+import PanelBackground from '../PanelBackground';
 import { cn } from '../lib/utils';
 
 interface StyleProfile {
@@ -130,7 +131,8 @@ const StylePanel: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <PanelBackground>
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Style Profiles</h2>
@@ -317,7 +319,8 @@ const StylePanel: React.FC = () => {
           </div>
         ))}
       </div>
-    </div>
+      </div>
+    </PanelBackground>
   );
 };
 

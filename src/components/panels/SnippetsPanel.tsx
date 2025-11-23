@@ -3,6 +3,7 @@ import { Plus, Trash2, Copy, Scissors } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+import PanelBackground from '../PanelBackground';
 
 interface Snippet {
   id: string;
@@ -87,7 +88,8 @@ const SnippetsPanel: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <PanelBackground>
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Snippets</h2>
@@ -215,7 +217,8 @@ const SnippetsPanel: React.FC = () => {
           ))
         )}
       </div>
-    </div>
+      </div>
+    </PanelBackground>
   );
 };
 

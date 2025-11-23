@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Copy, Trash2, Search, Image as ImageIcon } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
+import PanelBackground from '../PanelBackground';
 import {
   useTranscriptions,
   initializeTranscriptions,
@@ -29,10 +30,19 @@ const HistoryPanel: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [displayLimit, setDisplayLimit] = useState(50);
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadHistory();
+
+    // Listen for new generated images
+    const unsubscribe = window.electronAPI.onGeneratedImageAdded?.((newImage: any) => {
+      setGeneratedImages(prev => [newImage, ...prev]);
+    });
+
+    return () => {
+      unsubscribe?.();
+    };
   }, []);
 
   // Merge transcriptions and images when they change
@@ -160,142 +170,167 @@ const HistoryPanel: React.FC = () => {
     }
   };
 
+  const renderHistoryCard = (item: HistoryItem) => (
+    <div
+      key={`${item.type}-${item.id}`}
+      className="card hover-lift animate-fadeIn"
+    >
+      {item.type === 'transcription' ? (
+        // Transcription item
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-3 h-3 text-color-foreground-muted" />
+                <span className="text-xs text-color-foreground-muted">{formatDate(item.timestamp)}</span>
+              </div>
+              <p className="text-sm text-style-2lines">
+                {item.text}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => copyToClipboard(item.text || '')}
+                className="btn-ghost hover-scale"
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => deleteItem(item.id, 'transcription')}
+                className="btn-ghost text-red-400 hover:text-red-500"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Generated image item
+        <div className="overflow-hidden">
+          {/* Image thumbnail */}
+          <div
+            className="aspect-video bg-gradient-to-br from-primary/20 to-accent-pink/20 cursor-pointer relative group"
+            onClick={() => openImage(item.image_path || '')}
+          >
+            <img
+              src={`file://${item.image_path}`}
+              alt={item.prompt}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+              <span className="text-white text-sm font-medium">Click to open</span>
+            </div>
+          </div>
+          {/* Image details */}
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ImageIcon className="w-3 h-3 text-color-purple" />
+              <Clock className="w-3 h-3 text-color-foreground-muted" />
+              <span className="text-xs text-color-foreground-muted">{formatDate(item.timestamp)}</span>
+              {item.model && (
+                <span className="text-xs text-color-purple font-medium">
+                  {item.model.includes('pro') ? 'Nano Banana Pro' : 'Nano Banana'}
+                </span>
+              )}
+            </div>
+            <p className="text-sm mb-1 text-style-2lines">
+              {item.prompt}
+            </p>
+            {(item.aspect_ratio || item.resolution) && (
+              <p className="text-xs text-color-foreground-muted">
+                {item.aspect_ratio && item.aspect_ratio !== 'auto' && `${item.aspect_ratio} • `}
+                {item.resolution}
+              </p>
+            )}
+            <div className="flex items-center gap-2 mt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => copyToClipboard(item.prompt || '')}
+                className="btn-ghost hover-scale flex-1"
+              >
+                <Copy className="w-4 h-4 mr-1" />
+                Copy
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => deleteItem(item.id, 'image')}
+                className="btn-ghost text-red-400 hover:text-red-500"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-2">History</h2>
-        <p className="text-zinc-400">Your recent transcriptions and generated images</p>
+    <PanelBackground>
+      <div className="space-y-4">
+      {/* Header with Gradient */}
+      <div className="relative rounded-2xl overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent"></div>
+        <div className="relative p-6">
+          <h2 className="text-2xl font-bold animate-slideIn">History</h2>
+          <p className="text-color-foreground-muted">Your recent transcriptions and generated images</p>
+        </div>
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+      <div className="relative animate-slideIn" style={{ animationDelay: '100ms' }}>
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-color-foreground-muted" />
         <Input
           type="text"
           placeholder="Search history..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500"
+          className="pl-10 glass"
         />
       </div>
 
-      {/* History List */}
-      <div ref={scrollContainerRef} className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto">
-        {loading ? (
-          <div className="text-center py-8 text-zinc-500">Loading...</div>
-        ) : filteredHistory.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-zinc-500">No items found</p>
-            {searchTerm && (
-              <p className="text-sm text-zinc-600 mt-2">Try a different search term</p>
-            )}
+      {/* History Display */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="spinner"></div>
+        </div>
+      ) : filteredHistory.length === 0 ? (
+        <div className="text-center py-12 animate-fadeIn">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+            <Search className="w-8 h-8 text-primary" />
           </div>
-        ) : (
-          filteredHistory.slice(0, displayLimit).map((item) => (
+          <p className="text-color-foreground-muted text-lg">No items found</p>
+          {searchTerm && (
+            <p className="text-sm text-color-foreground-muted mt-2">Try a different search term</p>
+          )}
+        </div>
+      ) : (
+        /* List View */
+        <div ref={scrollContainerRef} className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto no-scrollbar">
+          {filteredHistory.slice(0, displayLimit).map((item, index) => (
             <div
               key={`${item.type}-${item.id}`}
-              className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg p-4 hover:bg-zinc-900/70 transition-colors"
+              className="animate-slideInLeft"
+              style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
             >
-              {item.type === 'transcription' ? (
-                // Transcription item
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Clock className="w-3 h-3 text-zinc-500" />
-                      <span className="text-xs text-zinc-500">{formatDate(item.timestamp)}</span>
-                    </div>
-                    <p className="text-sm text-zinc-300">
-                      {item.text}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(item.text || '')}
-                      className="text-zinc-400 hover:text-white"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteItem(item.id, 'transcription')}
-                      className="text-zinc-400 hover:text-red-400"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                // Generated image item
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex gap-3 flex-1 min-w-0">
-                    {/* Image thumbnail */}
-                    <div
-                      className="w-20 h-20 rounded-lg bg-zinc-800 flex-shrink-0 cursor-pointer overflow-hidden"
-                      onClick={() => openImage(item.image_path || '')}
-                    >
-                      <img
-                        src={`file://${item.image_path}`}
-                        alt={item.prompt}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    {/* Image details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <ImageIcon className="w-3 h-3 text-purple-400" />
-                        <Clock className="w-3 h-3 text-zinc-500" />
-                        <span className="text-xs text-zinc-500">{formatDate(item.timestamp)}</span>
-                        {item.model && (
-                          <span className="text-xs text-purple-400">
-                            {item.model.includes('pro') ? 'Nano Banana Pro' : 'Nano Banana'}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-zinc-300 mb-1">
-                        {item.prompt}
-                      </p>
-                      {(item.aspect_ratio || item.resolution) && (
-                        <p className="text-xs text-zinc-500">
-                          {item.aspect_ratio && item.aspect_ratio !== 'auto' && `${item.aspect_ratio} • `}
-                          {item.resolution}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(item.prompt || '')}
-                      className="text-zinc-400 hover:text-white"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteItem(item.id, 'image')}
-                      className="text-zinc-400 hover:text-red-400"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+              {renderHistoryCard(item)}
             </div>
-          ))
-        )}
-        {displayLimit < filteredHistory.length && (
-          <div className="text-center py-4 text-xs text-zinc-500">
-            Scroll for more...
-          </div>
-        )}
+          ))}
+          {displayLimit < filteredHistory.length && (
+            <div className="text-center py-4 text-xs text-color-foreground-muted animate-pulse">
+              Scroll for more...
+            </div>
+          )}
+        </div>
+      )}
       </div>
-    </div>
+    </PanelBackground>
   );
 };
 

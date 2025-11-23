@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, BookOpen } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
+import PanelBackground from '../PanelBackground';
 
 interface DictionaryEntry {
   id: string;
@@ -67,7 +68,8 @@ const DictionaryPanel: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <PanelBackground>
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Dictionary</h2>
@@ -188,7 +190,8 @@ const DictionaryPanel: React.FC = () => {
           ))
         )}
       </div>
-    </div>
+      </div>
+    </PanelBackground>
   );
 };
 

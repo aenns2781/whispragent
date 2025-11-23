@@ -15,6 +15,8 @@ class WhisperManager {
     this.isInitialized = false; // Track if startup init completed
     this.currentDownloadProcess = null; // Track current download process for cancellation
     this.pythonInstaller = new PythonInstaller();
+    this.ffmpegPath = null; // Cache FFmpeg path
+    this.ffmpegAvailable = null; // Cache FFmpeg availability result
   }
 
   sanitizeErrorMessage(message = "") {
@@ -91,13 +93,16 @@ class WhisperManager {
       audioBlobSize: audioBlob?.byteLength || audioBlob?.size || 0
     });
 
-    // First check if FFmpeg is available
-    const ffmpegCheck = await this.checkFFmpegAvailability();
-    debugLogger.logWhisperPipeline('FFmpeg availability check', ffmpegCheck);
+    // Use cached FFmpeg check if available, otherwise check and cache
+    if (this.ffmpegAvailable === null) {
+      const ffmpegCheck = await this.checkFFmpegAvailability();
+      this.ffmpegAvailable = ffmpegCheck;
+      debugLogger.logWhisperPipeline('FFmpeg availability check (cached)', ffmpegCheck);
+    }
 
-    if (!ffmpegCheck.available) {
-      debugLogger.error('FFmpeg not available', ffmpegCheck);
-      throw new Error(`FFmpeg not available: ${ffmpegCheck.error || 'Unknown error'}`);
+    if (!this.ffmpegAvailable.available) {
+      debugLogger.error('FFmpeg not available', this.ffmpegAvailable);
+      throw new Error(`FFmpeg not available: ${this.ffmpegAvailable.error || 'Unknown error'}`);
     }
 
     const tempAudioPath = await this.createTempAudioFile(audioBlob);

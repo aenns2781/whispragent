@@ -37,6 +37,19 @@ const ControlPanelV2: React.FC = () => {
     };
   }, []);
 
+  // Listen for navigation to history event
+  useEffect(() => {
+    const handleNavigateToHistory = () => {
+      setActiveSection('history');
+    };
+
+    window.addEventListener('navigate-to-history', handleNavigateToHistory);
+
+    return () => {
+      window.removeEventListener('navigate-to-history', handleNavigateToHistory);
+    };
+  }, []);
+
   const renderPanel = () => {
     switch (activeSection) {
       case 'home':
@@ -64,22 +77,26 @@ const ControlPanelV2: React.FC = () => {
 
   // Add error boundary
   if (!activeSection) {
-    return <div className="flex h-screen bg-black text-white items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-white mb-4">Loading OpenWhispr...</h1>
-        <p className="text-zinc-400">Please wait while we set up your workspace</p>
+    return <div className="flex h-screen background-color-1 text-white items-center justify-center">
+      <div className="text-center animate-fadeIn">
+        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center animate-float">
+          <div className="spinner"></div>
+        </div>
+        <h1 className="text-2xl font-bold text-white mb-4 font-heading">Loading Whisper...</h1>
+        <p className="text-color-foreground-muted animate-pulse">Please wait while we set up your workspace</p>
       </div>
     </div>;
   }
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white">
+    <div className="flex flex-col h-screen background-color-1 text-white">
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-        <div className="flex-1 overflow-hidden bg-black">
-          <div className="h-full overflow-y-auto bg-black">
-            <div className="p-6 max-w-4xl mx-auto">
+        <div className="flex-1 overflow-hidden background-holder">
+          <div className="background-layer background-color-2"></div>
+          <div className="h-full overflow-y-auto no-scrollbar relative">
+            <div className="p-6 max-w-5xl mx-auto animate-fadeIn">
               {renderPanel()}
             </div>
           </div>

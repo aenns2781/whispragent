@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Cpu, Download, Trash2, Check, AlertCircle, Zap } from 'lucide-react';
+import { Cpu, Download, Trash2, Check, AlertCircle, Zap, Shield, Brain, Sparkles, Lock, Cloud, Gauge } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Switch } from '../ui/switch';
 import { cn } from '../lib/utils';
 import { useSettings } from '../../hooks/useSettings';
+import PanelBackground from '../PanelBackground';
 
 interface WhisperModel {
   name: string;
@@ -113,234 +114,342 @@ const AIModelsPanel: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-2">AI Models</h2>
-        <p className="text-zinc-400">Configure transcription and reasoning models</p>
-      </div>
-
-      {/* Whisper Settings */}
-      <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Transcription Engine</h3>
-
-        {/* Privacy Explanation */}
-        <div className="space-y-4 mb-6">
-          <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-            <h4 className="text-sm font-semibold text-green-400 mb-2">🔒 Privacy-First Transcription</h4>
-            <div className="space-y-2 text-sm text-zinc-300">
-              <p>• <strong>All transcription happens locally</strong> on your computer using Whisper</p>
-              <p>• Your voice recordings are processed privately on your device</p>
-              <p>• <strong>Zero audio data is sent to any server or cloud service</strong></p>
-              <p>• Works completely offline - no internet required for transcription</p>
+    <PanelBackground>
+      <div className="space-y-6">
+      {/* Header with Gradient */}
+      <div className="background-holder rounded-2xl overflow-hidden animate-slideIn">
+        <div className="background-layer background-gradient"></div>
+        <div className="relative p-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
+              <Brain className="w-6 h-6 text-white" />
             </div>
-          </div>
-
-          <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <h4 className="text-sm font-semibold text-blue-400 mb-2">🤖 Optional AI Agent Mode</h4>
-            <div className="space-y-2 text-sm text-zinc-300">
-              <p>• When you address your agent by name, AI processing activates</p>
-              <p>• Only the <strong>transcribed text</strong> (not audio) is sent to your selected LLM</p>
-              <p>• Agent uses your chosen provider: GPT/Claude/Gemini</p>
-              <p>• This app does not store or log your data</p>
-              <p>• Only your LLM provider sees the text according to their privacy policy</p>
+            <div>
+              <h2 className="text-3xl font-bold text-white font-heading">AI Models</h2>
+              <p className="text-white/80">Configure transcription and reasoning models</p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Model Selection */}
-        <div className="space-y-3">
-          <p className="text-sm text-zinc-400 mb-3">Select a Whisper model:</p>
-          {whisperModels.map((model) => (
-            <div
-              key={model.name}
-              className={cn(
-                "p-4 border rounded-lg cursor-pointer transition-all",
-                settings.whisperModel === model.name
-                  ? "bg-blue-500/10 border-blue-500/50"
-                  : "bg-zinc-900/30 border-zinc-800 hover:bg-zinc-900/50"
-              )}
-              onClick={() => model.downloaded && settings.setWhisperModel(model.name)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Cpu className="w-5 h-5 text-zinc-400" />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-white">{model.name}</span>
-                      <span className="text-xs text-zinc-500">{model.size}</span>
-                    </div>
-                    <div className="flex gap-2 mt-1">
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full", getSpeedBadge(model.speed))}>
-                        {model.speed}
-                      </span>
-                      <span className="text-xs px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded-full">
-                        {model.quality} quality
-                      </span>
-                    </div>
+      {/* Whisper Settings */}
+      <div className="card glass animate-slideInLeft" style={{ animationDelay: '100ms' }}>
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Cpu className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold text-white font-heading">Transcription Engine</h3>
+          </div>
+
+          {/* Privacy Explanation with Enhanced Styling */}
+          <div className="space-y-4 mb-6">
+            <div className="card glass-success hover-lift">
+              <div className="p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-green-500/20 rounded-lg">
+                    <Shield className="w-5 h-5 text-green-400" />
                   </div>
+                  <h4 className="text-sm font-semibold text-green-400">Privacy-First Transcription</h4>
                 </div>
-                {downloadingModel === model.name ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
-                    <span className="text-xs text-blue-400">Downloading...</span>
-                  </div>
-                ) : deletingModel === model.name ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
-                    <span className="text-xs text-red-400">Deleting...</span>
-                  </div>
-                ) : model.downloaded ? (
-                  <div className="flex items-center gap-2">
-                    <Check className="w-5 h-5 text-green-400" />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteModel(model.name);
-                      }}
-                      className="text-zinc-400 hover:text-red-400"
-                      disabled={deletingModel !== null || settings.whisperModel === model.name}
-                      title={settings.whisperModel === model.name ? "Cannot delete active model" : "Delete model"}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      downloadModel(model.name);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700"
-                    disabled={downloadingModel !== null || deletingModel !== null}
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                )}
+                <div className="space-y-2 text-sm text-color-foreground">
+                  <p className="flex items-start gap-2">
+                    <Lock className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <span><strong>All transcription happens locally</strong> on your computer using Whisper</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <Lock className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <span>Your voice recordings are processed privately on your device</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <Lock className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <span><strong>Zero audio data is sent to any server or cloud service</strong></span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <Lock className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <span>Works completely offline - no internet required for transcription</span>
+                  </p>
+                </div>
               </div>
             </div>
-          ))}
+
+            <div className="card glass hover-lift">
+              <div className="p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-gradient-to-br from-primary/20 to-accent-purple/20 rounded-lg">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-primary">Optional AI Agent Mode</h4>
+                </div>
+                <div className="space-y-2 text-sm text-color-foreground">
+                  <p className="flex items-start gap-2">
+                    <Brain className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>When you address your agent by name, AI processing activates</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <Cloud className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Only the <strong>transcribed text</strong> (not audio) is sent to your selected LLM</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <Zap className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Agent uses your chosen provider: GPT/Claude/Gemini</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <Shield className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>This app does not store or log your data</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <Lock className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Only your LLM provider sees the text according to their privacy policy</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Model Selection */}
+          <div className="space-y-3">
+            <p className="text-sm text-color-foreground-muted mb-3 font-medium">Select a Whisper model:</p>
+            {whisperModels.map((model, index) => (
+              <div
+                key={model.name}
+                className={cn(
+                  "relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300 hover-lift",
+                  "animate-slideInLeft",
+                  settings.whisperModel === model.name
+                    ? "card-active"
+                    : "card hover:shadow-lg"
+                )}
+                style={{ animationDelay: `${200 + index * 50}ms` }}
+                onClick={() => model.downloaded && settings.setWhisperModel(model.name)}
+              >
+                {/* Active indicator gradient */}
+                {settings.whisperModel === model.name && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent-purple/10 animate-pulse" />
+                )}
+
+                <div className="relative p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "p-2 rounded-lg transition-all duration-300",
+                        settings.whisperModel === model.name
+                          ? "bg-gradient-to-br from-primary/30 to-accent-purple/30"
+                          : "bg-white/5"
+                      )}>
+                        <Gauge className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-white text-sm">{model.name}</span>
+                          <span className="text-xs text-color-foreground-muted">{model.size}</span>
+                        </div>
+                        <div className="flex gap-2 mt-1">
+                          <span className={cn(
+                            "text-xs px-2 py-0.5 rounded-full font-medium",
+                            getSpeedBadge(model.speed)
+                          )}>
+                            {model.speed}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 bg-white/10 text-color-foreground-muted rounded-full">
+                            {model.quality} quality
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {downloadingModel === model.name ? (
+                      <div className="flex items-center gap-2">
+                        <div className="spinner"></div>
+                        <span className="text-xs text-primary animate-pulse">Downloading...</span>
+                      </div>
+                    ) : deletingModel === model.name ? (
+                      <div className="flex items-center gap-2">
+                        <div className="spinner"></div>
+                        <span className="text-xs text-red-400 animate-pulse">Deleting...</span>
+                      </div>
+                    ) : model.downloaded ? (
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-green-500/20 rounded-lg">
+                          <Check className="w-4 h-4 text-green-400" />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteModel(model.name);
+                          }}
+                          className="btn-ghost hover:text-red-400 hover-scale"
+                          disabled={deletingModel !== null || settings.whisperModel === model.name}
+                          title={settings.whisperModel === model.name ? "Cannot delete active model" : "Delete model"}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadModel(model.name);
+                        }}
+                        className="btn-primary hover-scale"
+                        disabled={downloadingModel !== null || deletingModel !== null}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* AI Agent Settings */}
-      <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">AI Agent (Voice Processing)</h3>
+      <div className="card glass animate-slideInLeft" style={{ animationDelay: '600ms' }}>
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Brain className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold text-white font-heading">AI Agent (Voice Processing)</h3>
+          </div>
 
-        {/* Agent Name */}
-        <div className="mb-6">
-          <label className="text-sm text-zinc-400 mb-2 block">Agent Name</label>
-          <Input
-            placeholder="e.g., Jarvis, Assistant, Helper"
-            value={agentName}
-            onChange={(e) => {
-              setAgentName(e.target.value);
-              localStorage.setItem('agentName', e.target.value);
-            }}
-            className="bg-zinc-900 border-zinc-700"
-          />
-          <p className="text-xs text-zinc-500 mt-2">
-            Say "Hey {agentName || 'Assistant'}" to trigger AI processing
-          </p>
-        </div>
-
-        {/* OpenAI Section */}
-        <div className="space-y-4">
-          <div className="p-4 border rounded-lg bg-green-500/10 border-green-500/50">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-green-400" />
-                <span className="font-medium text-white">OpenAI</span>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="relative">
-                <Input
-                  type="password"
-                  placeholder="Enter OpenAI API Key"
-                  value={settings.openaiApiKey}
-                  onChange={(e) => {
-                    const key = e.target.value;
-                    settings.setOpenaiApiKey(key);
-                    window.electronAPI?.saveOpenAIKey(key);
-                    settings.setReasoningProvider('openai');
-                  }}
-                  className="bg-zinc-900 border-zinc-700 text-sm pr-10"
-                />
-                {settings.openaiApiKey && (
-                  <Check className="w-4 h-4 text-green-400 absolute right-3 top-1/2 -translate-y-1/2" />
-                )}
-              </div>
-              <select
-                className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-white"
-                value={settings.reasoningModel}
+          {/* Agent Name */}
+          <div className="mb-6">
+            <label className="text-sm text-color-foreground-muted mb-2 block font-medium">Agent Name</label>
+            <div className="relative">
+              <Input
+                placeholder="e.g., Jarvis, Assistant, Helper"
+                value={agentName}
                 onChange={(e) => {
-                  settings.setReasoningModel(e.target.value);
+                  setAgentName(e.target.value);
+                  localStorage.setItem('agentName', e.target.value);
                 }}
-              >
-                <option value="gpt-5.1-nano">GPT-5.1 Nano (Fastest)</option>
-                <option value="gpt-5.1-mini">GPT-5.1 Mini (Balanced)</option>
-                <option value="gpt-5.1">GPT-5.1 (Most Capable)</option>
-              </select>
+                className="input-field glass pr-10"
+              />
+              <Sparkles className="w-4 h-4 text-primary absolute right-3 top-1/2 -translate-y-1/2" />
+            </div>
+            <p className="text-xs text-color-foreground-muted mt-2">
+              Say "Hey {agentName || 'Assistant'}" to trigger AI processing
+            </p>
+          </div>
+
+          {/* OpenAI Section with Tribe Branding */}
+          <div className="space-y-4">
+            <div className="card hover-lift background-holder overflow-hidden">
+              <div className="background-layer bg-gradient-to-br from-green-500/10 to-emerald-500/10"></div>
+              <div className="relative p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg">
+                      <Zap className="w-5 h-5 text-green-400" />
+                    </div>
+                    <span className="font-medium text-white">OpenAI</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Input
+                      type="password"
+                      placeholder="Enter OpenAI API Key"
+                      value={settings.openaiApiKey}
+                      onChange={(e) => {
+                        const key = e.target.value;
+                        settings.setOpenaiApiKey(key);
+                        window.electronAPI?.saveOpenAIKey(key);
+                        settings.setReasoningProvider('openai');
+                      }}
+                      className="input-field glass pr-10"
+                    />
+                    {settings.openaiApiKey && (
+                      <div className="p-1 bg-green-500/20 rounded absolute right-2 top-1/2 -translate-y-1/2">
+                        <Check className="w-3 h-3 text-green-400" />
+                      </div>
+                    )}
+                  </div>
+                  <select
+                    className="w-full input-field glass text-sm"
+                    value={settings.reasoningModel}
+                    onChange={(e) => {
+                      settings.setReasoningModel(e.target.value);
+                    }}
+                  >
+                    <option value="gpt-5.1-nano">GPT-5.1 Nano (Fastest)</option>
+                    <option value="gpt-5.1-mini">GPT-5.1 Mini (Balanced)</option>
+                    <option value="gpt-5.1">GPT-5.1 (Most Capable)</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Image Generation Settings */}
-      <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Image Generation</h3>
-        <p className="text-sm text-zinc-400 mb-4">
-          Press Shift + [your hotkey] to generate AI images
-        </p>
+      <div className="card glass animate-slideInLeft" style={{ animationDelay: '700ms' }}>
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold text-white font-heading">Image Generation</h3>
+          </div>
+          <p className="text-sm text-color-foreground-muted mb-6">
+            Press <kbd className="kbd-key">Shift</kbd> + <kbd className="kbd-key">[hotkey]</kbd> to generate AI images
+          </p>
 
-        {/* Google Gemini Section */}
-        <div className="space-y-4">
-          <div className="p-4 border rounded-lg bg-blue-500/10 border-blue-500/50">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Cpu className="w-5 h-5 text-blue-400" />
-                <span className="font-medium text-white">Google Gemini</span>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="relative">
-                <Input
-                  type="password"
-                  placeholder="Enter Gemini API Key"
-                  value={settings.geminiApiKey}
-                  onChange={(e) => {
-                    const key = e.target.value;
-                    settings.setGeminiApiKey(key);
-                    window.electronAPI?.saveGeminiKey(key);
-                  }}
-                  className="bg-zinc-900 border-zinc-700 text-sm pr-10"
-                />
-                {settings.geminiApiKey && (
-                  <Check className="w-4 h-4 text-green-400 absolute right-3 top-1/2 -translate-y-1/2" />
-                )}
-              </div>
-              <div>
-                <label className="text-sm text-zinc-400 mb-2 block">Image Generation Model</label>
-                <select
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-white"
-                  value={localStorage.getItem('imageGenerationModel') || 'gemini-2.5-flash-image'}
-                  onChange={(e) => {
-                    localStorage.setItem('imageGenerationModel', e.target.value);
-                  }}
-                >
-                  <option value="gemini-2.5-flash-image">Nano Banana (Fast)</option>
-                  <option value="gemini-3-pro-image-preview">Nano Banana Pro (Higher Quality)</option>
-                </select>
+          {/* Google Gemini Section with Tribe Branding */}
+          <div className="space-y-4">
+            <div className="card hover-lift background-holder overflow-hidden">
+              <div className="background-layer bg-gradient-to-br from-blue-500/10 to-indigo-500/10"></div>
+              <div className="relative p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-lg">
+                      <Cloud className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <span className="font-medium text-white">Google Gemini</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Input
+                      type="password"
+                      placeholder="Enter Gemini API Key"
+                      value={settings.geminiApiKey}
+                      onChange={(e) => {
+                        const key = e.target.value;
+                        settings.setGeminiApiKey(key);
+                        window.electronAPI?.saveGeminiKey(key);
+                      }}
+                      className="input-field glass pr-10"
+                    />
+                    {settings.geminiApiKey && (
+                      <div className="p-1 bg-green-500/20 rounded absolute right-2 top-1/2 -translate-y-1/2">
+                        <Check className="w-3 h-3 text-green-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm text-color-foreground-muted mb-2 block font-medium">
+                      Image Generation Model
+                    </label>
+                    <select
+                      className="w-full input-field glass text-sm"
+                      value={localStorage.getItem('imageGenerationModel') || 'gemini-2.5-flash-image'}
+                      onChange={(e) => {
+                        localStorage.setItem('imageGenerationModel', e.target.value);
+                      }}
+                    >
+                      <option value="gemini-2.5-flash-image">Nano Banana (Fast)</option>
+                      <option value="gemini-3-pro-image-preview">Nano Banana Pro (Higher Quality)</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </PanelBackground>
   );
 };
 

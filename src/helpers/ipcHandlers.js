@@ -64,6 +64,28 @@ class IPCHandlers {
       }
     });
 
+    // Image generation window resize handler
+    ipcMain.handle("resize-image-window", (event, isCompact) => {
+      const window = this.windowManager.imageGenerationWindow;
+      if (window && !window.isDestroyed()) {
+        const { screen } = require('electron');
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+
+        if (isCompact) {
+          // Compact mode - small window at bottom
+          window.setSize(620, 80);
+          const x = Math.floor((screenWidth - 620) / 2);
+          const y = screenHeight - 80 - 40; // Much closer to bottom - only 40px gap
+          window.setPosition(x, y);
+        } else {
+          // Expanded mode - larger centered window
+          window.setSize(900, 700);
+          window.center();
+        }
+      }
+    });
+
     ipcMain.handle("show-dictation-panel", () => {
       this.windowManager.showDictationPanel();
     });

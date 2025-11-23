@@ -1,6 +1,7 @@
 import React from 'react';
 import { HelpCircle, Book, MessageCircle, Bug, ExternalLink, Github, Mail } from 'lucide-react';
 import { Button } from '../ui/button';
+import PanelBackground from '../PanelBackground';
 
 const HelpPanel: React.FC = () => {
   const shortcuts = [
@@ -29,11 +30,12 @@ const HelpPanel: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <PanelBackground>
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Help & Support</h2>
-        <p className="text-zinc-400">Get help with Tribe Whisper</p>
+        <p className="text-zinc-400">Get help with Whisper</p>
       </div>
 
       {/* Keyboard Shortcuts */}
@@ -148,11 +150,12 @@ const HelpPanel: React.FC = () => {
           </p>
           <p className="text-xs">
             Built with Electron, React, and TypeScript<br />
-            © 2024 Tribe Whisper. MIT License.
+            © 2024 Whisper. MIT License.
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </PanelBackground>
   );
 };
 

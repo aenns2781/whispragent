@@ -24,22 +24,29 @@ export default function TitleBar({
 
   return (
     <div
-      className={`bg-background border-b border-border select-none ${className}`}
+      className={`glass-dark border-b border-white/10 select-none ${className}`}
     >
       <div
-        className="flex items-center justify-between h-12 px-4 drag-region"
+        className="flex items-center justify-between h-12 px-4 drag-region background-holder"
       >
+        <div className="background-layer background-gradient opacity-20"></div>
+
         {/* Left section - title or custom content */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative">
           {showTitle && title && (
-            <h1 className="text-sm font-semibold text-foreground">{title}</h1>
+            <h1 className="text-sm font-semibold text-white font-heading animate-fadeIn">{title}</h1>
           )}
           {children}
         </div>
 
+        {/* Center - Optional decorative element */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="h-0.5 w-20 bg-gradient-to-r from-transparent via-primary/30 to-transparent rounded-full"></div>
+        </div>
+
         {/* Right section - actions and window controls */}
         <div
-          className="flex items-center gap-2 no-drag-region"
+          className="flex items-center gap-2 no-drag-region relative"
         >
           {actions}
           {/* Show window controls on Linux and Windows (macOS uses native controls) */}

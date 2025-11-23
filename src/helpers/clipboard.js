@@ -132,10 +132,13 @@ class ClipboardManager {
 
           if (code === 0) {
             this.safeLog("✅ Text pasted successfully via Cmd+V simulation");
+            // Restore clipboard after a delay to avoid interfering with paste
             setTimeout(() => {
-              clipboard.writeText(originalClipboard);
-              this.safeLog("🔄 Original clipboard content restored");
-            }, 100);
+              if (originalClipboard) {
+                clipboard.writeText(originalClipboard);
+                this.safeLog("🔄 Restored original clipboard content");
+              }
+            }, 500); // 500ms delay should be safe
             resolve();
           } else {
             const errorMsg = `Paste failed (code ${code}). Text is copied to clipboard - please paste manually with Cmd+V.`;
@@ -173,9 +176,13 @@ class ClipboardManager {
       pasteProcess.on("close", (code) => {
         if (code === 0) {
           // Text pasted successfully
+          // Restore clipboard after a delay
           setTimeout(() => {
-            clipboard.writeText(originalClipboard);
-          }, 100);
+            if (originalClipboard) {
+              clipboard.writeText(originalClipboard);
+              this.safeLog("🔄 Restored original clipboard content");
+            }
+          }, 500);
           resolve();
         } else {
           reject(
@@ -255,8 +262,13 @@ class ClipboardManager {
           clearTimeout(timeoutId);
 
           if (code === 0) {
-            // Restore original clipboard after successful paste
-            setTimeout(() => clipboard.writeText(originalClipboard), 100);
+            // Restore clipboard after a delay
+            setTimeout(() => {
+              if (originalClipboard) {
+                clipboard.writeText(originalClipboard);
+                this.safeLog("🔄 Restored original clipboard content");
+              }
+            }, 500);
             resolve();
           } else {
             reject(new Error(`${tool.cmd} exited with code ${code}`));

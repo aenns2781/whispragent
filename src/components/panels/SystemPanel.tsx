@@ -3,6 +3,7 @@ import { Monitor, Volume2, Globe2, Shield, HardDrive, Trash2, Folder } from 'luc
 import { Button } from '../ui/button';
 import { Switch } from '../ui/switch';
 import { cn } from '../lib/utils';
+import PanelBackground from '../PanelBackground';
 import { getTranscriptionCount } from '../../stores/transcriptionStore';
 
 const SystemPanel: React.FC = () => {
@@ -99,7 +100,8 @@ const SystemPanel: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <PanelBackground>
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">System Settings</h2>
@@ -284,7 +286,8 @@ const SystemPanel: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </PanelBackground>
   );
 };
 

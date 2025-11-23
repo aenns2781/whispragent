@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("electronAPI", {
   pasteText: (text) => ipcRenderer.invoke("paste-text", text),
   hideWindow: () => ipcRenderer.invoke("hide-window"),
+  resizeImageWindow: (isCompact) => ipcRenderer.invoke("resize-image-window", isCompact),
   showDictationPanel: () => ipcRenderer.invoke("show-dictation-panel"),
   startDictation: () => ipcRenderer.invoke("start-dictation"),
   onToggleDictation: (callback) => ipcRenderer.on("toggle-dictation", callback),
@@ -37,6 +38,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("db-get-all-generated-images"),
   deleteGeneratedImage: (id) =>
     ipcRenderer.invoke("db-delete-generated-image", id),
+  onGeneratedImageAdded: (callback) => {
+    const listener = (_event, generatedImage) => callback?.(generatedImage);
+    ipcRenderer.on("generated-image-added", listener);
+    return () => ipcRenderer.removeListener("generated-image-added", listener);
+  },
   onTranscriptionAdded: (callback) => {
     const listener = (_event, transcription) => callback?.(transcription);
     ipcRenderer.on("transcription-added", listener);

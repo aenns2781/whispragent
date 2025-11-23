@@ -207,17 +207,8 @@ class AudioManager {
   }
 
   async processWithLocalWhisper(audioBlob, model = "base") {
-
-    // Analyze audio levels first
-    const audioAnalysis = await this.analyzeAudioLevels(audioBlob);
-    if (audioAnalysis && audioAnalysis.isSilent) {
-      // Show error to user immediately
-      this.onError?.({
-        title: "No Audio Detected",
-        description: "The recording appears to be silent. Please check that your microphone is working and not muted.",
-      });
-      // Still continue to try transcription in case analysis was wrong
-    }
+    // Skip audio analysis - Whisper will handle silence detection
+    // This saves processing time and Whisper's detection is more reliable
 
     try {
       const arrayBuffer = await audioBlob.arrayBuffer();

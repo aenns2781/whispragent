@@ -54,6 +54,7 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
   // Reset state when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
+      // Clear everything when closing
       setMode('generation');
       setAspectRatio('auto');
       setResolution('1K');
@@ -61,14 +62,23 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
       setPrompt('');
       setGeneratedImages([]);
       setError(null);
-      setIsCompactMode(true); // Reset to compact mode
+      setIsCompactMode(true);
       setShowSuccessCheck(false);
     } else {
-      // Load default model from localStorage when opening
-      const savedModel = localStorage.getItem('imageGenerationModel') || 'gemini-3-pro-image-preview';
-      setSelectedModel(savedModel);
+      // Reset to fresh state when opening
+      setMode('generation');
+      setAspectRatio('auto');
+      setReferenceImages([]); // Clear reference images when opening
+      setPrompt(''); // Clear prompt
+      setGeneratedImages([]); // Clear generated images
+      setError(null); // Clear errors
       setIsCompactMode(true); // Always start in compact mode
       setShowSuccessCheck(false);
+
+      // Load default model from localStorage
+      const savedModel = localStorage.getItem('imageGenerationModel') || 'gemini-3-pro-image-preview';
+      setSelectedModel(savedModel);
+
       // Enable Google Search and set 4K resolution for Pro models
       const isPro = savedModel.includes('pro');
       setUseGoogleSearch(isPro);
@@ -121,17 +131,7 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Close modal when window loses focus (both compact and expanded)
-  useEffect(() => {
-    const handleBlur = () => {
-      if (isOpen) {
-        onClose();
-      }
-    };
-
-    window.addEventListener('blur', handleBlur);
-    return () => window.removeEventListener('blur', handleBlur);
-  }, [isOpen, onClose]);
+  // Removed blur listener - modal stays persistent
 
   // Handle paste events for images
   useEffect(() => {
@@ -182,8 +182,16 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
       } else {
         throw new Error(result.error || 'Screenshot capture failed');
       }
-    } catch (err) {
-      setError('Failed to capture screenshot. Please check screen recording permissions.');
+    } catch (err: any) {
+      // Provide specific error message based on the error
+      if (err.message?.includes('permission')) {
+        setError('Screen recording permission denied. Check System Settings > Privacy.');
+      } else if (err.message?.includes('cancel')) {
+        // User cancelled, don't show error
+        return;
+      } else {
+        setError('Screenshot capture failed. Try again or check permissions.');
+      }
       console.error('Screenshot error:', err);
     } finally {
       setIsCapturingScreenshot(false);
@@ -368,7 +376,43 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
         }, 2500);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to generate image. Please try again.');
+      // Parse different error types for better user messages
+      let errorMessage = 'Failed to generate image. Please try again.';
+
+      if (err.message) {
+        const lowerMessage = err.message.toLowerCase();
+
+        // API quota/limit errors
+        if (lowerMessage.includes('quota') || lowerMessage.includes('limit') || lowerMessage.includes('exceeded')) {
+          errorMessage = 'API quota exceeded. Please check your billing or wait for quota reset.';
+        }
+        // Authentication errors
+        else if (lowerMessage.includes('api key') || lowerMessage.includes('authentication') || lowerMessage.includes('unauthorized')) {
+          errorMessage = 'Invalid API key. Please check your Gemini API key in Settings.';
+        }
+        // Rate limiting
+        else if (lowerMessage.includes('rate limit') || lowerMessage.includes('too many requests')) {
+          errorMessage = 'Rate limit reached. Please wait a moment and try again.';
+        }
+        // Network errors
+        else if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
+          errorMessage = 'Network error. Please check your internet connection.';
+        }
+        // Content filtering
+        else if (lowerMessage.includes('safety') || lowerMessage.includes('blocked') || lowerMessage.includes('content')) {
+          errorMessage = 'Content blocked by safety filters. Please modify your prompt.';
+        }
+        // Invalid model
+        else if (lowerMessage.includes('model')) {
+          errorMessage = 'Invalid model selected. Please choose a different model.';
+        }
+        // Generic API error with message
+        else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
       console.error('Generation error:', err);
     } finally {
       setIsGenerating(false);
@@ -377,23 +421,25 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
 
   if (!isOpen || isCapturingScreenshot) return null;
 
-  // Compact mode - minimal input at bottom center
+  // Compact mode - minimal input filling the small window
   if (isCompactMode) {
     return (
-      <>
-        {/* Backdrop - click outside to close */}
-        <div
-          className="fixed inset-0 z-50 bg-transparent animate-in fade-in duration-200"
-          onClick={onClose}
-        />
-
-        {/* Modal content */}
-        <div className="fixed inset-0 z-50 pointer-events-none flex items-end justify-center pb-8">
-          <div
-            className="pointer-events-auto bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/50 rounded-xl shadow-2xl p-2 flex flex-col gap-2 min-w-[520px] max-w-[600px] transition-all duration-500 ease-out animate-in slide-in-from-bottom-8 zoom-in-95 fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <div
+        className="flex items-center justify-center h-screen w-screen bg-transparent"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Just the modal content without any backdrop */}
+        <div className="bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/50 rounded-xl shadow-2xl p-2 flex flex-col gap-2 min-w-[520px] max-w-[600px] relative">
             <div className="flex items-center gap-2">
+              {/* Close button - subtle X */}
+              <button
+                onClick={onClose}
+                className="flex-shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors p-1.5 hover:bg-zinc-800/50 rounded-lg"
+                title="Close (Esc)"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
               {/* Reference images count badge */}
               {referenceImages.length > 0 && (
                 <div className="flex items-center gap-1.5 h-9 px-2.5 bg-zinc-800/80 border border-zinc-700/50 rounded-lg">
@@ -457,7 +503,10 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => setIsCompactMode(false)}
+                    onClick={() => {
+                      setIsCompactMode(false);
+                      window.electronAPI?.resizeImageWindow?.(false);
+                    }}
                     className="bg-purple-600 hover:bg-purple-700 active:bg-purple-800 border-0 text-white h-9 w-9 p-0 transition-all"
                     title="Expand"
                   >
@@ -467,14 +516,14 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
               )}
             </div>
 
+            {/* Error overlay - positioned absolutely to not affect layout */}
             {error && (
-              <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-1">
+              <div className="absolute bottom-full mb-2 left-2 right-2 text-xs text-red-400 bg-zinc-900/95 backdrop-blur border border-red-500/30 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-bottom-1 shadow-lg z-50">
                 {error}
               </div>
             )}
           </div>
-        </div>
-      </>
+      </div>
     );
   }
 
@@ -495,7 +544,10 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsCompactMode(true)}
+              onClick={() => {
+                setIsCompactMode(true);
+                window.electronAPI?.resizeImageWindow?.(true);
+              }}
               className="text-zinc-400 hover:text-white transition-colors"
               title="Minimize"
             >

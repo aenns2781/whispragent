@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from './lib/utils';
 import {
   Home,
@@ -9,8 +9,10 @@ import {
   Mic,
   Brain,
   Settings,
-  HelpCircle
+  HelpCircle,
+  Sparkles
 } from 'lucide-react';
+// Removed TribeLogo import
 
 interface SidebarProps {
   activeSection: string;
@@ -32,36 +34,74 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
     { id: 'help', label: 'Help', icon: HelpCircle }
   ];
 
+  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
+
   return (
-    <div className="w-56 bg-zinc-900/50 backdrop-blur-lg border-r border-zinc-800 h-full flex flex-col">
+    <div className="w-56 glass-dark h-full flex flex-col animate-slideInLeft">
       {/* App Title */}
-      <div className="p-4 border-b border-zinc-800">
-        <h1 className="text-lg font-semibold text-white">Tribe Whisper</h1>
-        <p className="text-xs text-zinc-500 mt-1">Voice to Text</p>
+      <div className="p-4 border-b border-white/10 background-holder">
+        <div className="background-layer background-gradient"></div>
+        <div className="relative">
+          <h1 className="text-lg font-bold text-white font-heading">Whisper</h1>
+          <p className="text-xs text-color-foreground-muted">Voice to Text AI</p>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-3">
-        {sections.map((section) => {
+      <nav className="flex-1 overflow-y-auto p-3 no-scrollbar">
+        {sections.map((section, index) => {
           if (section.isDivider) {
-            return <div key={section.id} className="h-px bg-zinc-800 my-2" />;
+            return <div key={section.id} className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-3" />;
           }
 
           const Icon = section.icon;
+          const isHovered = hoveredSection === section.id;
+          const isActive = activeSection === section.id;
+
           return (
             <button
               key={section.id}
               onClick={() => onSectionChange(section.id)}
+              onMouseEnter={() => setHoveredSection(section.id)}
+              onMouseLeave={() => setHoveredSection(null)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
-                "hover:bg-zinc-800/50 group",
-                activeSection === section.id
-                  ? "bg-zinc-800 text-white"
-                  : "text-zinc-400 hover:text-white"
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300",
+                "group relative overflow-hidden",
+                isActive
+                  ? "bg-gradient-to-r from-primary/20 to-accent-purple/20 text-white"
+                  : "text-color-foreground-muted hover:text-white"
               )}
+              style={{ animationDelay: `${index * 50}ms` }}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm font-medium">{section.label}</span>
+              {/* Hover Background Effect */}
+              <div
+                className={cn(
+                  "absolute inset-0 bg-gradient-to-r from-primary/10 to-accent-purple/10 transition-transform duration-300",
+                  isHovered && !isActive ? "translate-x-0" : "-translate-x-full"
+                )}
+              />
+
+              {/* Active Indicator */}
+              {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-primary to-accent-purple rounded-r-full animate-pulse" />
+              )}
+
+              <Icon className={cn(
+                "w-4 h-4 flex-shrink-0 relative transition-all duration-300",
+                isActive && "text-primary",
+                isHovered && "scale-110"
+              )} />
+              <span className={cn(
+                "text-sm font-medium relative transition-all duration-300",
+                isActive && "font-semibold"
+              )}>
+                {section.label}
+              </span>
+
+              {/* Hover Glow */}
+              {isHovered && !isActive && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 w-1 h-1 bg-primary rounded-full animate-pulse" />
+              )}
             </button>
           );
         })}

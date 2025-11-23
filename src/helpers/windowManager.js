@@ -301,9 +301,20 @@ class WindowManager {
       return;
     }
 
+    // Position window at bottom center of screen
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+
+    const windowWidth = IMAGE_GENERATION_WINDOW_CONFIG.width;
+    const windowHeight = IMAGE_GENERATION_WINDOW_CONFIG.height;
+    const x = Math.floor((screenWidth - windowWidth) / 2);
+    const y = screenHeight - windowHeight - 40; // Much closer to bottom - only 40px gap
+
     this.imageGenerationWindow = new BrowserWindow({
       ...IMAGE_GENERATION_WINDOW_CONFIG,
-      center: true,
+      x,
+      y,
     });
 
     this.imageGenerationWindow.once("ready-to-show", () => {
