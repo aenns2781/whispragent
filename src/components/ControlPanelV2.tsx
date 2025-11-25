@@ -11,6 +11,7 @@ import AIModelsPanel from './panels/AIModelsPanel';
 import SystemPanel from './panels/SystemPanel';
 import HelpPanel from './panels/HelpPanel';
 import ImageGenerationModal from './ImageGenerationModal';
+import { PhraseSuggestionNotification } from './PhraseSuggestionNotification';
 import { useSettings } from '../hooks/useSettings';
 
 const ControlPanelV2: React.FC = () => {
@@ -107,6 +108,12 @@ const ControlPanelV2: React.FC = () => {
       <ImageGenerationModal
         isOpen={isImageGenModalOpen}
         onClose={() => setIsImageGenModalOpen(false)}
+      />
+
+      {/* Phrase Suggestion Notification */}
+      <PhraseSuggestionNotification
+        onNavigateToDictionary={() => setActiveSection('dictionary')}
+        onNavigateToSnippets={() => setActiveSection('snippets')}
       />
     </div>
   );

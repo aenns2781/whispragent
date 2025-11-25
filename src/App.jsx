@@ -228,14 +228,9 @@ export default function App() {
     }
   };
 
-  const lastToggleTimeRef = useRef(0);
-
   const stopRecording = () => {
-    console.log("stopRecording called - current state:", isRecordingRef.current);
-
-    // Always update state immediately to prevent double-triggers
+    // Prevent double-triggers
     if (!isRecordingRef.current) {
-      console.log("Already stopped, ignoring");
       return;
     }
 
@@ -243,7 +238,6 @@ export default function App() {
     setIsRecording(false);
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      console.log("Stopping MediaRecorder...");
       mediaRecorderRef.current.stop();
     }
   };
@@ -342,29 +336,18 @@ export default function App() {
 
   useEffect(() => {
     const handleToggle = () => {
-      // Simplified debouncing - only prevent if VERY rapid (under 200ms)
-      const now = Date.now();
-      if (now - lastToggleTimeRef.current < 200) {
-        console.log("Ignoring rapid toggle (debounce)");
-        return;
-      }
-      lastToggleTimeRef.current = now;
-
       const { isProcessing } = stateRef.current;
       const isRecording = isRecordingRef.current;
 
-      console.log("Toggle hotkey pressed - Recording:", isRecording, "Processing:", isProcessing);
       setIsCommandMenuOpen(false);
 
-      // Simple toggle logic
+      // Simple toggle logic - no debounce, just check state
       if (!isRecording && !isProcessing) {
-        console.log("Starting recording...");
         startRecording(false);
       } else if (isRecording) {
-        console.log("Stopping recording...");
         stopRecording();
       } else if (isProcessing) {
-        console.log("Cancelling processing...");
+        // Cancel processing if user presses hotkey during processing
         if (audioManagerRef.current) {
           audioManagerRef.current.cancelProcessing();
         }

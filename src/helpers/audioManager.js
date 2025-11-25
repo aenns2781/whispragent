@@ -40,6 +40,83 @@ class AudioManager {
     this.onTranscriptionComplete = onTranscriptionComplete;
   }
 
+  buildInitialPrompt() {
+    const prompts = [];
+
+    // Check if Dictionary is enabled and add dictionary words as Whisper hints
+    // This helps Whisper recognize custom words, names, and terms correctly
+    if (JSON.parse(localStorage.getItem('dictionaryEnabled') || 'true')) {
+      const dictionary = JSON.parse(localStorage.getItem('dictionary') || '[]');
+      if (dictionary.length > 0) {
+        // Extract just the words for Whisper to recognize
+        const words = dictionary.map(entry => entry.word).filter(Boolean);
+        if (words.length > 0) {
+          prompts.push(`Vocabulary: ${words.join(', ')}`);
+        }
+      }
+    }
+
+    // Add captured context if available
+    if (this.capturedContext) {
+      prompts.push(`Context: ${this.capturedContext.substring(0, 150)}`);
+    }
+
+    // Join all prompts
+    const finalPrompt = prompts.join('. ').substring(0, 500); // Limit to 500 chars
+    return finalPrompt || null;
+  }
+
+  applyDictionaryCorrections(text) {
+    // Check if Dictionary is enabled
+    if (!JSON.parse(localStorage.getItem('dictionaryEnabled') || 'true')) {
+      return text;
+    }
+
+    const dictionary = JSON.parse(localStorage.getItem('dictionary') || '[]');
+    if (dictionary.length === 0) {
+      return text;
+    }
+
+    let result = text;
+
+    // Apply corrections from dictionary entries that have a correction defined
+    dictionary.forEach(entry => {
+      if (entry.word && entry.correction) {
+        // Create case-insensitive regex with word boundaries to avoid partial matches
+        const escapedWord = entry.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b${escapedWord}\\b`, 'gi');
+        result = result.replace(regex, entry.correction);
+      }
+    });
+
+    return result;
+  }
+
+  applySnippets(text) {
+    // Check if Snippets are enabled
+    if (!JSON.parse(localStorage.getItem('snippetsEnabled') || 'true')) {
+      return text;
+    }
+
+    const snippets = JSON.parse(localStorage.getItem('snippets') || '[]');
+    if (snippets.length === 0) {
+      return text;
+    }
+
+    let result = text;
+
+    // Apply each snippet as case-insensitive find-and-replace
+    snippets.forEach(snippet => {
+      if (snippet.trigger && snippet.content) {
+        // Create case-insensitive regex
+        const regex = new RegExp(snippet.trigger.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        result = result.replace(regex, snippet.content);
+      }
+    });
+
+    return result;
+  }
+
   async captureHighlightedText() {
     try {
       console.log("📋 Attempting to capture highlighted text...");
@@ -189,6 +266,7 @@ class AudioManager {
     try {
       // ALWAYS use local Whisper - this is the only transcription method
       const whisperModel = localStorage.getItem("whisperModel") || "base";
+      console.log(`📝 Selected Whisper model from settings: ${whisperModel}`);
 
       const result = await this.processWithLocalWhisper(audioBlob, whisperModel);
       this.onTranscriptionComplete?.(result);
@@ -218,6 +296,13 @@ class AudioManager {
       const options = { model };
       if (language && language !== "auto") {
         options.language = language;
+      }
+
+      // Build initial prompt based on enabled features
+      const initialPrompt = this.buildInitialPrompt();
+      if (initialPrompt) {
+        options.initialPrompt = initialPrompt;
+        console.log("📝 Using initial prompt:", initialPrompt);
       }
 
       const result = await window.electronAPI.transcribeLocalWhisper(
@@ -602,8 +687,20 @@ class AudioManager {
       return null;
     }
 
+    // Apply dictionary corrections first (e.g., "btw" -> "by the way")
+    let processedText = this.applyDictionaryCorrections(normalizedText);
+    if (processedText !== normalizedText) {
+      console.log("📖 Applied dictionary corrections to transcription");
+    }
+
+    // Then apply snippets (trigger phrases -> full expansions)
+    const finalText = this.applySnippets(processedText);
+    if (finalText !== processedText) {
+      console.log("✂️ Applied snippets to transcription");
+    }
+
     // Standard cleanup when reasoning is unavailable or fails
-    return normalizedText;
+    return finalText;
   }
 
 
@@ -622,7 +719,20 @@ class AudioManager {
 
   async saveTranscription(text) {
     try {
-      await window.electronAPI.saveTranscription(text);
+      // Gather settings for phrase analysis
+      const settings = {
+        aiSuggestionsEnabled: localStorage.getItem('aiSuggestionsEnabled') === 'true',
+        openaiApiKey: localStorage.getItem('openaiApiKey') || '',
+        aiAnalysisLastRun: localStorage.getItem('aiAnalysisLastRun') || ''
+      };
+
+      const result = await window.electronAPI.saveTranscription(text, settings);
+
+      // If AI analysis ran, update the last run date in localStorage
+      if (result?.aiAnalysisRan) {
+        localStorage.setItem('aiAnalysisLastRun', result.newDate);
+      }
+
       return true;
     } catch (error) {
       return false;

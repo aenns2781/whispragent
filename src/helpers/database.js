@@ -43,6 +43,20 @@ class DatabaseManager {
         )
       `);
 
+      // Phrase frequency tracking for auto-suggestions
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS phrase_frequency (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          phrase TEXT NOT NULL UNIQUE,
+          count INTEGER DEFAULT 1,
+          pattern_type TEXT,
+          first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+          last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+          suggested BOOLEAN DEFAULT 0,
+          dismissed BOOLEAN DEFAULT 0
+        )
+      `);
+
       return true;
     } catch (error) {
       console.error("Database initialization failed:", error.message);
@@ -164,6 +178,23 @@ class DatabaseManager {
     }
   }
 
+  getRecentTranscriptions(days = 7) {
+    try {
+      if (!this.db) {
+        throw new Error("Database not initialized");
+      }
+      // Get transcriptions from the last N days
+      const stmt = this.db.prepare(
+        "SELECT * FROM transcriptions WHERE timestamp >= datetime('now', '-' || ? || ' days') ORDER BY timestamp DESC"
+      );
+      const transcriptions = stmt.all(days);
+      return transcriptions;
+    } catch (error) {
+      console.error("Error getting recent transcriptions:", error.message);
+      throw error;
+    }
+  }
+
   // Generated images methods
   saveGeneratedImage(prompt, imagePath, model, aspectRatio, resolution) {
     try {
@@ -251,6 +282,98 @@ class DatabaseManager {
       }
     } catch (error) {
       console.error("❌ Error deleting database file:", error);
+    }
+  }
+
+  // Phrase frequency tracking methods
+  trackPhrase(phrase, patternType = null) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+
+      // Insert or update phrase frequency
+      const stmt = this.db.prepare(`
+        INSERT INTO phrase_frequency (phrase, pattern_type, last_seen, count)
+        VALUES (?, ?, datetime('now'), 1)
+        ON CONFLICT(phrase) DO UPDATE SET
+          count = count + 1,
+          last_seen = datetime('now'),
+          pattern_type = COALESCE(excluded.pattern_type, pattern_type)
+      `);
+
+      stmt.run(phrase, patternType);
+      return true;
+    } catch (error) {
+      console.error("Error tracking phrase:", error);
+      return false;
+    }
+  }
+
+  getSuggestedPhrases(minCount = 3) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+
+      const stmt = this.db.prepare(`
+        SELECT phrase, count, pattern_type, first_seen, last_seen
+        FROM phrase_frequency
+        WHERE count >= ? AND dismissed = 0 AND suggested = 0
+        ORDER BY count DESC, last_seen DESC
+        LIMIT 10
+      `);
+
+      return stmt.all(minCount);
+    } catch (error) {
+      console.error("Error getting suggested phrases:", error);
+      return [];
+    }
+  }
+
+  markPhraseSuggested(phrase) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+
+      const stmt = this.db.prepare(`
+        UPDATE phrase_frequency
+        SET suggested = 1
+        WHERE phrase = ?
+      `);
+
+      stmt.run(phrase);
+      return true;
+    } catch (error) {
+      console.error("Error marking phrase as suggested:", error);
+      return false;
+    }
+  }
+
+  dismissPhraseSuggestion(phrase) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+
+      const stmt = this.db.prepare(`
+        UPDATE phrase_frequency
+        SET dismissed = 1, suggested = 1
+        WHERE phrase = ?
+      `);
+
+      stmt.run(phrase);
+      return true;
+    } catch (error) {
+      console.error("Error dismissing phrase suggestion:", error);
+      return false;
+    }
+  }
+
+  clearAllPhraseSuggestions() {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+
+      const stmt = this.db.prepare(`DELETE FROM phrase_frequency`);
+      const result = stmt.run();
+      console.log(`[Database] Cleared ${result.changes} phrase suggestions`);
+      return { success: true, cleared: result.changes };
+    } catch (error) {
+      console.error("Error clearing phrase suggestions:", error);
+      return { success: false, error: error.message };
     }
   }
 }

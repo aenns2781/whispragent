@@ -6,6 +6,36 @@ class HotkeyManager {
     this.currentHotkey = "`";
     this.isInitialized = false;
     this.screenshotModifier = "CmdOrCtrl"; // Default modifier for screenshots
+    this.heartbeatInterval = null;
+    this.callback = null;
+    this.screenshotCallback = null;
+    this.imageGenCallback = null;
+  }
+
+  // Start a heartbeat that periodically checks if hotkey is still registered
+  startHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+    }
+
+    this.heartbeatInterval = setInterval(() => {
+      if (this.currentHotkey && this.currentHotkey !== "GLOBE") {
+        const isRegistered = globalShortcut.isRegistered(this.currentHotkey);
+        if (!isRegistered) {
+          console.error(`⚠️ [HotkeyManager] HOTKEY UNREGISTERED! Attempting to re-register "${this.currentHotkey}"...`);
+          if (this.callback) {
+            this.setupShortcuts(this.currentHotkey, this.callback, this.screenshotCallback, this.imageGenCallback);
+          }
+        }
+      }
+    }, 500); // Check every 500ms for more reliable hotkey detection
+  }
+
+  stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
   }
 
   setupShortcuts(hotkey = "`", callback, screenshotCallback, imageGenCallback) {
@@ -80,6 +110,12 @@ class HotkeyManager {
 
       if (success && screenshotSuccess && imageGenSuccess) {
         this.currentHotkey = hotkey;
+        // Store callbacks for potential re-registration
+        this.callback = callback;
+        this.screenshotCallback = screenshotCallback;
+        this.imageGenCallback = imageGenCallback;
+        // Start heartbeat to monitor hotkey registration
+        this.startHeartbeat();
         return { success: true, hotkey };
       } else {
         console.error(`Failed to register hotkey: ${hotkey}`);
@@ -168,6 +204,7 @@ class HotkeyManager {
   }
 
   unregisterAll() {
+    this.stopHeartbeat();
     globalShortcut.unregisterAll();
   }
 

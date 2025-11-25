@@ -298,7 +298,7 @@ export default function SettingsPage({
   ]);
 
   const resetAccessibilityPermissions = () => {
-    const message = `🔄 RESET ACCESSIBILITY PERMISSIONS\n\nIf you've rebuilt or reinstalled Tribe Whisper and automatic inscription isn't functioning, you may have obsolete permissions from the previous version.\n\n📋 STEP-BY-STEP RESTORATION:\n\n1️⃣ Open System Settings (or System Preferences)\n   • macOS Ventura+: Apple Menu → System Settings\n   • Older macOS: Apple Menu → System Preferences\n\n2️⃣ Navigate to Privacy & Security → Accessibility\n\n3️⃣ Look for obsolete Tribe Whisper entries:\n   • Any entries named "Tribe Whisper"\n   • Any entries named "Electron"\n   • Any entries with unclear or generic names\n   • Entries pointing to old application locations\n\n4️⃣ Remove ALL obsolete entries:\n   • Select each old entry\n   • Click the minus (-) button\n   • Enter your password if prompted\n\n5️⃣ Add the current Tribe Whisper:\n   • Click the plus (+) button\n   • Navigate to and select the CURRENT Tribe Whisper app\n   • Ensure the checkbox is ENABLED\n\n6️⃣ Restart Tribe Whisper completely\n\n💡 This is very common during development when rebuilding applications!\n\nClick OK when you're ready to open System Settings.`;
+    const message = `🔄 RESET ACCESSIBILITY PERMISSIONS\n\nIf you've rebuilt or reinstalled Tribe Assistant and automatic inscription isn't functioning, you may have obsolete permissions from the previous version.\n\n📋 STEP-BY-STEP RESTORATION:\n\n1️⃣ Open System Settings (or System Preferences)\n   • macOS Ventura+: Apple Menu → System Settings\n   • Older macOS: Apple Menu → System Preferences\n\n2️⃣ Navigate to Privacy & Security → Accessibility\n\n3️⃣ Look for obsolete Tribe Assistant entries:\n   • Any entries named "Tribe Assistant"\n   • Any entries named "Electron"\n   • Any entries with unclear or generic names\n   • Entries pointing to old application locations\n\n4️⃣ Remove ALL obsolete entries:\n   • Select each old entry\n   • Click the minus (-) button\n   • Enter your password if prompted\n\n5️⃣ Add the current Tribe Assistant:\n   • Click the plus (+) button\n   • Navigate to and select the CURRENT Tribe Assistant app\n   • Ensure the checkbox is ENABLED\n\n6️⃣ Restart Tribe Assistant completely\n\n💡 This is very common during development when rebuilding applications!\n\nClick OK when you're ready to open System Settings.`;
 
     showConfirmDialog({
       title: "Reset Accessibility Permissions",
@@ -399,8 +399,8 @@ export default function SettingsPage({
         showAlertDialog({
           title: "Launch Setting Updated",
           description: enabled
-            ? "Tribe Whisper will now start automatically when you log in."
-            : "Tribe Whisper will no longer start automatically at login.",
+            ? "Tribe Assistant will now start automatically when you log in."
+            : "Tribe Assistant will no longer start automatically at login.",
         });
       } else {
         showAlertDialog({
@@ -643,7 +643,7 @@ export default function SettingsPage({
                   Startup Behavior
                 </h3>
                 <p className="text-sm text-muted-foreground mb-6">
-                  Configure how Tribe Whisper behaves when you start your computer.
+                  Configure how Tribe Assistant behaves when you start your computer.
                 </p>
               </div>
               <div className="space-y-4">
@@ -653,7 +653,7 @@ export default function SettingsPage({
                       Launch at Startup
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      Automatically start Tribe Whisper when you log into your computer
+                      Automatically start Tribe Assistant when you log into your computer
                     </p>
                   </div>
                   <Toggle
@@ -668,10 +668,10 @@ export default function SettingsPage({
             < div className="border-t pt-8" >
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">
-                  About Tribe Whisper
+                  About Tribe Assistant
                 </h3>
                 <p className="text-sm text-muted-foreground mb-6">
-                  Tribe Whisper transcribes speech and captures screenshots with AI-powered processing. Press your hotkey to dictate, address your agent by name for commands, highlight text to enhance it, or use {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl'}+hotkey to capture screenshots.
+                  Tribe Assistant transcribes speech and captures screenshots with AI-powered processing. Press your hotkey to dictate, address your agent by name for commands, highlight text to enhance it, or use {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl'}+hotkey to capture screenshots.
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-6">

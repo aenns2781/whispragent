@@ -5,7 +5,7 @@ class MenuManager {
     if (process.platform === "darwin") {
       const template = [
         {
-          label: "Tribe Whisper",
+          label: "Tribe Assistant",
           submenu: [
             { role: "about" },
             { type: "separator" },
@@ -15,7 +15,7 @@ class MenuManager {
             { role: "hideOthers" },
             { role: "unhide" },
             { type: "separator" },
-            { role: "quit", label: "Quit Tribe Whisper" },
+            { role: "quit", label: "Quit Tribe Assistant" },
           ],
         },
       ];
@@ -29,7 +29,7 @@ class MenuManager {
       // On macOS, create a proper application menu
       const template = [
         {
-          label: "Tribe Whisper",
+          label: "Tribe Assistant",
           submenu: [
             { role: "about" },
             { type: "separator" },
@@ -39,7 +39,7 @@ class MenuManager {
             { role: "hideOthers" },
             { role: "unhide" },
             { type: "separator" },
-            { role: "quit", label: "Quit Tribe Whisper" },
+            { role: "quit", label: "Quit Tribe Assistant" },
           ],
         },
         {

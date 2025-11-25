@@ -1,117 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Cpu, Download, Trash2, Check, AlertCircle, Zap, Shield, Brain, Sparkles, Lock, Cloud, Gauge } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Cpu, Zap, Shield, Brain, Sparkles, Cloud, Check } from 'lucide-react';
 import { Input } from '../ui/input';
-import { Switch } from '../ui/switch';
-import { cn } from '../lib/utils';
 import { useSettings } from '../../hooks/useSettings';
 import PanelBackground from '../PanelBackground';
-
-interface WhisperModel {
-  name: string;
-  size: string;
-  speed: 'fastest' | 'fast' | 'medium' | 'slow';
-  quality: 'lowest' | 'low' | 'medium' | 'high' | 'highest';
-  downloaded: boolean;
-}
+import WhisperModelPicker from '../WhisperModelPicker';
 
 const AIModelsPanel: React.FC = () => {
   const settings = useSettings();
-
-  const [whisperModels, setWhisperModels] = useState<WhisperModel[]>([
-    { name: 'tiny', size: '39 MB', speed: 'fastest', quality: 'lowest', downloaded: true },
-    { name: 'base', size: '74 MB', speed: 'fast', quality: 'low', downloaded: true },
-    { name: 'small', size: '244 MB', speed: 'fast', quality: 'medium', downloaded: false },
-    { name: 'medium', size: '769 MB', speed: 'medium', quality: 'high', downloaded: false },
-    { name: 'large', size: '1.5 GB', speed: 'slow', quality: 'highest', downloaded: false },
-    { name: 'turbo', size: '809 MB', speed: 'fast', quality: 'high', downloaded: false },
-  ]);
-
   const [agentName, setAgentName] = useState('');
-  const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
-  const [deletingModel, setDeletingModel] = useState<string | null>(null);
 
   useEffect(() => {
     setAgentName(localStorage.getItem('agentName') || '');
   }, []);
-
-  const saveAPIKey = async (provider: string, key: string) => {
-    // Save to localStorage via settings setters
-    if (provider === 'openai') {
-      settings.setOpenaiApiKey(key);
-      await window.electronAPI?.saveOpenAIKey(key);
-    } else if (provider === 'anthropic') {
-      settings.setAnthropicApiKey(key);
-      await window.electronAPI?.saveAnthropicKey(key);
-    } else if (provider === 'gemini') {
-      settings.setGeminiApiKey(key);
-      await window.electronAPI?.saveGeminiKey(key);
-    }
-  };
-
-  const downloadModel = async (modelName: string) => {
-    try {
-      setDownloadingModel(modelName);
-
-      const result = await window.electronAPI.downloadWhisperModel(modelName);
-
-      if (result.success) {
-        // Update the model's downloaded status
-        setWhisperModels(prev => prev.map(model =>
-          model.name === modelName
-            ? { ...model, downloaded: true }
-            : model
-        ));
-      } else {
-        console.error('Failed to download model:', result.error);
-        alert(`Failed to download ${modelName} model: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Error downloading model:', error);
-      alert(`Error downloading ${modelName} model: ${error}`);
-    } finally {
-      setDownloadingModel(null);
-    }
-  };
-
-  const deleteModel = async (modelName: string) => {
-    if (!confirm(`Delete ${modelName} model? This will free up disk space but you'll need to re-download it to use it again.`)) {
-      return;
-    }
-
-    try {
-      setDeletingModel(modelName);
-
-      const result = await window.electronAPI.deleteWhisperModel(modelName);
-
-      if (result.success) {
-        // Update the model's downloaded status
-        setWhisperModels(prev => prev.map(model =>
-          model.name === modelName
-            ? { ...model, downloaded: false }
-            : model
-        ));
-      } else {
-        console.error('Failed to delete model:', result.error);
-        alert(`Failed to delete ${modelName} model: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Error deleting model:', error);
-      alert(`Error deleting ${modelName} model: ${error}`);
-    } finally {
-      setDeletingModel(null);
-    }
-  };
-
-  const getSpeedBadge = (speed: string) => {
-    const colors = {
-      fastest: 'bg-green-500/20 text-green-400',
-      fast: 'bg-blue-500/20 text-blue-400',
-      medium: 'bg-yellow-500/20 text-yellow-400',
-      slow: 'bg-red-500/20 text-red-400'
-    };
-    return colors[speed as keyof typeof colors];
-  };
 
   return (
     <PanelBackground>
@@ -140,167 +40,21 @@ const AIModelsPanel: React.FC = () => {
             <h3 className="text-lg font-semibold text-white font-heading">Transcription Engine</h3>
           </div>
 
-          {/* Privacy Explanation with Enhanced Styling */}
-          <div className="space-y-4 mb-6">
-            <div className="card glass-success hover-lift">
-              <div className="p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-green-500/20 rounded-lg">
-                    <Shield className="w-5 h-5 text-green-400" />
-                  </div>
-                  <h4 className="text-sm font-semibold text-green-400">Privacy-First Transcription</h4>
-                </div>
-                <div className="space-y-2 text-sm text-color-foreground">
-                  <p className="flex items-start gap-2">
-                    <Lock className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span><strong>All transcription happens locally</strong> on your computer using Whisper</span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <Lock className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span>Your voice recordings are processed privately on your device</span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <Lock className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span><strong>Zero audio data is sent to any server or cloud service</strong></span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <Lock className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                    <span>Works completely offline - no internet required for transcription</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="card glass hover-lift">
-              <div className="p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-gradient-to-br from-primary/20 to-accent-purple/20 rounded-lg">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                  </div>
-                  <h4 className="text-sm font-semibold text-primary">Optional AI Agent Mode</h4>
-                </div>
-                <div className="space-y-2 text-sm text-color-foreground">
-                  <p className="flex items-start gap-2">
-                    <Brain className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>When you address your agent by name, AI processing activates</span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <Cloud className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Only the <strong>transcribed text</strong> (not audio) is sent to your selected LLM</span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <Zap className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Agent uses your chosen provider: GPT/Claude/Gemini</span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <Shield className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>This app does not store or log your data</span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <Lock className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Only your LLM provider sees the text according to their privacy policy</span>
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* Privacy Note - Simplified */}
+          <div className="flex items-start gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg mb-6">
+            <Shield className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-zinc-300">
+              <span className="text-green-400 font-medium">100% Local & Private</span> — All transcription runs on your device. No audio ever leaves your computer.
+            </p>
           </div>
 
           {/* Model Selection */}
-          <div className="space-y-3">
-            <p className="text-sm text-color-foreground-muted mb-3 font-medium">Select a Whisper model:</p>
-            {whisperModels.map((model, index) => (
-              <div
-                key={model.name}
-                className={cn(
-                  "relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300 hover-lift",
-                  "animate-slideInLeft",
-                  settings.whisperModel === model.name
-                    ? "card-active"
-                    : "card hover:shadow-lg"
-                )}
-                style={{ animationDelay: `${200 + index * 50}ms` }}
-                onClick={() => model.downloaded && settings.setWhisperModel(model.name)}
-              >
-                {/* Active indicator gradient */}
-                {settings.whisperModel === model.name && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent-purple/10 animate-pulse" />
-                )}
-
-                <div className="relative p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "p-2 rounded-lg transition-all duration-300",
-                        settings.whisperModel === model.name
-                          ? "bg-gradient-to-br from-primary/30 to-accent-purple/30"
-                          : "bg-white/5"
-                      )}>
-                        <Gauge className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-white text-sm">{model.name}</span>
-                          <span className="text-xs text-color-foreground-muted">{model.size}</span>
-                        </div>
-                        <div className="flex gap-2 mt-1">
-                          <span className={cn(
-                            "text-xs px-2 py-0.5 rounded-full font-medium",
-                            getSpeedBadge(model.speed)
-                          )}>
-                            {model.speed}
-                          </span>
-                          <span className="text-xs px-2 py-0.5 bg-white/10 text-color-foreground-muted rounded-full">
-                            {model.quality} quality
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    {downloadingModel === model.name ? (
-                      <div className="flex items-center gap-2">
-                        <div className="spinner"></div>
-                        <span className="text-xs text-primary animate-pulse">Downloading...</span>
-                      </div>
-                    ) : deletingModel === model.name ? (
-                      <div className="flex items-center gap-2">
-                        <div className="spinner"></div>
-                        <span className="text-xs text-red-400 animate-pulse">Deleting...</span>
-                      </div>
-                    ) : model.downloaded ? (
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-green-500/20 rounded-lg">
-                          <Check className="w-4 h-4 text-green-400" />
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteModel(model.name);
-                          }}
-                          className="btn-ghost hover:text-red-400 hover-scale"
-                          disabled={deletingModel !== null || settings.whisperModel === model.name}
-                          title={settings.whisperModel === model.name ? "Cannot delete active model" : "Delete model"}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadModel(model.name);
-                        }}
-                        className="btn-primary hover-scale"
-                        disabled={downloadingModel !== null || deletingModel !== null}
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="mt-6">
+            <WhisperModelPicker
+              selectedModel={settings.whisperModel}
+              onModelSelect={(model) => settings.setWhisperModel(model)}
+              variant="settings"
+            />
           </div>
         </div>
       </div>
@@ -373,8 +127,8 @@ const AIModelsPanel: React.FC = () => {
                       settings.setReasoningModel(e.target.value);
                     }}
                   >
-                    <option value="gpt-5.1-nano">GPT-5.1 Nano (Fastest)</option>
-                    <option value="gpt-5.1-mini">GPT-5.1 Mini (Balanced)</option>
+                    <option value="gpt-5-nano">GPT-5 Nano (Fastest)</option>
+                    <option value="gpt-5-mini">GPT-5 Mini (Balanced)</option>
                     <option value="gpt-5.1">GPT-5.1 (Most Capable)</option>
                   </select>
                 </div>

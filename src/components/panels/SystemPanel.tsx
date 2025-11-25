@@ -15,11 +15,15 @@ const SystemPanel: React.FC = () => {
   const [transcriptionCount, setTranscriptionCount] = useState(0);
   const [deletingHistory, setDeletingHistory] = useState(false);
   const [imageSavePath, setImageSavePath] = useState('');
+  const [aiSuggestionsEnabled, setAiSuggestionsEnabled] = useState(false);
+  const [suggestionNotificationsEnabled, setSuggestionNotificationsEnabled] = useState(true);
 
   useEffect(() => {
     loadSettings();
     loadAudioDevices();
     loadTranscriptionCount();
+    loadLaunchOnStartup();
+    loadShowInDock();
   }, []);
 
   const loadTranscriptionCount = async () => {
@@ -27,19 +31,60 @@ const SystemPanel: React.FC = () => {
     setTranscriptionCount(count);
   };
 
+  const loadLaunchOnStartup = async () => {
+    try {
+      const result = await window.electronAPI?.getLaunchOnStartup();
+      if (result) {
+        setLaunchAtStartup(result.enabled);
+        localStorage.setItem('launchAtStartup', result.enabled.toString());
+      }
+    } catch (error) {
+      console.error('Failed to load launch on startup setting:', error);
+    }
+  };
+
+  const loadShowInDock = async () => {
+    try {
+      // Only load this on macOS
+      if (window.navigator.platform.includes('Mac')) {
+        const result = await window.electronAPI?.getShowInDock();
+        if (result) {
+          setShowInDock(result.visible);
+          localStorage.setItem('showInDock', result.visible.toString());
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load show in dock setting:', error);
+    }
+  };
+
   const loadSettings = () => {
     setLanguage(localStorage.getItem('language') || 'auto');
-    setLaunchAtStartup(localStorage.getItem('launchAtStartup') === 'true');
-    setShowInDock(localStorage.getItem('showInDock') !== 'false');
     setAudioDevice(localStorage.getItem('audioDevice') || 'default');
 
-    // Load image save path - default to Downloads folder
+    // Load AI suggestions setting (defaults to false for privacy)
+    const aiEnabled = localStorage.getItem('aiSuggestionsEnabled');
+    setAiSuggestionsEnabled(aiEnabled === 'true');
+
+    // Load suggestion notifications setting (defaults to true)
+    const notificationsEnabled = localStorage.getItem('suggestionNotificationsEnabled');
+    setSuggestionNotificationsEnabled(notificationsEnabled !== 'false');
+
+    // Load image save path - default to Downloads/TribeWhisper folder
     const isMac = window.navigator.platform.includes('Mac');
     const isWindows = window.navigator.platform.includes('Win');
     const defaultPath = isMac || !isWindows
       ? '~/Downloads/TribeWhisper'
       : '%USERPROFILE%\\Downloads\\TribeWhisper';
-    setImageSavePath(localStorage.getItem('imageSavePath') || defaultPath);
+
+    const savedPath = localStorage.getItem('imageSavePath');
+    if (!savedPath) {
+      // Set default path if none exists
+      localStorage.setItem('imageSavePath', defaultPath);
+      setImageSavePath(defaultPath);
+    } else {
+      setImageSavePath(savedPath);
+    }
   };
 
   const selectImageSaveFolder = async () => {
@@ -169,14 +214,21 @@ const SystemPanel: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-white">Launch at startup</p>
-              <p className="text-xs text-zinc-500">Start Tribe Whisper when you log in</p>
+              <p className="text-xs text-zinc-500">Start Tribe Assistant when you log in</p>
             </div>
             <Switch
               checked={launchAtStartup}
-              onCheckedChange={(checked) => {
+              onCheckedChange={async (checked) => {
                 setLaunchAtStartup(checked);
                 localStorage.setItem('launchAtStartup', checked.toString());
-                window.electronAPI?.updateSetting('launchAtStartup', checked);
+                const result = await window.electronAPI?.setLaunchOnStartup(checked);
+                if (!result?.success) {
+                  console.error('Failed to set launch on startup:', result?.error);
+                  // Revert the UI state if it failed
+                  setLaunchAtStartup(!checked);
+                  localStorage.setItem('launchAtStartup', (!checked).toString());
+                  alert(`Failed to update launch setting: ${result?.error || 'Unknown error'}`);
+                }
               }}
             />
           </div>
@@ -189,10 +241,17 @@ const SystemPanel: React.FC = () => {
               </div>
               <Switch
                 checked={showInDock}
-                onCheckedChange={(checked) => {
+                onCheckedChange={async (checked) => {
                   setShowInDock(checked);
                   localStorage.setItem('showInDock', checked.toString());
-                  window.electronAPI?.updateSetting('showInDock', checked);
+                  const result = await window.electronAPI?.setShowInDock(checked);
+                  if (!result?.success) {
+                    console.error('Failed to set dock visibility:', result?.error);
+                    // Revert the UI state if it failed
+                    setShowInDock(!checked);
+                    localStorage.setItem('showInDock', (!checked).toString());
+                    alert(`Failed to update dock visibility: ${result?.error || 'Unknown error'}`);
+                  }
                 }}
               />
             </div>
@@ -271,11 +330,99 @@ const SystemPanel: React.FC = () => {
           Privacy & Security
         </h3>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
             <p className="text-sm text-green-400">
               ✓ Local processing mode enabled - Audio never leaves your device
             </p>
+          </div>
+
+          {/* AI Suggestions Toggle */}
+          <div className="p-4 border border-zinc-700/50 rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white">AI-Powered Smart Suggestions</p>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Better suggestions for dictionary and snippets
+                </p>
+              </div>
+              <Switch
+                checked={aiSuggestionsEnabled}
+                onCheckedChange={async (checked) => {
+                  setAiSuggestionsEnabled(checked);
+                  localStorage.setItem('aiSuggestionsEnabled', checked.toString());
+
+                  // When enabling AI mode, clear old local suggestions
+                  if (checked) {
+                    try {
+                      await window.electronAPI?.clearAllPhraseSuggestions?.();
+                      console.log('[System] Cleared old suggestions for AI mode');
+                    } catch (error) {
+                      console.error('Error clearing suggestions:', error);
+                    }
+                  }
+                }}
+              />
+            </div>
+
+            {aiSuggestionsEnabled && (
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-yellow-400 text-sm">⚠️</span>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-yellow-400 mb-1">Privacy Notice</p>
+                    <p className="text-xs text-yellow-400/90 leading-relaxed">
+                      When enabled, your transcriptions are sent to OpenAI once per day (via GPT-5.1 Mini)
+                      to generate smarter suggestions for dictionary and snippets. OpenAI's API does not
+                      train on your data, but transcriptions will leave your device. This provides better
+                      suggestions than local analysis but is less private.
+                    </p>
+                  </div>
+                </div>
+                <div className="text-xs text-zinc-400 space-y-1 pt-2 border-t border-yellow-500/20">
+                  <p>• Analysis runs once per day automatically</p>
+                  <p>• Only suggests user-specific items (acronyms, emails, addresses, etc.)</p>
+                  <p>• More accurate than local pattern detection</p>
+                  <p>• Replaces local suggestion system when enabled</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20"
+                  onClick={async () => {
+                    try {
+                      const settings = {
+                        openaiApiKey: localStorage.getItem('openaiApiKey') || ''
+                      };
+                      console.log('[Test] Triggering AI analysis...');
+                      const result = await window.electronAPI?.triggerAIAnalysis?.(settings);
+                      console.log('[Test] AI analysis result:', result);
+                      alert(result?.success ? 'AI analysis complete! Check terminal for results.' : `Error: ${result?.error}`);
+                    } catch (error) {
+                      console.error('Error triggering AI analysis:', error);
+                      alert(`Error: ${error}`);
+                    }
+                  }}
+                >
+                  Test AI Analysis Now
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Suggestion Notifications Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-white">Show Suggestion Notifications</p>
+              <p className="text-xs text-zinc-500">Display popups when new dictionary/snippet suggestions are found</p>
+            </div>
+            <Switch
+              checked={suggestionNotificationsEnabled}
+              onCheckedChange={(checked) => {
+                setSuggestionNotificationsEnabled(checked);
+                localStorage.setItem('suggestionNotificationsEnabled', checked.toString());
+              }}
+            />
           </div>
 
           <div className="text-sm text-zinc-400 space-y-2">

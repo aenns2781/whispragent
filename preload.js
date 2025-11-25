@@ -16,8 +16,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   captureScreenshot: () => ipcRenderer.invoke("capture-screenshot"),
 
   // Database functions
-  saveTranscription: (text) =>
-    ipcRenderer.invoke("db-save-transcription", text),
+  saveTranscription: (text, settings = {}) =>
+    ipcRenderer.invoke("db-save-transcription", text, settings),
   getTranscriptions: (limit) =>
     ipcRenderer.invoke("db-get-transcriptions", limit),
   clearTranscriptions: () => ipcRenderer.invoke("db-clear-transcriptions"),
@@ -28,6 +28,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("db-get-transcription-count"),
   getAllTranscriptions: () =>
     ipcRenderer.invoke("db-get-all-transcriptions"),
+
+  // Phrase suggestion functions
+  getPhraseSuggestions: () =>
+    ipcRenderer.invoke("get-phrase-suggestions"),
+  dismissPhraseSuggestion: (phrase) =>
+    ipcRenderer.invoke("dismiss-phrase-suggestion", phrase),
+  markPhraseSuggested: (phrase) =>
+    ipcRenderer.invoke("mark-phrase-suggested", phrase),
+  clearAllPhraseSuggestions: () =>
+    ipcRenderer.invoke("clear-all-phrase-suggestions"),
+  triggerAIAnalysis: (settings, mode = 'dictionary') =>
+    ipcRenderer.invoke("trigger-ai-analysis", settings, mode),
 
   // Generated images database functions
   saveGeneratedImageToDb: (params) =>
@@ -72,6 +84,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Clipboard functions
   readClipboard: () => ipcRenderer.invoke("read-clipboard"),
   writeClipboard: (text) => ipcRenderer.invoke("write-clipboard", text),
+  copyImageFileToClipboard: (filePath) => ipcRenderer.invoke("copy-image-file-to-clipboard", filePath),
   simulateCopy: () => ipcRenderer.invoke("simulate-copy"),
 
   // Python installation functions
@@ -185,6 +198,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getLaunchOnStartup: () =>
     ipcRenderer.invoke("get-launch-on-startup"),
 
+  // Show in Dock (macOS)
+  setShowInDock: (enabled) =>
+    ipcRenderer.invoke("set-show-in-dock", enabled),
+  getShowInDock: () =>
+    ipcRenderer.invoke("get-show-in-dock"),
+
   // Remove all listeners for a channel
   removeAllListeners: (channel) => {
     ipcRenderer.removeAllListeners(channel);
@@ -196,4 +215,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Directory dialog
   openDirectoryDialog: () => ipcRenderer.invoke("open-directory-dialog"),
+
+  // Export functions
+  saveFile: (params) => ipcRenderer.invoke("save-file", params),
+  exportImages: (params) => ipcRenderer.invoke("export-images", params),
+  exportAll: (params) => ipcRenderer.invoke("export-all", params),
 });

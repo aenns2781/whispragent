@@ -46,6 +46,7 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
   const [selectedModel, setSelectedModel] = useState<string>('gemini-3-pro-image-preview');
   const [isCompactMode, setIsCompactMode] = useState(true);
   const [showSuccessCheck, setShowSuccessCheck] = useState(false);
+  const [isCollapsing, setIsCollapsing] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -223,7 +224,7 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const maxSize = 80; // Larger thumbnail size
+        const maxSize = 250; // Much larger thumbnail size for better quality
         let width = img.width;
         let height = img.height;
 
@@ -243,7 +244,7 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
+        resolve(canvas.toDataURL('image/jpeg', 0.95)); // Higher quality JPEG compression
       };
       img.src = base64Data;
     });
@@ -341,14 +342,18 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
 
       // Save all images to disk and database
       const usedPrompt = prompt.trim();
+
+      // Get custom save path from localStorage, or use null to default to Downloads
+      const customSavePath = localStorage.getItem('imageSavePath') || null;
+
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         const filename = `generated-${Date.now()}-${i}.png`;
 
-        // Save to Downloads folder (no custom path needed)
+        // Save to user-configured path or Downloads folder
         const saveResult = await window.electronAPI.saveGeneratedImage({
           image,
-          savePath: null, // Will use Downloads folder
+          savePath: customSavePath,
           filename
         });
 
@@ -419,6 +424,27 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
     }
   };
 
+  // Copy image to clipboard helper
+  const copyImageToClipboard = async (imageData: string) => {
+    try {
+      await window.electronAPI.writeClipboard(imageData);
+    } catch (err) {
+      console.error('Failed to copy image:', err);
+      setError('Failed to copy image to clipboard');
+    }
+  };
+
+  // Handle collapse with animation
+  const handleCollapse = () => {
+    setIsCollapsing(true);
+    // Wait for animation to complete before switching to compact mode
+    setTimeout(() => {
+      setIsCompactMode(true);
+      setIsCollapsing(false);
+      window.electronAPI?.resizeImageWindow?.(true);
+    }, 400); // Match animation duration
+  };
+
   if (!isOpen || isCapturingScreenshot) return null;
 
   // Compact mode - minimal input filling the small window
@@ -440,12 +466,19 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
                 <X className="w-4 h-4" />
               </button>
 
-              {/* Reference images count badge */}
+              {/* Reference images count badge - clickable to expand modal */}
               {referenceImages.length > 0 && (
-                <div className="flex items-center gap-1.5 h-9 px-2.5 bg-zinc-800/80 border border-zinc-700/50 rounded-lg">
+                <button
+                  onClick={() => {
+                    setIsCompactMode(false);
+                    window.electronAPI?.resizeImageWindow?.(false);
+                  }}
+                  className="flex items-center gap-1.5 h-9 px-2.5 bg-zinc-800/80 border border-zinc-700/50 rounded-lg hover:bg-zinc-700/50 transition-colors cursor-pointer"
+                  title="Click to expand and view reference images"
+                >
                   <ImageIcon className="w-3.5 h-3.5 text-zinc-400" />
                   <span className="text-xs text-zinc-400 font-medium">{referenceImages.length}</span>
-                </div>
+                </button>
               )}
 
               {/* Text input container with send button */}
@@ -531,11 +564,19 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
   return (
     <>
       {/* Backdrop with blur */}
-      <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm animate-in fade-in duration-300" />
+      <div className={cn(
+        "fixed inset-0 z-50 bg-black/30 backdrop-blur-sm duration-400",
+        isCollapsing ? "animate-out fade-out" : "animate-in fade-in"
+      )} />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-zinc-900/95 backdrop-blur-md border border-zinc-700 rounded-lg w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-8 fade-in duration-500 ease-out">
+      <div className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-8">
+        <div className={cn(
+          "bg-zinc-900/95 backdrop-blur-md border border-zinc-700 rounded-lg w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl duration-400 ease-out",
+          isCollapsing
+            ? "animate-out zoom-out-95 slide-out-to-bottom-8 fade-out"
+            : "animate-in zoom-in-95 slide-in-from-bottom-8 fade-in"
+        )}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-800 flex-shrink-0">
           <div className="flex items-center gap-2">
@@ -544,11 +585,9 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                setIsCompactMode(true);
-                window.electronAPI?.resizeImageWindow?.(true);
-              }}
-              className="text-zinc-400 hover:text-white transition-colors"
+              onClick={handleCollapse}
+              disabled={isCollapsing}
+              className="text-zinc-400 hover:text-white transition-colors disabled:opacity-50"
               title="Minimize"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -564,8 +603,8 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-4 space-y-4 overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-zinc-900 [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-zinc-800 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600">
+        {/* Content - scrollable */}
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-zinc-900 [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600">
           {/* Mode Toggle */}
           <div className="flex gap-2">
             <Button

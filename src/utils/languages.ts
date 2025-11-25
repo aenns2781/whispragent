@@ -78,13 +78,13 @@ export const REASONING_PROVIDERS = {
         description: "Latest flagship, best intelligence with flexible reasoning",
       },
       {
-        value: "gpt-5.1-nano",
-        label: "GPT-5.1 Nano",
+        value: "gpt-5-nano",
+        label: "GPT-5 Nano",
         description: "Ultra-fast, high-throughput tasks",
       },
       {
-        value: "gpt-5.1-mini",
-        label: "GPT-5.1 Mini",
+        value: "gpt-5-mini",
+        label: "GPT-5 Mini",
         description: "Fast and cost-efficient, balanced capability",
       },
       {

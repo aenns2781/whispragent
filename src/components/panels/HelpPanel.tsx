@@ -1,12 +1,30 @@
-import React from 'react';
-import { HelpCircle, Book, MessageCircle, Bug, ExternalLink, Github, Mail } from 'lucide-react';
-import { Button } from '../ui/button';
+import React, { useState, useEffect } from 'react';
+import { HelpCircle, Book, MessageCircle } from 'lucide-react';
 import PanelBackground from '../PanelBackground';
+import { formatHotkeyLabel } from '../../utils/hotkeys';
 
 const HelpPanel: React.FC = () => {
+  const [dictationKey, setDictationKey] = useState('`');
+  const [isMac, setIsMac] = useState(false);
+
+  useEffect(() => {
+    // Load the user's configured hotkey
+    const savedKey = localStorage.getItem('dictationKey') || '`';
+    setDictationKey(savedKey);
+
+    // Detect platform
+    setIsMac(window.navigator.platform.includes('Mac'));
+  }, []);
+
+  // Format the hotkey label for display
+  const hotkeyLabel = dictationKey === 'GLOBE' ? 'Globe (fn)' : formatHotkeyLabel(dictationKey);
+  const cmdOrCtrl = isMac ? 'Cmd' : 'Ctrl';
+
   const shortcuts = [
-    { keys: ['`'], description: 'Toggle recording' },
-    { keys: ['Cmd', '`'], description: 'Screenshot + voice' },
+    { keys: [hotkeyLabel], description: 'Toggle recording' },
+    { keys: [cmdOrCtrl, hotkeyLabel], description: 'Screenshot + voice' },
+    { keys: ['Shift', hotkeyLabel], description: 'Image generation' },
+    { keys: [cmdOrCtrl, 'Shift', hotkeyLabel], description: 'Select text (agent mode)' },
     { keys: ['Esc'], description: 'Cancel recording' },
   ];
 
@@ -20,8 +38,8 @@ const HelpPanel: React.FC = () => {
       a: 'Larger Whisper models provide better accuracy but are slower. Try using "base" or "tiny" for faster results.'
     },
     {
-      q: 'Can I use Tribe Whisper offline?',
-      a: 'Yes! Enable local Whisper mode in AI Models settings to process everything on your device.'
+      q: 'Can I use Tribe Assistant offline?',
+      a: 'Yes! Tribe Assistant uses local Whisper processing, so everything runs on your device. All transcription is private and local.'
     },
     {
       q: 'How do I change the hotkey?',
@@ -93,66 +111,9 @@ const HelpPanel: React.FC = () => {
           <li>• Use Dictionary for automatic text expansions</li>
           <li>• Create Snippets for frequently used text blocks</li>
           <li>• Style profiles help format text for different contexts</li>
-          <li>• The backtick (`) key works best for agent mode</li>
+          <li>• Use your configured hotkey to start/stop recording</li>
           <li>• Say your agent's name naturally in conversation</li>
         </ul>
-      </div>
-
-      {/* Support Links */}
-      <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <Bug className="w-5 h-5 text-red-400" />
-          Get Support
-        </h3>
-
-        <div className="space-y-3">
-          <Button
-            variant="outline"
-            className="w-full justify-start border-zinc-700 text-zinc-300 hover:text-white"
-            onClick={() => window.open('https://github.com/openwhispr/openwhispr/issues', '_blank')}
-          >
-            <Github className="w-4 h-4 mr-2" />
-            Report an Issue
-            <ExternalLink className="w-3 h-3 ml-auto" />
-          </Button>
-
-          <Button
-            variant="outline"
-            className="w-full justify-start border-zinc-700 text-zinc-300 hover:text-white"
-            onClick={() => window.open('https://github.com/openwhispr/openwhispr', '_blank')}
-          >
-            <Github className="w-4 h-4 mr-2" />
-            View on GitHub
-            <ExternalLink className="w-3 h-3 ml-auto" />
-          </Button>
-
-          <Button
-            variant="outline"
-            className="w-full justify-start border-zinc-700 text-zinc-300 hover:text-white"
-            onClick={() => window.open('mailto:support@openwhispr.app', '_blank')}
-          >
-            <Mail className="w-4 h-4 mr-2" />
-            Email Support
-            <ExternalLink className="w-3 h-3 ml-auto" />
-          </Button>
-        </div>
-      </div>
-
-      {/* About */}
-      <div className="bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">About Tribe Whisper</h3>
-
-        <div className="space-y-3 text-sm text-zinc-400">
-          <p>Version 1.0.0</p>
-          <p>
-            Tribe Whisper is a privacy-focused dictation app that uses OpenAI's Whisper
-            for accurate speech-to-text transcription.
-          </p>
-          <p className="text-xs">
-            Built with Electron, React, and TypeScript<br />
-            © 2024 Whisper. MIT License.
-          </p>
-        </div>
       </div>
       </div>
     </PanelBackground>

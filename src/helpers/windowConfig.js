@@ -38,7 +38,7 @@ const CONTROL_PANEL_CONFIG = {
     webSecurity: false,
     spellcheck: false,
   },
-  title: "Tribe Whisper Control Panel",
+  title: "Tribe Assistant Control Panel",
   resizable: true,
   show: false,
   titleBarStyle: "hiddenInset",

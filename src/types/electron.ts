@@ -122,8 +122,13 @@ declare global {
 
       // Database operations
       saveTranscription: (
-        text: string
-      ) => Promise<{ id: number; success: boolean }>;
+        text: string,
+        settings?: {
+          aiSuggestionsEnabled?: boolean;
+          openaiApiKey?: string;
+          aiAnalysisLastRun?: string;
+        }
+      ) => Promise<{ id: number; success: boolean; aiAnalysisRan?: boolean; newDate?: string }>;
       getTranscriptions: (limit?: number) => Promise<TranscriptionItem[]>;
       getTranscriptionCount: () => Promise<number>;
       getAllTranscriptions: () => Promise<TranscriptionItem[]>;
@@ -149,6 +154,7 @@ declare global {
       // Clipboard operations
       readClipboard: () => Promise<string>;
       writeClipboard: (text: string) => Promise<{ success: boolean }>;
+      copyImageFileToClipboard: (filePath: string) => Promise<{ success: boolean; error?: string }>;
       pasteFromClipboard: () => Promise<{ success: boolean; error?: string }>;
       pasteFromClipboardWithFallback: () => Promise<{ success: boolean; error?: string }>;
 

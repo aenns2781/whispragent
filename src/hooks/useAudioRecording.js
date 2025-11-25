@@ -74,8 +74,10 @@ export const useAudioRecording = (toast) => {
       toast({
         title: "No Audio Detected",
         description:
-          "The recording contained no detectable audio. Please try again.",
+          "The recording contained no detectable audio. Please check your microphone settings.",
         variant: "default",
+        duration: 8000, // 8 seconds (default is usually 5000ms, adding 3 seconds)
+        className: "bg-zinc-900/95 backdrop-blur-md border-zinc-700",
       });
     };
 

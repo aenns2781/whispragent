@@ -139,6 +139,88 @@ class ReasoningService extends BaseReasoningService {
     }
   }
 
+  private getStyleGuidance(): string {
+    // Check if Style is enabled
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return '';
+    }
+
+    try {
+      const styleEnabled = JSON.parse(localStorage.getItem('styleEnabled') || 'true');
+      if (!styleEnabled) {
+        return '';
+      }
+
+      const styleInstructions = localStorage.getItem('styleInstructions') || '';
+      if (!styleInstructions || styleInstructions.trim().length === 0) {
+        return '';
+      }
+
+      return ` ${styleInstructions.trim()}`;
+    } catch (error) {
+      console.error('Error loading style guidance:', error);
+      return '';
+    }
+  }
+
+  private getDictionaryContext(): string {
+    // Check if Dictionary is enabled
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return '';
+    }
+
+    try {
+      const dictionaryEnabled = JSON.parse(localStorage.getItem('dictionaryEnabled') || 'true');
+      if (!dictionaryEnabled) {
+        return '';
+      }
+
+      const dictionary = JSON.parse(localStorage.getItem('dictionary') || '[]');
+      if (dictionary.length === 0) {
+        return '';
+      }
+
+      // Format dictionary entries for system prompt
+      const entries = dictionary
+        .map((entry: any) => `"${entry.shorthand}" means "${entry.expansion}"`)
+        .join(', ');
+
+      return ` User's dictionary: ${entries}.`;
+    } catch (error) {
+      console.error('Error loading dictionary context:', error);
+      return '';
+    }
+  }
+
+  private getSnippetsContext(): string {
+    // Check if Snippets are enabled
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return '';
+    }
+
+    try {
+      const snippetsEnabled = JSON.parse(localStorage.getItem('snippetsEnabled') || 'true');
+      if (!snippetsEnabled) {
+        return '';
+      }
+
+      const snippets = JSON.parse(localStorage.getItem('snippets') || '[]');
+      if (snippets.length === 0) {
+        return '';
+      }
+
+      // Format snippets for system prompt
+      const entries = snippets
+        .map((snippet: any) => `"${snippet.trigger}": ${snippet.content}`)
+        .join(', ');
+
+      return ` User's snippets: ${entries}.`;
+    } catch (error) {
+      console.error('Error loading snippets context:', error);
+      return '';
+    }
+  }
+
   private async getApiKey(provider: 'openai' | 'anthropic' | 'gemini'): Promise<string> {
     let apiKey = this.apiKeyCache.get(provider);
 
@@ -300,8 +382,32 @@ class ReasoningService extends BaseReasoningService {
     this.isProcessing = true;
 
     try {
-      const systemPrompt = "You are an AI assistant. Process the user's request or instruction and provide a helpful response. Output ONLY the response without any meta-commentary or explanations.";
+      const dictionaryContext = this.getDictionaryContext();
+      const snippetsContext = this.getSnippetsContext();
+      const styleGuidance = this.getStyleGuidance();
+      const systemPrompt = `You are an AI assistant. Process the user's request or instruction and provide a helpful response. Output ONLY the response without any meta-commentary or explanations.${dictionaryContext}${snippetsContext}${styleGuidance ? ` Always respond following these style instructions: ${styleGuidance.trim()}` : ''}`;
       const userPrompt = this.getReasoningPrompt(text, agentName, config);
+
+      // Log the complete system prompt for debugging
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('🤖 OPENAI AGENT MODE SYSTEM PROMPT');
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('📝 Dictionary Context:', dictionaryContext || '(disabled or empty)');
+      console.log('✂️  Snippets Context:', snippetsContext || '(disabled or empty)');
+      console.log('🎨 Style Guidance:', styleGuidance || '(disabled or no active profile)');
+      console.log('───────────────────────────────────────────────────────────');
+      console.log('📤 COMPLETE SYSTEM PROMPT:');
+      console.log(systemPrompt);
+      console.log('═══════════════════════════════════════════════════════════');
+
+      // Also log to main process terminal
+      debugLogger.logReasoning("SYSTEM_PROMPT", {
+        provider: "OpenAI",
+        dictionaryContext,
+        snippetsContext,
+        styleGuidance,
+        fullPrompt: systemPrompt
+      });
 
       // Build message array - handle image if provided
       let userContent: any = userPrompt;
@@ -458,6 +564,13 @@ class ReasoningService extends BaseReasoningService {
       const isChatCompletions = Array.isArray(response?.choices);
 
       // Log the raw response for debugging
+      console.error("📥 RAW OPENAI RESPONSE:");
+      console.error("   - Model:", model);
+      console.error("   - Format:", isResponsesApi ? "responses" : isChatCompletions ? "chat_completions" : "unknown");
+      console.error("   - Has output array:", isResponsesApi);
+      console.error("   - Has choices array:", isChatCompletions);
+      console.error("   - Full response:", JSON.stringify(response, null, 2).substring(0, 1000));
+
       debugLogger.logReasoning("OPENAI_RAW_RESPONSE", {
         model,
         format: isResponsesApi ? "responses" : isChatCompletions ? "chat_completions" : "unknown",
@@ -518,6 +631,11 @@ class ReasoningService extends BaseReasoningService {
         }
       }
 
+      console.error("📤 EXTRACTED RESPONSE TEXT:");
+      console.error("   - Length:", responseText.length);
+      console.error("   - Content:", responseText.substring(0, 500));
+      console.error("   - Is empty:", !responseText);
+
       debugLogger.logReasoning("OPENAI_RESPONSE", {
         model,
         responseLength: responseText.length,
@@ -528,6 +646,7 @@ class ReasoningService extends BaseReasoningService {
 
       // If we got an empty response, return the original text as fallback
       if (!responseText) {
+        console.error("⚠️ EMPTY RESPONSE - FALLING BACK TO ORIGINAL TEXT");
         debugLogger.logReasoning("OPENAI_EMPTY_RESPONSE_FALLBACK", {
           model,
           originalTextLength: text.length,
@@ -672,8 +791,32 @@ class ReasoningService extends BaseReasoningService {
     this.isProcessing = true;
 
     try {
-      const systemPrompt = "You are an AI assistant. Process the user's request or instruction and provide a helpful response. Output ONLY the response without any meta-commentary or explanations.";
+      const dictionaryContext = this.getDictionaryContext();
+      const snippetsContext = this.getSnippetsContext();
+      const styleGuidance = this.getStyleGuidance();
+      const systemPrompt = `You are an AI assistant. Process the user's request or instruction and provide a helpful response. Output ONLY the response without any meta-commentary or explanations.${dictionaryContext}${snippetsContext}${styleGuidance ? ` Always respond following these style instructions: ${styleGuidance.trim()}` : ''}`;
       const userPrompt = this.getReasoningPrompt(text, agentName, config);
+
+      // Log the complete system prompt for debugging
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('🤖 GEMINI AGENT MODE SYSTEM PROMPT');
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('📝 Dictionary Context:', dictionaryContext || '(disabled or empty)');
+      console.log('✂️  Snippets Context:', snippetsContext || '(disabled or empty)');
+      console.log('🎨 Style Guidance:', styleGuidance || '(disabled or no active profile)');
+      console.log('───────────────────────────────────────────────────────────');
+      console.log('📤 COMPLETE SYSTEM PROMPT:');
+      console.log(systemPrompt);
+      console.log('═══════════════════════════════════════════════════════════');
+
+      // Also log to main process terminal
+      debugLogger.logReasoning("SYSTEM_PROMPT", {
+        provider: "Gemini",
+        dictionaryContext,
+        snippetsContext,
+        styleGuidance,
+        fullPrompt: systemPrompt
+      });
 
       const requestBody = {
         contents: [{

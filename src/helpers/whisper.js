@@ -109,11 +109,23 @@ class WhisperManager {
     const model = options.model || "base";
     const language = options.language || null;
 
+    // Log which model is being used - prominent terminal output
+    console.log('\n═══════════════════════════════════════════════════════════');
+    console.log('🎤 WHISPER TRANSCRIPTION');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log(`   Model:    ${model.toUpperCase()}`);
+    console.log(`   Language: ${language || 'auto-detect'}`);
+    if (options.initialPrompt) {
+      console.log(`   Prompt:   Using dictionary/context for better accuracy`);
+    }
+    console.log('───────────────────────────────────────────────────────────');
+
     try {
       const result = await this.runWhisperProcess(
         tempAudioPath,
         model,
-        language
+        language,
+        options
       );
       return this.parseWhisperResult(result);
     } catch (error) {
@@ -167,7 +179,7 @@ class WhisperManager {
     return tempAudioPath;
   }
 
-  async runWhisperProcess(tempAudioPath, model, language) {
+  async runWhisperProcess(tempAudioPath, model, language, options = {}) {
     const pythonCmd = await this.findPythonExecutable();
     const whisperScriptPath = this.getWhisperScriptPath();
 
@@ -179,6 +191,10 @@ class WhisperManager {
     const args = [whisperScriptPath, tempAudioPath, "--model", model];
     if (language) {
       args.push("--language", language);
+    }
+    // Add initial prompt if provided in options
+    if (options.initialPrompt) {
+      args.push("--initial-prompt", options.initialPrompt);
     }
     args.push("--output-format", "json");
 
@@ -387,7 +403,7 @@ class WhisperManager {
           const platformHelp =
             process.platform === "win32"
               ? 'Install Python 3.11+ from python.org with the "Install launcher" option, or set OPENWHISPR_PYTHON to the full path (for example C:\\\\Python312\\\\python.exe).'
-              : "Install Python 3.11+ (for example `brew install python@3.11`) or set OPENWHISPR_PYTHON to the interpreter you want Tribe Whisper to use.";
+              : "Install Python 3.11+ (for example `brew install python@3.11`) or set OPENWHISPR_PYTHON to the interpreter you want Tribe Assistant to use.";
           const fallbackHelp =
             "You can also disable Local Whisper or enable the OpenAI fallback in Settings to continue using cloud transcription.";
           const message = [
@@ -427,9 +443,19 @@ class WhisperManager {
       const result = JSON.parse(jsonLine);
 
       if (!result.text || result.text.trim().length === 0) {
+        console.log(`⚠️  No speech detected in audio`);
+        console.log('═══════════════════════════════════════════════════════════\n');
         return { success: false, message: "No audio detected" };
       }
-      return { success: true, text: result.text.trim() };
+
+      const transcribedText = result.text.trim();
+      const wordCount = transcribedText.split(/\s+/).filter(word => word.length > 0).length;
+      const charCount = transcribedText.length;
+      console.log(`✅ COMPLETE: ${wordCount} words, ${charCount} characters`);
+      console.log(`   "${transcribedText.substring(0, 80)}${transcribedText.length > 80 ? '...' : ''}"`);
+      console.log('═══════════════════════════════════════════════════════════\n');
+
+      return { success: true, text: transcribedText };
     } catch (parseError) {
       debugLogger.error('Failed to parse Whisper output');
       throw new Error(`Failed to parse Whisper output: ${parseError.message}`);

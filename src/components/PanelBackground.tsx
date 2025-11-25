@@ -9,14 +9,16 @@ interface PanelBackgroundProps {
 const PanelBackground: React.FC<PanelBackgroundProps> = ({ children, className = '' }) => {
   return (
     <div className={`relative min-h-full ${className}`}>
-      {/* Background Image Layer */}
+      {/* Fixed Background Image Layer - stays in place while content scrolls */}
       <div
-        className="absolute inset-0 opacity-10 pointer-events-none"
+        className="fixed inset-0 opacity-10 pointer-events-none"
         style={{
           backgroundImage: `url(${backgroundImage})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+          zIndex: 0
         }}
       />
       {/* Content Layer */}

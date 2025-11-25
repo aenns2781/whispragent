@@ -263,7 +263,7 @@ class TrayManager {
       },
       { type: "separator" },
       {
-        label: "Quit Tribe Whisper",
+        label: "Quit Tribe Assistant",
         click: () => {
           console.log("Quitting app via tray menu");
           app.quit();
@@ -276,7 +276,7 @@ class TrayManager {
     if (!this.tray) return;
 
     const contextMenu = Menu.buildFromTemplate(this.buildContextMenuTemplate());
-    this.tray.setToolTip("Tribe Whisper - Voice Dictation");
+    this.tray.setToolTip("Tribe Assistant - Voice Dictation");
     this.tray.setContextMenu(contextMenu);
   }
 

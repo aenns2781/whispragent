@@ -42,8 +42,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
       <div className="p-4 border-b border-white/10 background-holder">
         <div className="background-layer background-gradient"></div>
         <div className="relative">
-          <h1 className="text-lg font-bold text-white font-heading">Whisper</h1>
-          <p className="text-xs text-color-foreground-muted">Voice to Text AI</p>
+          <h1 className="text-lg font-bold text-white font-heading">Tribe Assistant</h1>
+          <p className="text-xs text-color-foreground-muted">Speak. Create. Command.</p>
         </div>
       </div>
 

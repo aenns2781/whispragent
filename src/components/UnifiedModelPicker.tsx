@@ -3,17 +3,50 @@ import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { Alert, AlertDescription } from "./ui/alert";
 import {
-  RefreshCw,
   Download,
   Trash2,
   AlertCircle,
   ExternalLink,
-  Globe
+  Globe,
+  Check,
+  Loader2,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { useDialogs } from "../hooks/useDialogs";
 import { useToast } from "./ui/Toast";
 import { formatBytes } from "../utils/formatBytes";
 import "../types/electron";
+
+// Hardcoded model sizes from Hugging Face
+const WHISPER_MODEL_SIZES: Record<string, string> = {
+  // Multilingual
+  tiny: "39 MB",
+  base: "74 MB",
+  small: "244 MB",
+  medium: "769 MB",
+  large: "1.5 GB",
+  turbo: "809 MB",
+  // English-only
+  "tiny.en": "39 MB",
+  "base.en": "74 MB",
+  "small.en": "244 MB",
+  "medium.en": "769 MB"
+};
+
+// Model descriptions
+const WHISPER_MODEL_DESCRIPTIONS: Record<string, string> = {
+  tiny: "Fastest, lower quality",
+  base: "Good balance (recommended)",
+  small: "Better quality, slower",
+  medium: "High quality",
+  large: "Best quality, slowest",
+  turbo: "Fast with good quality",
+  "tiny.en": "Fastest, English optimized",
+  "base.en": "Good balance, English optimized",
+  "small.en": "Best for English speakers",
+  "medium.en": "High quality, English optimized"
+};
 
 interface Model {
   id: string;
@@ -26,6 +59,7 @@ interface Model {
   downloaded?: boolean;
   isDownloaded?: boolean;
   recommended?: boolean;
+  englishOnly?: boolean;
   type: 'whisper' | 'llm';
 }
 
@@ -163,16 +197,14 @@ export default function UnifiedModelPicker({
     totalBytes: 0,
   });
   const [loadingModels, setLoadingModels] = useState(false);
+  const [showEnglishOnly, setShowEnglishOnly] = useState(false);
   const [llamaCppStatus, setLlamaCppStatus] = useState<{
     isInstalled: boolean;
     version?: string;
     checking: boolean;
   }>({ isInstalled: true, checking: false }); // Default to true for now
 
-  const {
-    showConfirmDialog,
-    showAlertDialog,
-  } = useDialogs();
+  const { showAlertDialog } = useDialogs();
   const { toast } = useToast();
   const styles = useMemo(() => VARIANT_STYLES[variant], [variant]);
 
@@ -205,23 +237,25 @@ export default function UnifiedModelPicker({
       if (modelType === 'whisper') {
         const result = await window.electronAPI.listWhisperModels();
         if (result.success) {
-          const whisperModels: Model[] = result.models.map((m: any) => ({
-            ...m,
-            id: m.model,
-            name: m.model.charAt(0).toUpperCase() + m.model.slice(1),
-            size: m.size_mb ? `${m.size_mb}MB` : 'Unknown',
-            description: ({
-              tiny: "Fastest, lower quality",
-              base: "Good balance (recommended)",
-              small: "Better quality, slower",
-              medium: "High quality",
-              large: "Best quality, slowest",
-              turbo: "Fast with good quality"
-            } as Record<string, string>)[m.model] || "Model",
-            type: 'whisper' as const,
-            isDownloaded: m.downloaded,
-            recommended: m.model === 'base'
-          }));
+          const whisperModels: Model[] = result.models.map((m: any) => {
+            // Format display name (capitalize, handle .en suffix)
+            let displayName = m.model.charAt(0).toUpperCase() + m.model.slice(1);
+            if (m.model.endsWith('.en')) {
+              displayName = displayName.replace('.en', ' (English)');
+            }
+
+            return {
+              ...m,
+              id: m.model,
+              name: displayName,
+              size: WHISPER_MODEL_SIZES[m.model] || (m.size_mb ? `${m.size_mb} MB` : 'Unknown'),
+              description: WHISPER_MODEL_DESCRIPTIONS[m.model] || "Model",
+              type: 'whisper' as const,
+              isDownloaded: m.downloaded,
+              recommended: m.model === 'base' || m.model === 'small.en',
+              englishOnly: m.english_only || m.model.endsWith('.en')
+            };
+          });
           setModels(whisperModels);
         }
       } else {
@@ -339,37 +373,35 @@ export default function UnifiedModelPicker({
   }, [modelType, onModelSelect, loadModels, showAlertDialog]);
 
   const deleteModel = useCallback(async (modelId: string) => {
-    showConfirmDialog({
-      title: "Delete Model",
-      description: `Are you sure you want to delete this model? You'll need to re-download it if you want to use it again.`,
-      onConfirm: async () => {
-        try {
-          if (modelType === 'whisper') {
-            const result = await window.electronAPI.deleteWhisperModel(modelId);
-            if (result.success) {
-              toast({
-                title: "Model Deleted",
-                description: `Model deleted successfully! Freed ${result.freed_mb}MB of disk space.`,
-              });
-            }
-          } else {
-            await window.electronAPI.modelDelete(modelId);
-            toast({
-              title: "Model Deleted",
-              description: "Model deleted successfully!",
-            });
-          }
-          loadModels();
-        } catch (error) {
-          showAlertDialog({
-            title: "Delete Failed",
-            description: `Failed to delete model: ${error}`,
+    // Use native confirm dialog
+    const confirmed = window.confirm(
+      `Delete ${modelId.toUpperCase()} model?\n\nYou'll need to re-download it if you want to use it again.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      if (modelType === 'whisper') {
+        const result = await window.electronAPI.deleteWhisperModel(modelId);
+        if (result.success) {
+          toast({
+            title: "Model Deleted",
+            description: `Model deleted successfully! Freed ${result.freed_mb || 0}MB of disk space.`,
           });
         }
-      },
-      variant: "destructive",
-    });
-  }, [modelType, loadModels, showConfirmDialog, showAlertDialog, toast]);
+      } else {
+        await window.electronAPI.modelDelete(modelId);
+        toast({
+          title: "Model Deleted",
+          description: "Model deleted successfully!",
+        });
+      }
+      loadModels();
+    } catch (error) {
+      console.error("Failed to delete model:", error);
+      alert(`Failed to delete model: ${error}`);
+    }
+  }, [modelType, loadModels, toast]);
 
   const handleInstallLlamaCpp = async () => {
     try {
@@ -446,105 +478,146 @@ export default function UnifiedModelPicker({
     );
   }, [downloadingModel, downloadProgress, models, styles]);
 
+  // Split models into standard and English-only
+  const standardModels = models.filter(m => !m.englishOnly);
+  const englishOnlyModels = models.filter(m => m.englishOnly);
+
+  // Helper to render a model card
+  const renderModelCard = (model: Model) => {
+    const modelId = model.id || model.model || '';
+    const isSelected = modelId === selectedModel;
+    const isDownloading = downloadingModel === modelId;
+    const isDownloaded = model.downloaded || model.isDownloaded;
+
+    return (
+      <div
+        key={modelId}
+        onClick={() => {
+          if (isDownloaded && !isSelected) {
+            onModelSelect(modelId);
+          }
+        }}
+        className={`relative flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
+          isSelected
+            ? 'border-green-500 bg-green-500/10 ring-1 ring-green-500/30'
+            : isDownloaded
+              ? 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600 cursor-pointer'
+              : 'border-zinc-800 bg-zinc-900/50'
+        }`}
+      >
+        {/* Selected indicator */}
+        {isSelected && (
+          <div className="absolute top-2 right-2">
+            <div className="flex items-center gap-1 text-xs text-green-400 bg-green-500/20 px-2 py-1 rounded-full">
+              <Check size={12} />
+              <span>Active</span>
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-white">{model.name}</span>
+            {model.recommended && (
+              <span className="text-[10px] uppercase tracking-wide bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded font-medium">
+                Recommended
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-zinc-400">{model.description}</span>
+            <span className="text-xs text-zinc-500">•</span>
+            <span className="text-xs text-zinc-500">{model.size}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isDownloaded && !isSelected && (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteModel(modelId);
+              }}
+              size="sm"
+              variant="ghost"
+              className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 h-8 w-8 p-0"
+            >
+              <Trash2 size={14} />
+            </Button>
+          )}
+          {isDownloaded && isSelected && (
+            <span className="text-xs text-zinc-500">In use</span>
+          )}
+          {!isDownloaded && !isDownloading && (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                downloadModel(modelId);
+              }}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Download size={14} className="mr-1" />
+              Download
+            </Button>
+          )}
+          {isDownloading && (
+            <Button disabled size="sm" className="bg-blue-600/50 text-white">
+              <Loader2 size={14} className="mr-1 animate-spin" />
+              {`${Math.round(downloadProgress.percentage)}%`}
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`${styles.container} ${className}`}>
       {progressDisplay}
 
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h5 className={styles.header}>
+      <div className={variant === 'onboarding' ? 'p-2' : 'p-4'}>
+        {variant !== 'onboarding' && (
+          <h5 className={`${styles.header} mb-3`}>
             {modelType === 'whisper' ? 'Whisper Models' : 'Local AI Models'}
           </h5>
-          <Button
-            onClick={loadModels}
-            variant="outline"
-            size="sm"
-            disabled={loadingModels}
-            className={styles.buttons.refresh}
-          >
-            <RefreshCw size={14} className={loadingModels ? "animate-spin" : ""} />
-            <span className="ml-1">{loadingModels ? "Checking..." : "Refresh"}</span>
-          </Button>
-        </div>
+        )}
 
+        {/* Standard multilingual models */}
         <div className="space-y-2">
-          {models.map((model) => {
-            const modelId = model.id || model.model || '';
-            const isSelected = modelId === selectedModel;
-            const isDownloading = downloadingModel === modelId;
-            const isDownloaded = model.downloaded || model.isDownloaded;
-
-            return (
-              <div
-                key={modelId}
-                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all ${isSelected ? styles.modelCard.selected : styles.modelCard.default
-                  }`}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{model.name}</span>
-                    {isSelected && (
-                      <span className={styles.badges.selected}>✓ Selected</span>
-                    )}
-                    {model.recommended && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                        Recommended
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs text-gray-600">{model.description}</p>
-                    <span className="text-xs text-gray-500">• {model.size}</span>
-                    {isDownloaded && (
-                      <span className={styles.badges.downloaded}>✓ Downloaded</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  {isDownloaded && (
-                    <>
-                      {!isSelected && (
-                        <Button
-                          onClick={() => onModelSelect(modelId)}
-                          size="sm"
-                          variant="outline"
-                          className={styles.buttons.select}
-                        >
-                          Select
-                        </Button>
-                      )}
-                      <Button
-                        onClick={() => deleteModel(modelId)}
-                        size="sm"
-                        variant="outline"
-                        className={styles.buttons.delete}
-                      >
-                        <Trash2 size={14} />
-                        <span className="ml-1">Delete</span>
-                      </Button>
-                    </>
-                  )}
-                  {!isDownloaded && !isDownloading && (
-                    <Button
-                      onClick={() => downloadModel(modelId)}
-                      size="sm"
-                      className={styles.buttons.download}
-                    >
-                      <Download size={14} />
-                      <span className="ml-1">Download</span>
-                    </Button>
-                  )}
-                  {isDownloading && (
-                    <Button disabled size="sm" className={styles.buttons.download}>
-                      {`${Math.round(downloadProgress.percentage)}%`}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {standardModels.map(renderModelCard)}
         </div>
+
+        {/* English-only models collapsible section */}
+        {modelType === 'whisper' && englishOnlyModels.length > 0 && (
+          <div className="mt-4">
+            <button
+              onClick={() => setShowEnglishOnly(!showEnglishOnly)}
+              className="w-full flex items-center gap-2 p-3 rounded-lg bg-zinc-800/30 hover:bg-zinc-800/50 border border-zinc-700/50 transition-colors text-left"
+            >
+              {showEnglishOnly ? (
+                <ChevronDown size={16} className="text-zinc-400" />
+              ) : (
+                <ChevronRight size={16} className="text-zinc-400" />
+              )}
+              <div className="flex-1">
+                <span className="text-sm font-medium text-zinc-300">English-Only Models</span>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Slightly faster & more accurate if you only speak English
+                </p>
+              </div>
+              <span className="text-xs text-zinc-500 bg-zinc-700/50 px-2 py-1 rounded">
+                {englishOnlyModels.length} models
+              </span>
+            </button>
+
+            {showEnglishOnly && (
+              <div className="space-y-2 mt-2 pl-2 border-l-2 border-zinc-700/50">
+                {englishOnlyModels.map(renderModelCard)}
+              </div>
+            )}
+          </div>
+        )}
 
         {modelType === 'llm' && (
           <div className="mt-6 text-xs text-muted-foreground">

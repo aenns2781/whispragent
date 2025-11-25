@@ -1,6 +1,9 @@
 const { ipcMain, app, shell, BrowserWindow, desktopCapturer, dialog } = require("electron");
+const fs = require("fs");
+const path = require("path");
 const AppUtils = require("../utils");
 const debugLogger = require("./debugLogger");
+const PhraseAnalyzer = require("./phraseAnalyzer");
 
 class IPCHandlers {
   constructor(managers) {
@@ -10,6 +13,7 @@ class IPCHandlers {
     this.whisperManager = managers.whisperManager;
     this.windowManager = managers.windowManager;
     this.modelManager = managers.modelManager;
+    this.phraseAnalyzer = new PhraseAnalyzer(this.databaseManager);
     this.setupHandlers();
   }
 
@@ -133,10 +137,22 @@ class IPCHandlers {
     });
 
     // Database handlers
-    ipcMain.handle("db-save-transcription", async (event, text) => {
+    ipcMain.handle("db-save-transcription", async (event, text, settings = {}) => {
       const result = this.databaseManager.saveTranscription(text);
       if (result?.success && result?.transcription) {
         this.broadcastToWindows("transcription-added", result.transcription);
+
+        // Analyze transcription for phrase frequency and patterns
+        try {
+          const analysisResult = this.phraseAnalyzer.analyzeTranscription(text, settings);
+          // If AI analysis ran, tell renderer to update localStorage
+          if (analysisResult?.shouldUpdateLastRun) {
+            result.aiAnalysisRan = true;
+            result.newDate = analysisResult.newDate;
+          }
+        } catch (error) {
+          console.error("Error analyzing transcription:", error);
+        }
       }
       return result;
     });
@@ -161,6 +177,58 @@ class IPCHandlers {
         this.broadcastToWindows("transcription-deleted", { id });
       }
       return result;
+    });
+
+    // Phrase suggestion handlers
+    ipcMain.handle("get-phrase-suggestions", async (event) => {
+      try {
+        return this.phraseAnalyzer.getSuggestions(3);
+      } catch (error) {
+        console.error("Error getting phrase suggestions:", error);
+        return [];
+      }
+    });
+
+    ipcMain.handle("dismiss-phrase-suggestion", async (event, phrase) => {
+      try {
+        console.log("[IPC] Dismissing phrase suggestion:", phrase);
+        const result = this.phraseAnalyzer.dismissSuggestion(phrase);
+        console.log("[IPC] Dismiss result:", result);
+        return result;
+      } catch (error) {
+        console.error("Error dismissing phrase suggestion:", error);
+        return false;
+      }
+    });
+
+    ipcMain.handle("clear-all-phrase-suggestions", async (event) => {
+      try {
+        console.log("[IPC] Clearing all phrase suggestions");
+        return this.databaseManager.clearAllPhraseSuggestions();
+      } catch (error) {
+        console.error("Error clearing phrase suggestions:", error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("trigger-ai-analysis", async (event, settings = {}, mode = 'dictionary') => {
+      try {
+        console.log(`[IPC] Manually triggering AI phrase analysis (mode: ${mode})`);
+        const result = await this.phraseAnalyzer.runAIAnalysis(settings, mode);
+        return result || { success: true, suggestions: [], message: 'Analysis complete' };
+      } catch (error) {
+        console.error("Error triggering AI analysis:", error);
+        return { success: false, suggestions: [], error: error.message };
+      }
+    });
+
+    ipcMain.handle("mark-phrase-suggested", async (event, phrase) => {
+      try {
+        return this.phraseAnalyzer.markAsSuggested(phrase);
+      } catch (error) {
+        console.error("Error marking phrase as suggested:", error);
+        return false;
+      }
     });
 
     ipcMain.handle("db-clear-all-transcriptions", async (event) => {
@@ -216,6 +284,32 @@ class IPCHandlers {
 
     ipcMain.handle("write-clipboard", async (event, text) => {
       return this.clipboardManager.writeClipboard(text);
+    });
+
+    ipcMain.handle("copy-image-file-to-clipboard", async (event, filePath) => {
+      const fs = require('fs');
+      const path = require('path');
+      const { nativeImage, clipboard } = require('electron');
+
+      try {
+        // Read the image file
+        const imageBuffer = fs.readFileSync(filePath);
+
+        // Create NativeImage from buffer
+        const image = nativeImage.createFromBuffer(imageBuffer);
+
+        if (image.isEmpty()) {
+          throw new Error('Failed to create image from file');
+        }
+
+        // Write image to clipboard
+        clipboard.writeImage(image);
+
+        return { success: true };
+      } catch (error) {
+        console.error('Failed to copy image to clipboard:', error);
+        return { success: false, error: error.message };
+      }
     });
 
     ipcMain.handle("simulate-copy", async (event) => {
@@ -313,6 +407,10 @@ class IPCHandlers {
     });
 
     ipcMain.handle("download-whisper-model", async (event, modelName) => {
+      console.log('\n═══════════════════════════════════════════════════════════');
+      console.log(`📥 DOWNLOADING WHISPER MODEL: ${modelName.toUpperCase()}`);
+      console.log('═══════════════════════════════════════════════════════════');
+
       try {
         const result = await this.whisperManager.downloadWhisperModel(
           modelName,
@@ -321,6 +419,9 @@ class IPCHandlers {
             event.sender.send("whisper-download-progress", progressData);
           }
         );
+
+        console.log(`✅ Model ${modelName.toUpperCase()} downloaded successfully`);
+        console.log('═══════════════════════════════════════════════════════════\n');
 
         // Send completion event
         event.sender.send("whisper-download-progress", {
@@ -331,6 +432,8 @@ class IPCHandlers {
 
         return result;
       } catch (error) {
+        console.log(`❌ Failed to download ${modelName}: ${error.message}`);
+        console.log('═══════════════════════════════════════════════════════════\n');
 
         // Send error event
         event.sender.send("whisper-download-progress", {
@@ -352,7 +455,12 @@ class IPCHandlers {
     });
 
     ipcMain.handle("delete-whisper-model", async (event, modelName) => {
-      return this.whisperManager.deleteWhisperModel(modelName);
+      console.log(`🗑️  Deleting Whisper model: ${modelName.toUpperCase()}`);
+      const result = await this.whisperManager.deleteWhisperModel(modelName);
+      if (result.success) {
+        console.log(`✅ Model ${modelName.toUpperCase()} deleted (freed ${result.freed_mb || 0}MB)`);
+      }
+      return result;
     });
 
     ipcMain.handle("cancel-whisper-download", async (event) => {
@@ -529,6 +637,15 @@ class IPCHandlers {
           ? `You are ${agentName}, a helpful AI assistant. Clean up the following dictated text by fixing grammar, punctuation, and formatting. Remove any reference to your name. Output ONLY the cleaned text without explanations or options:\n\n${text}`
           : `Clean up the following dictated text by fixing grammar, punctuation, and formatting. Output ONLY the cleaned text without any explanations, options, or commentary:\n\n${text}`;
 
+        // Always log system prompt to terminal (not dependent on debug mode)
+        console.log('\n═══════════════════════════════════════════════════════════');
+        console.log('🤖 ANTHROPIC AGENT MODE SYSTEM PROMPT');
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('⚠️  NOTE: Anthropic handler does not currently include Dictionary/Snippets/Style context');
+        console.log('───────────────────────────────────────────────────────────');
+        console.log('📤 SYSTEM PROMPT:', systemPrompt);
+        console.log('═══════════════════════════════════════════════════════════\n');
+
         const requestBody = {
           model: modelId || "claude-3-5-sonnet-20241022",
           messages: [{ role: "user", content: userPrompt }],
@@ -610,6 +727,21 @@ class IPCHandlers {
 
     // Debug logging handler for reasoning pipeline
     ipcMain.handle("log-reasoning", async (event, stage, details) => {
+      // Always log to terminal (not dependent on debug mode)
+      if (stage === "SYSTEM_PROMPT") {
+        console.log('\n═══════════════════════════════════════════════════════════');
+        console.log(`🤖 ${details.provider.toUpperCase()} AGENT MODE SYSTEM PROMPT`);
+        console.log('═══════════════════════════════════════════════════════════');
+        console.log('📝 Dictionary Context:', details.dictionaryContext || '(disabled or empty)');
+        console.log('✂️  Snippets Context:', details.snippetsContext || '(disabled or empty)');
+        console.log('🎨 Style Guidance:', details.styleGuidance || '(disabled or no active profile)');
+        console.log('───────────────────────────────────────────────────────────');
+        console.log('📤 COMPLETE SYSTEM PROMPT:');
+        console.log(details.fullPrompt);
+        console.log('═══════════════════════════════════════════════════════════\n');
+      }
+
+      // Also log to debug logger if in debug mode
       debugLogger.logReasoning(stage, details);
       return { success: true };
     });
@@ -754,6 +886,169 @@ class IPCHandlers {
       } catch (error) {
         console.error('Directory dialog error:', error);
         return { canceled: true, error: error.message };
+      }
+    });
+
+    // Export handlers
+    ipcMain.handle("save-file", async (event, params) => {
+      try {
+        const { defaultPath, filters, content } = params;
+        const result = await dialog.showSaveDialog({
+          defaultPath,
+          filters
+        });
+
+        if (result.canceled || !result.filePath) {
+          return { success: false, canceled: true };
+        }
+
+        await fs.promises.writeFile(result.filePath, content, 'utf-8');
+        console.log(`[Export] Saved file to: ${result.filePath}`);
+        return { success: true, filePath: result.filePath };
+      } catch (error) {
+        console.error('Save file error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("export-images", async (event, params) => {
+      try {
+        const { imagePaths, defaultPath } = params;
+        const archiver = require('archiver');
+
+        const result = await dialog.showSaveDialog({
+          defaultPath,
+          filters: [{ name: 'ZIP Archive', extensions: ['zip'] }]
+        });
+
+        if (result.canceled || !result.filePath) {
+          return { success: false, canceled: true };
+        }
+
+        // Create ZIP file
+        const output = fs.createWriteStream(result.filePath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        return new Promise((resolve, reject) => {
+          output.on('close', () => {
+            console.log(`[Export] Images exported to: ${result.filePath} (${archive.pointer()} bytes)`);
+            resolve({ success: true, filePath: result.filePath });
+          });
+
+          archive.on('error', (err) => {
+            reject({ success: false, error: err.message });
+          });
+
+          archive.pipe(output);
+
+          // Add each image to the archive
+          imagePaths.forEach((imagePath, index) => {
+            if (fs.existsSync(imagePath)) {
+              const filename = path.basename(imagePath);
+              archive.file(imagePath, { name: filename });
+            }
+          });
+
+          archive.finalize();
+        });
+      } catch (error) {
+        console.error('Export images error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("export-all", async (event, params) => {
+      try {
+        const { transcriptionsJson, imagesJson, imagePaths, defaultPath } = params;
+        const archiver = require('archiver');
+
+        const result = await dialog.showSaveDialog({
+          defaultPath,
+          filters: [{ name: 'ZIP Archive', extensions: ['zip'] }]
+        });
+
+        if (result.canceled || !result.filePath) {
+          return { success: false, canceled: true };
+        }
+
+        // Create ZIP file
+        const output = fs.createWriteStream(result.filePath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        return new Promise((resolve, reject) => {
+          output.on('close', () => {
+            console.log(`[Export] Full export saved to: ${result.filePath} (${archive.pointer()} bytes)`);
+            resolve({ success: true, filePath: result.filePath });
+          });
+
+          archive.on('error', (err) => {
+            reject({ success: false, error: err.message });
+          });
+
+          archive.pipe(output);
+
+          // Add transcriptions JSON
+          if (transcriptionsJson) {
+            archive.append(transcriptionsJson, { name: 'transcriptions.json' });
+          }
+
+          // Add images metadata JSON
+          if (imagesJson) {
+            archive.append(imagesJson, { name: 'images-metadata.json' });
+          }
+
+          // Add images to images/ folder
+          imagePaths.forEach((imagePath) => {
+            if (fs.existsSync(imagePath)) {
+              const filename = path.basename(imagePath);
+              archive.file(imagePath, { name: `images/${filename}` });
+            }
+          });
+
+          archive.finalize();
+        });
+      } catch (error) {
+        console.error('Export all error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // Show in Dock handlers (macOS only)
+    ipcMain.handle("set-show-in-dock", async (event, enabled) => {
+      try {
+        if (process.platform === 'darwin' && app.dock) {
+          if (enabled) {
+            app.dock.show();
+            app.setActivationPolicy('regular');
+          } else {
+            app.dock.hide();
+            app.setActivationPolicy('accessory');
+          }
+          return { success: true };
+        } else {
+          // Not macOS, return success but do nothing
+          return { success: true, message: 'Not applicable on this platform' };
+        }
+      } catch (error) {
+        console.error("Failed to set dock visibility:", error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("get-show-in-dock", async () => {
+      try {
+        if (process.platform === 'darwin' && app.dock) {
+          // Check if dock is visible by checking activation policy
+          const policy = app.getActivationPolicy?.();
+          const isVisible = policy === 'regular';
+          return { visible: isVisible };
+        } else {
+          // Not macOS, return true as default
+          return { visible: true };
+        }
+      } catch (error) {
+        console.error("Failed to get dock visibility:", error);
+        return { visible: true, error: error.message };
       }
     });
 
@@ -903,9 +1198,23 @@ class IPCHandlers {
         const { image, savePath, filename } = params;
         const fs = require('fs');
         const path = require('path');
+        const os = require('os');
+
+        // Expand path with environment variables and home directory
+        let expandedPath = savePath;
+        if (expandedPath) {
+          // Replace ~ with home directory (Mac/Linux)
+          if (expandedPath.startsWith('~')) {
+            expandedPath = expandedPath.replace('~', os.homedir());
+          }
+          // Replace Windows environment variables
+          expandedPath = expandedPath.replace(/%([^%]+)%/g, (_, key) => {
+            return process.env[key] || _;
+          });
+        }
 
         // Use Downloads folder by default if no savePath provided
-        const targetPath = savePath || app.getPath('downloads');
+        const targetPath = expandedPath || app.getPath('downloads');
 
         // Ensure save directory exists
         if (!fs.existsSync(targetPath)) {

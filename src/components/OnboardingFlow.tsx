@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import TitleBar from "./TitleBar";
 import WhisperModelPicker from "./WhisperModelPicker";
+import appIcon from "../assets/icon.png";
 import ProcessingModeSelector from "./ui/ProcessingModeSelector";
 import ApiKeyInput from "./ui/ApiKeyInput";
 import PermissionCard from "./ui/PermissionCard";
@@ -101,7 +102,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     hideAlertDialog,
     hideConfirmDialog,
   } = useDialogs();
-  const practiceTextareaRef = useRef<HTMLInputElement>(null);
+  const practiceTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const trimmedReasoningBase = (reasoningBaseUrl || "").trim();
   const normalizedReasoningBaseUrl = useMemo(
@@ -297,7 +298,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   useEffect(() => {
-    if (currentStep === 5) {
+    if (currentStep === 4) { // Test & Practice step
       if (practiceTextareaRef.current) {
         practiceTextareaRef.current.focus();
       }
@@ -401,7 +402,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
     const newStep = currentStep + 1;
 
-    if (currentStep === 4) {
+    if (currentStep === 3) { // Hotkey step - register before proceeding
       const registered = await ensureHotkeyRegistered();
       if (!registered) {
         return;
@@ -433,35 +434,59 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     switch (currentStep) {
       case 0: // Welcome
         return (
-          <div
-            className="text-center space-y-6"
-            style={{ fontFamily: "Noto Sans, sans-serif" }}
-          >
-            <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-primary" />
+          <div className="text-center space-y-8 py-4">
+            {/* App icon with subtle glow */}
+            <div className="relative mx-auto w-24 h-24">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/40 via-pink-500/40 to-purple-600/40 rounded-2xl blur-2xl" />
+              <img
+                src={appIcon}
+                alt="Tribe Assistant"
+                className="relative w-24 h-24 rounded-2xl shadow-xl"
+              />
             </div>
-            <div>
-              <h2
-                className="text-2xl font-bold text-foreground mb-2"
-                style={{ fontFamily: "Noto Sans, sans-serif" }}
-              >
-                Welcome to Tribe Whisper
-              </h2>
-              <p
-                className="text-muted-foreground"
-                style={{ fontFamily: "Noto Sans, sans-serif" }}
-              >
-                Let's set up your voice dictation in just a few simple steps.
+
+            {/* Title and tagline */}
+            <div className="space-y-3">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
+                Tribe Assistant
+              </h1>
+              <p className="text-xl font-medium text-white/90 tracking-wide">
+                Speak. Create. Command.
+              </p>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Your AI-powered voice assistant for dictation, image generation, and intelligent commands.
               </p>
             </div>
-            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
-              <p className="text-sm text-foreground">
-                🎤 Turn your voice into text instantly
-                <br />
-                ⚡ Works anywhere on your computer
-                <br />
-                🔒 Your privacy is protected
-              </p>
+
+            {/* Feature cards with subtle borders */}
+            <div className="grid grid-cols-3 gap-4 pt-4">
+              <div className="group relative p-[1px] rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/30 hover:from-purple-500/50 hover:to-pink-500/50 transition-all duration-300">
+                <div className="bg-black/40 rounded-xl p-4 h-full">
+                  <Mic className="w-6 h-6 text-purple-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                  <p className="text-sm font-medium text-foreground">Speak</p>
+                  <p className="text-xs text-muted-foreground mt-1">Voice to text</p>
+                </div>
+              </div>
+              <div className="group relative p-[1px] rounded-xl bg-gradient-to-br from-pink-500/30 to-purple-500/30 hover:from-pink-500/50 hover:to-purple-500/50 transition-all duration-300">
+                <div className="bg-black/40 rounded-xl p-4 h-full">
+                  <Sparkles className="w-6 h-6 text-pink-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                  <p className="text-sm font-medium text-foreground">Create</p>
+                  <p className="text-xs text-muted-foreground mt-1">Generate images</p>
+                </div>
+              </div>
+              <div className="group relative p-[1px] rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/30 hover:from-purple-500/50 hover:to-pink-500/50 transition-all duration-300">
+                <div className="bg-black/40 rounded-xl p-4 h-full">
+                  <User className="w-6 h-6 text-purple-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                  <p className="text-sm font-medium text-foreground">Command</p>
+                  <p className="text-xs text-muted-foreground mt-1">AI agent mode</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Privacy badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+              <Lock className="w-4 h-4 text-purple-400" />
+              <span className="text-sm text-zinc-400">100% Private &amp; Local Processing</span>
             </div>
           </div>
         );
@@ -469,73 +494,92 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       case 1: // Setup Processing (Local Only)
         return (
           <div className="space-y-6">
+            {/* Header with gradient */}
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 mb-4 shadow-lg shadow-purple-500/20">
+                <Shield className="w-7 h-7 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
                 Privacy-First Setup
               </h2>
               <p className="text-muted-foreground">
-                All transcription happens locally on your device using Faster Whisper
+                All transcription happens locally on your device
               </p>
             </div>
 
-            {/* Privacy Explanation */}
-            <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
-              <h4 className="font-medium text-green-400 mb-2 flex items-center gap-2">
-                <Lock className="w-4 h-4" />
-                100% Local Transcription
-              </h4>
-              <div className="text-sm text-green-200/80 space-y-1">
-                <p>• Your voice recordings are processed entirely on your device</p>
-                <p>• Zero audio data is sent to any server or cloud service</p>
-                <p>• Works completely offline - no internet required for transcription</p>
-                <p>• Agent mode (optional) only sends transcribed <strong>text</strong>, never audio</p>
+            {/* Privacy Explanation with gradient border */}
+            <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/50 to-teal-500/50">
+              <div className="bg-background/95 rounded-xl p-4">
+                <h4 className="font-medium text-emerald-400 mb-3 flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  100% Local Transcription
+                </h4>
+                <div className="text-sm text-emerald-200/80 space-y-2">
+                  <p className="flex items-start gap-2">
+                    <span className="text-emerald-400 mt-0.5">✓</span>
+                    Voice recordings processed entirely on your device
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-emerald-400 mt-0.5">✓</span>
+                    Zero audio sent to any server or cloud
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-emerald-400 mt-0.5">✓</span>
+                    Works completely offline
+                  </p>
+                </div>
               </div>
             </div>
 
             <div className="space-y-4">
               {/* Python Installation Section */}
               {!pythonHook.hasChecked ? (
-                <div className="text-center space-y-4">
-                  <div className="w-16 h-16 mx-auto bg-secondary rounded-full flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                <div className="text-center space-y-4 py-4">
+                  <div className="relative w-16 h-16 mx-auto">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full opacity-20 animate-ping" />
+                    <div className="relative w-16 h-16 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center border border-purple-500/30">
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-purple-500 border-t-transparent"></div>
+                    </div>
                   </div>
                   <h3 className="font-semibold text-foreground">
                     Looking for Python...
                   </h3>
                   <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    Tribe Whisper is scanning for your existing Python install (including <code>py.exe</code> and any paths supplied via <code>OPENWHISPR_PYTHON</code>). Sit tight—if we find one, we’ll skip this step automatically.
+                    Scanning for your existing Python installation...
                   </p>
                 </div>
               ) : !pythonHook.pythonInstalled ? (
                 <div className="text-center space-y-4">
-                  <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
-                    <Download className="w-8 h-8 text-primary" />
+                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl flex items-center justify-center border border-purple-500/30">
+                    <Download className="w-8 h-8 text-purple-400" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground mb-2">
                       Install Python
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Python is required for local processing. We'll install it automatically for you.
+                      Required for local AI processing
                     </p>
                   </div>
 
                   {pythonHook.installingPython ? (
-                    <div className="bg-secondary p-4 rounded-lg">
-                      <div className="flex items-center justify-center gap-3 mb-3">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                        <span className="font-medium text-primary">
-                          Installing Python...
-                        </span>
-                      </div>
-                      {pythonHook.installProgress && (
-                        <div className="text-xs text-primary bg-background p-2 rounded font-mono">
-                          {pythonHook.installProgress}
+                    <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/50 to-pink-500/50">
+                      <div className="bg-background/95 rounded-xl p-4">
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-purple-500 border-t-transparent"></div>
+                          <span className="font-medium bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                            Installing Python...
+                          </span>
                         </div>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        This may take a few minutes. Please keep the app open.
-                      </p>
+                        {pythonHook.installProgress && (
+                          <div className="text-xs text-purple-300 bg-purple-500/10 p-2 rounded-lg font-mono">
+                            {pythonHook.installProgress}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          This may take a few minutes
+                        </p>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -543,7 +587,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         onClick={() => {
                           pythonHook.installPython();
                         }}
-                        className="w-full bg-primary hover:bg-primary/90"
+                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg shadow-purple-500/25"
                         disabled={pythonHook.isChecking}
                       >
                         {pythonHook.isChecking ? "Please Wait..." : "Install Python"}
@@ -551,15 +595,15 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full justify-center text-primary"
+                        className="w-full justify-center text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
                         disabled={pythonHook.isChecking}
                         onClick={() =>
                           showConfirmDialog({
                             title: "Use existing Python?",
                             description:
-                              "We’ll skip the installer and search for the interpreter already on your system (including OPENWHISPR_PYTHON and the Windows py launcher). Continue?",
-                            confirmText: "Use Existing Python",
-                            cancelText: "Keep Installing",
+                              "We'll search for Python already on your system. Continue?",
+                            confirmText: "Use Existing",
+                            cancelText: "Cancel",
                             onConfirm: () => {
                               pythonHook.checkPythonInstallation();
                             },
@@ -573,86 +617,96 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 </div>
               ) : !whisperHook.whisperInstalled ? (
                 <div className="text-center space-y-4">
-                  <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
-                    <Download className="w-8 h-8 text-primary" />
+                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl flex items-center justify-center border border-purple-500/30">
+                    <Download className="w-8 h-8 text-purple-400" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground mb-2">
-                      Install Whisper
+                      Install Whisper AI
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Python is ready! Now we'll install Whisper for speech recognition.
+                      Python ready! Now installing the speech recognition engine.
                     </p>
                   </div>
 
                   {whisperHook.installingWhisper ? (
-                    <div className="bg-primary/10 p-4 rounded-lg">
-                      <div className="flex items-center justify-center gap-3 mb-3">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                        <span className="font-medium text-primary">
-                          Installing...
-                        </span>
-                      </div>
-                      {whisperHook.installProgress && (
-                        <div className="text-xs text-primary bg-background p-2 rounded font-mono">
-                          {whisperHook.installProgress}
+                    <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/50 to-pink-500/50">
+                      <div className="bg-background/95 rounded-xl p-4">
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-purple-500 border-t-transparent"></div>
+                          <span className="font-medium bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                            Installing Whisper...
+                          </span>
                         </div>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        This may take a few minutes. Please keep the app open.
-                      </p>
+                        {whisperHook.installProgress && (
+                          <div className="text-xs text-purple-300 bg-purple-500/10 p-2 rounded-lg font-mono">
+                            {whisperHook.installProgress}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          This may take a few minutes
+                        </p>
+                      </div>
                     </div>
                   ) : (
                     <Button
                       onClick={whisperHook.installWhisper}
-                      className="w-full"
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg shadow-purple-500/25"
                     >
-                      Install Whisper
+                      Install Whisper AI
                     </Button>
                   )}
                 </div>
               ) : whisperHook.downloadingBaseModel ? (
                 <div className="text-center space-y-4">
-                  <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
-                    <Download className="w-8 h-8 text-primary" />
+                  <div className="relative w-16 h-16 mx-auto">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl opacity-30 animate-pulse" />
+                    <div className="relative w-16 h-16 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl flex items-center justify-center border border-purple-500/30">
+                      <Download className="w-8 h-8 text-purple-400" />
+                    </div>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground mb-2">
-                      Setting Up Your Model
+                    <h3 className="font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+                      Downloading AI Model
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Downloading the recommended "base" model for best performance.
+                      Getting the recommended "base" model ready
                     </p>
                   </div>
-                  <div className="bg-primary/10 p-4 rounded-lg">
-                    <div className="flex items-center justify-center gap-3 mb-3">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                      <span className="font-medium text-primary">
-                        Downloading...
-                      </span>
-                    </div>
-                    {whisperHook.installProgress && (
-                      <div className="text-xs text-primary bg-background p-2 rounded font-mono">
-                        {whisperHook.installProgress}
+                  <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/50 to-pink-500/50">
+                    <div className="bg-background/95 rounded-xl p-4">
+                      <div className="flex items-center justify-center gap-3 mb-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-purple-500 border-t-transparent"></div>
+                        <span className="font-medium bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                          Downloading...
+                        </span>
                       </div>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      This is a one-time download (~74MB). Please keep the app open.
-                    </p>
+                      {whisperHook.installProgress && (
+                        <div className="text-xs text-purple-300 bg-purple-500/10 p-2 rounded-lg font-mono">
+                          {whisperHook.installProgress}
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        One-time download (~74MB)
+                      </p>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center mb-4">
-                      <Check className="w-8 h-8 text-green-500" />
+                    <div className="relative w-16 h-16 mx-auto mb-4">
+                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl opacity-30" />
+                      <div className="relative w-16 h-16 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl flex items-center justify-center border border-emerald-500/30">
+                        <Check className="w-8 h-8 text-emerald-400" />
+                      </div>
                     </div>
-                    <h3 className="font-semibold text-green-500 mb-2">
+                    <h3 className="font-semibold text-emerald-400 mb-2">
                       {whisperHook.baseModelDownloaded ? "Ready to Go!" : "Whisper Installed!"}
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       {whisperHook.baseModelDownloaded
-                        ? "The base model is ready. You can change models anytime in Settings."
+                        ? "AI model ready. Change models anytime in Settings."
                         : "Now choose your model quality:"}
                     </p>
                   </div>
@@ -660,11 +714,11 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-3">
                       {whisperHook.baseModelDownloaded
-                        ? "Want a different model? Choose below:"
-                        : "Choose your model quality below"}
+                        ? "Want a different model?"
+                        : "Choose your model quality"}
                     </label>
                     <p className="text-xs text-muted-foreground">
-                      Download and select the model that best fits your needs.
+                      Select the model that best fits your needs.
                     </p>
                   </div>
 
@@ -673,45 +727,41 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     onModelSelect={setWhisperModel}
                     variant="onboarding"
                   />
+
+                  {/* English-only recommendation */}
+                  {preferredLanguage === 'en' && !whisperModel.endsWith('.en') && (
+                    <div className="relative p-[1px] rounded-lg bg-gradient-to-r from-blue-500/30 to-purple-500/30">
+                      <div className="bg-background/95 rounded-lg p-3">
+                        <p className="text-sm text-blue-300">
+                          <strong>💡 Tip:</strong> English-only models are faster and more accurate!
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Language Selection */}
-            <div className="space-y-4 p-4 bg-card border border-border rounded-xl">
-              <h4 className="font-medium text-foreground mb-3">
-                🌍 Preferred Language
-              </h4>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Which language do you primarily speak?
-              </label>
-              <LanguageSelector
-                value={preferredLanguage}
-                onChange={(value) => {
-                  updateTranscriptionSettings({ preferredLanguage: value });
-                }}
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Helps Whisper better understand your speech
-              </p>
-            </div>
           </div>
         );
 
-      case 3: // Permissions
+      case 2: // Permissions
         return (
           <div className="space-y-6">
+            {/* Header with gradient */}
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 mb-4 shadow-lg shadow-purple-500/20">
+                <Shield className="w-7 h-7 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
                 Grant Permissions
               </h2>
               <p className="text-muted-foreground">
-                Tribe Whisper needs a couple of permissions to work properly
+                A few quick permissions to enable all features
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <PermissionCard
                 icon={Mic}
                 title="Microphone Access"
@@ -733,14 +783,14 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <PermissionCard
                 icon={Camera}
                 title="Screen Recording Permission"
-                description="Required for screenshot capture with voice commands"
+                description="Optional: For screenshot capture with voice"
                 granted={permissionsHook.screenPermissionGranted}
                 onRequest={async () => {
                   const hasPermission = await permissionsHook.checkScreenPermission();
                   if (hasPermission) {
                     showAlertDialog({
-                      title: "✅ Screen Recording Permission Granted",
-                      description: "You can now use the screenshot feature with your voice commands.",
+                      title: "Screen Recording Enabled",
+                      description: "You can now capture screenshots with voice commands.",
                     });
                   }
                 }}
@@ -748,289 +798,302 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               />
             </div>
 
-            <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
-              <h4 className="font-medium text-green-400 mb-2 flex items-center gap-2">
-                <Lock className="w-4 h-4" />
-                Privacy Protected
-              </h4>
-              <p className="text-sm text-green-200/80">
-                Tribe Whisper only uses these permissions for dictation. All transcription is done locally on your device - your voice recordings never leave your computer.
-              </p>
+            {/* Privacy badge */}
+            <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/50 to-teal-500/50">
+              <div className="bg-background/95 rounded-xl p-4">
+                <h4 className="font-medium text-emerald-400 mb-2 flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Privacy Protected
+                </h4>
+                <p className="text-sm text-emerald-200/80">
+                  All transcription happens locally. Your voice never leaves your device.
+                </p>
+              </div>
             </div>
           </div>
         );
 
-      case 4: // Choose Hotkey
+      case 3: // Choose Hotkey
         return (
           <div className="space-y-6">
+            {/* Header with gradient */}
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 mb-4 shadow-lg shadow-purple-500/20">
+                <Keyboard className="w-7 h-7 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
                 Choose Your Hotkey
               </h2>
               <p className="text-muted-foreground">
-                Select which key you want to press to start/stop dictation
+                Pick a key to start/stop dictation from anywhere
               </p>
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Activation Key
-                </label>
-                <Input
-                  placeholder="Default: ` (backtick)"
-                  value={hotkey}
-                  onChange={(e) => setHotkey(e.target.value)}
-                  className="text-center text-lg font-mono"
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Press this key from anywhere to start/stop dictation
-                </p>
+              <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/30 to-pink-500/30">
+                <div className="bg-background/95 rounded-xl p-4">
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Activation Key
+                  </label>
+                  <Input
+                    placeholder="Default: ` (backtick)"
+                    value={hotkey}
+                    onChange={(e) => setHotkey(e.target.value)}
+                    className="text-center text-lg font-mono bg-background/50 border-purple-500/30 focus:border-purple-500"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Press this key from anywhere to start/stop
+                  </p>
+                </div>
               </div>
 
-              <div className="bg-secondary p-4 rounded-lg border border-border">
-                <h4 className="font-medium text-foreground mb-2">
-                  📸 Screenshot Feature
-                </h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Hold <kbd className="bg-secondary px-2 py-1 rounded text-xs font-mono border border-border text-foreground">
-                    {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl'}
-                  </kbd> while pressing your hotkey to capture a screenshot with your voice command.
-                </p>
-                <p className="text-sm text-primary/80">
-                  This automatically triggers agent mode, allowing you to ask questions about what's on your screen.
-                </p>
+              <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-pink-500/30 to-purple-500/30">
+                <div className="bg-background/95 rounded-xl p-4">
+                  <h4 className="font-medium text-pink-400 mb-2 flex items-center gap-2">
+                    <Camera className="w-4 h-4" />
+                    Screenshot Feature
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Hold <kbd className="bg-purple-500/20 px-2 py-1 rounded text-xs font-mono border border-purple-500/30 text-purple-300">
+                      {typeof window !== 'undefined' && window.electronAPI?.getPlatform?.() === 'darwin' ? 'Cmd' : 'Ctrl'}
+                    </kbd> + hotkey to capture a screenshot with your voice command.
+                  </p>
+                  <p className="text-sm text-purple-300/80">
+                    Ask questions about what's on your screen!
+                  </p>
+                </div>
               </div>
 
-              <div className="bg-muted/30 p-4 rounded-lg border border-border">
-                <h4 className="font-medium text-foreground mb-3">
-                  Click any key to select it:
-                </h4>
-                <React.Suspense fallback={<div className="text-muted-foreground">Loading keyboard...</div>}>
-                  <InteractiveKeyboard selectedKey={hotkey} setSelectedKey={setHotkey} />
-                </React.Suspense>
+              <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20">
+                <div className="bg-background/95 rounded-xl p-4">
+                  <h4 className="font-medium text-foreground mb-3">
+                    Click any key to select:
+                  </h4>
+                  <React.Suspense fallback={<div className="text-muted-foreground text-center py-4">Loading keyboard...</div>}>
+                    <InteractiveKeyboard selectedKey={hotkey} setSelectedKey={setHotkey} />
+                  </React.Suspense>
+                </div>
               </div>
             </div>
           </div>
         );
 
-      case 5: // Test & Practice
+      case 4: // Test & Practice
         return (
-          <div
-            className="space-y-6"
-            style={{ fontFamily: "Noto Sans, sans-serif" }}
-          >
+          <div className="space-y-6">
+            {/* Header with gradient */}
             <div className="text-center">
-              <h2
-                className="text-2xl font-bold text-foreground mb-2"
-                style={{ fontFamily: "Noto Sans, sans-serif" }}
-              >
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 mb-4 shadow-lg shadow-purple-500/20">
+                <TestTube className="w-7 h-7 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
                 Test & Practice
               </h2>
-              <p
-                className="text-muted-foreground"
-                style={{ fontFamily: "Noto Sans, sans-serif" }}
-              >
-                Let's test your setup and practice using Tribe Whisper
+              <p className="text-muted-foreground">
+                Try it out! Your setup is ready to go.
               </p>
             </div>
 
-            <div className="space-y-6">
-              <div className="bg-primary/10 p-6 rounded-lg border border-primary/20">
-                <h3 className="font-semibold text-primary mb-3">
-                  Practice with Your Hotkey
-                </h3>
-                <p className="text-sm text-foreground/80 mb-4">
-                  <strong>Step 1:</strong> Click in the text area below to place
-                  your cursor there.
-                  <br />
-                  <strong>Step 2:</strong> Press{" "}
-                  <kbd className="bg-secondary px-2 py-1 rounded text-xs font-mono border border-border text-foreground">
-                    {readableHotkey}
-                  </kbd>{" "}
-                  to start recording, then speak something.
-                  <br />
-                  <strong>Step 3:</strong> Press{" "}
-                  <kbd className="bg-secondary px-2 py-1 rounded text-xs font-mono border border-border text-foreground">
-                    {readableHotkey}
-                  </kbd>{" "}
-                  again to stop and see your transcribed text appear where your
-                  cursor is!
-                </p>
+            <div className="space-y-5">
+              {/* Practice area with gradient border */}
+              <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/50 to-pink-500/50">
+                <div className="bg-background/95 rounded-xl p-5">
+                  <h3 className="font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
+                    Try Your Hotkey
+                  </h3>
 
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                      <Mic className="w-4 h-4" />
-                      <span>
-                        Click in the text area below, then press{" "}
-                        <kbd className="bg-secondary px-1 py-0.5 rounded text-xs font-mono border border-border">
-                          {readableHotkey}
-                        </kbd>{" "}
-                        to start dictation
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 text-xs font-bold">1</span>
+                      <span className="text-foreground/80">Click in the text area below</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 text-xs font-bold">2</span>
+                      <span className="text-foreground/80">
+                        Press <kbd className="bg-purple-500/20 px-2 py-0.5 rounded text-xs font-mono border border-purple-500/30 text-purple-300">{readableHotkey}</kbd> and speak
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 text-xs font-bold">3</span>
+                      <span className="text-foreground/80">
+                        Press <kbd className="bg-purple-500/20 px-2 py-0.5 rounded text-xs font-mono border border-purple-500/30 text-purple-300">{readableHotkey}</kbd> again to stop
                       </span>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Transcribed Text:
-                    </label>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <Mic className="w-4 h-4 text-purple-400" />
+                      <span>Your transcribed text will appear here:</span>
+                    </div>
                     <Textarea
-                      // ref={practiceTextareaRef}
-                      rows={4}
-                      placeholder="Click here to place your cursor, then use your hotkey to start dictation..."
+                      ref={practiceTextareaRef}
+                      rows={3}
+                      placeholder="Click here, then press your hotkey to start..."
+                      className="bg-background/50 border-purple-500/30 focus:border-purple-500"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/20">
-                <h4 className="font-medium text-green-400 mb-2">
-                  💡 How to use Tribe Whisper:
-                </h4>
-                <ol className="text-sm text-green-200/80 space-y-1">
-                  <li>1. Click in any text field (email, document, etc.)</li>
-                  <li>
-                    2. Press{" "}
-                    <kbd className="bg-secondary px-2 py-1 rounded text-xs font-mono border border-border text-foreground">
-                      {readableHotkey}
-                    </kbd>{" "}
-                    to start recording
-                  </li>
-                  <li>3. Speak your text clearly</li>
-                  <li>
-                    4. Press{" "}
-                    <kbd className="bg-secondary px-2 py-1 rounded text-xs font-mono border border-border text-foreground">
-                      {readableHotkey}
-                    </kbd>{" "}
-                    again to stop
-                  </li>
-                  <li>
-                    5. Your text will automatically appear where you were
-                    typing!
-                  </li>
-                </ol>
+              {/* Tips */}
+              <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/30 to-teal-500/30">
+                <div className="bg-background/95 rounded-xl p-4">
+                  <h4 className="font-medium text-emerald-400 mb-3">
+                    Quick Tips
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm text-emerald-200/80">
+                    <div className="flex items-start gap-2">
+                      <span className="text-emerald-400">✓</span>
+                      <span>Works in any app</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-emerald-400">✓</span>
+                      <span>Speak naturally</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-emerald-400">✓</span>
+                      <span>Text appears instantly</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-emerald-400">✓</span>
+                      <span>100% private & local</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         );
 
-      case 6: // Agent Name
+      case 5: // Agent Name
         return (
           <div className="space-y-6">
+            {/* Header with gradient */}
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 mb-4 shadow-lg shadow-purple-500/20">
+                <User className="w-7 h-7 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
                 Name Your Agent
               </h2>
               <p className="text-muted-foreground">
-                Give your agent a name so you can address it specifically when
-                giving instructions.
+                Give your AI assistant a personal name
               </p>
             </div>
 
-            <div className="space-y-4 p-4 bg-primary/10 border border-primary/20 rounded-xl">
-              <h4 className="font-medium text-primary mb-3">
-                💡 How this helps:
-              </h4>
-              <ul className="text-sm text-primary/80 space-y-1">
-                <li>
-                  • Say "Hey {agentName || "Agent"}, write a formal email" for
-                  specific instructions
-                </li>
-                <li>
-                  • Use the name to distinguish between dictation and commands
-                </li>
-                <li>• Makes interactions feel more natural and personal</li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Agent Name
-              </label>
-              <Input
-                placeholder="e.g., Assistant, Jarvis, Alex..."
-                value={agentName}
-                onChange={(e) => setAgentName(e.target.value)}
-                className="text-center text-lg font-mono"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                You can change this anytime in settings
-              </p>
-            </div>
-          </div>
-        );
-
-      case 7: // Complete
-        return (
-          <div className="text-center space-y-6">
-            <div className="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center">
-              <Check className="w-8 h-8 text-green-400" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                You're All Set!
-              </h2>
-              <p className="text-muted-foreground">
-                Tribe Whisper is now configured and ready to use.
-              </p>
-            </div>
-
-            <div className="bg-primary/10 p-6 rounded-lg border border-primary/20">
-              <h3 className="font-semibold text-foreground mb-3">
-                Your Setup Summary:
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Transcription:</span>
-                  <span className="font-medium text-green-400">
-                    Local ({whisperModel})
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Hotkey:</span>
-                  <kbd className="bg-secondary px-2 py-1 rounded text-xs font-mono border border-border text-foreground">
-                    {hotkey}
-                  </kbd>
-                </div>
-                <div className="flex justify-between">
-                  <span>Language:</span>
-                  <span className="font-medium">
-                    {getLanguageLabel(preferredLanguage)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Agent Name:</span>
-                  <span className="font-medium">{agentName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Permissions:</span>
-                  <span className="font-medium text-green-600">
-                    {permissionsHook.micPermissionGranted &&
-                      permissionsHook.accessibilityPermissionGranted
-                      ? "✓ Granted"
-                      : "⚠ Review needed"}
-                  </span>
+            {/* How it works */}
+            <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/30 to-pink-500/30">
+              <div className="bg-background/95 rounded-xl p-4">
+                <h4 className="font-medium text-purple-400 mb-3">
+                  How it works:
+                </h4>
+                <div className="space-y-2 text-sm text-purple-200/80">
+                  <p className="flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-pink-400 mt-0.5 flex-shrink-0" />
+                    <span>Say "Hey <span className="text-pink-400 font-medium">{agentName || "Agent"}</span>, write a formal email" for AI commands</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <Mic className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                    <span>Without the name, it's just regular dictation</span>
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
-              <h4 className="font-medium text-green-400 mb-2 flex items-center gap-2">
-                <Lock className="w-4 h-4" />
-                Privacy Guarantee
-              </h4>
-              <p className="text-sm text-green-200/80">
-                All voice transcription happens on your device. Your audio never leaves your computer. Agent mode only sends transcribed text to your chosen AI provider when you address it by name.
+            {/* Input */}
+            <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-pink-500/50 to-purple-500/50">
+              <div className="bg-background/95 rounded-xl p-4">
+                <label className="block text-sm font-medium text-foreground mb-3">
+                  Agent Name
+                </label>
+                <Input
+                  placeholder="e.g., Assistant, Jarvis, Alex..."
+                  value={agentName}
+                  onChange={(e) => setAgentName(e.target.value)}
+                  className="text-center text-xl font-medium bg-background/50 border-purple-500/30 focus:border-purple-500"
+                />
+                <p className="text-xs text-muted-foreground mt-3 text-center">
+                  Change anytime in Settings
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 6: // Complete
+        return (
+          <div className="text-center space-y-6">
+            {/* Celebration header */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-32 h-32 bg-gradient-to-br from-purple-500 via-pink-500 to-purple-600 rounded-full opacity-20 blur-2xl animate-pulse" />
+              </div>
+              <div className="relative w-20 h-20 mx-auto bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-emerald-500/30">
+                <Check className="w-10 h-10 text-white" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
+                You're All Set!
+              </h2>
+              <p className="text-lg text-white/90">
+                Speak. Create. Command.
+              </p>
+              <p className="text-muted-foreground">
+                Tribe Assistant is ready to go.
               </p>
             </div>
 
-            <div className="bg-secondary p-4 rounded-lg">
-              <p className="text-sm text-foreground">
-                <strong>Pro tip:</strong> You can always change these settings
-                later in the Control Panel.
-              </p>
+            {/* Summary with gradient border */}
+            <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/50 to-pink-500/50">
+              <div className="bg-background/95 rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-4">
+                  Your Setup
+                </h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Model:</span>
+                    <span className="font-medium text-purple-400">{whisperModel}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Hotkey:</span>
+                    <kbd className="bg-purple-500/20 px-3 py-1 rounded-lg text-sm font-mono border border-purple-500/30 text-purple-300">
+                      {hotkey}
+                    </kbd>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Language:</span>
+                    <span className="font-medium text-foreground">{getLanguageLabel(preferredLanguage)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Agent:</span>
+                    <span className="font-medium text-pink-400">{agentName}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Status:</span>
+                    <span className="font-medium text-emerald-400">
+                      {permissionsHook.micPermissionGranted && permissionsHook.accessibilityPermissionGranted
+                        ? "✓ Ready"
+                        : "⚠ Review permissions"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Privacy badge */}
+            <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/30 to-teal-500/30">
+              <div className="bg-background/95 rounded-xl p-4">
+                <div className="flex items-center justify-center gap-2 text-emerald-400">
+                  <Lock className="w-4 h-4" />
+                  <span className="font-medium">100% Private</span>
+                </div>
+                <p className="text-xs text-emerald-200/70 mt-1">
+                  Voice never leaves your device
+                </p>
+              </div>
             </div>
           </div>
         );
@@ -1042,43 +1105,28 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 0:
+      case 0: // Welcome
         return true;
-      case 1:
-        return true; // Mode selection
-      case 2:
-        if (useLocalWhisper) {
-          return pythonHook.pythonInstalled && whisperHook.whisperInstalled;
-        } else {
-          const trimmedKey = apiKey.trim();
-          if (!trimmedKey) {
-            return false;
-          }
-          if (!hasEnteredReasoningBase) {
-            return true;
-          }
-          if (!isValidReasoningBase) {
-            return false;
-          }
-          return (
-            customReasoningModels.length > 0 &&
-            !customModelsLoading &&
-            !customModelsError
-          );
-        }
-      case 3:
+      case 1: // Setup - require Python, Whisper, and base model downloaded
+        return (
+          pythonHook.pythonInstalled &&
+          whisperHook.whisperInstalled &&
+          whisperHook.baseModelDownloaded &&
+          !whisperHook.downloadingBaseModel
+        );
+      case 2: // Permissions
         return (
           permissionsHook.micPermissionGranted &&
           permissionsHook.accessibilityPermissionGranted
           // Screen permission is optional, so not required to proceed
         );
-      case 4:
+      case 3: // Hotkey
         return hotkey.trim() !== "";
-      case 5:
-        return true; // Practice step is always ready to proceed
-      case 6:
-        return agentName.trim() !== ""; // Agent name step
-      case 7:
+      case 4: // Test & Practice
+        return true;
+      case 5: // Agent Name
+        return agentName.trim() !== "";
+      case 6: // Finish
         return true;
       default:
         return false;
@@ -1099,12 +1147,18 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   return (
     <div
-      className="h-screen flex flex-col bg-background"
+      className="h-screen flex flex-col relative overflow-hidden"
       style={{
         fontFamily: "Inter, sans-serif",
         paddingTop: "env(safe-area-inset-top, 0px)",
       }}
     >
+      {/* Full-screen gradient background */}
+      <div className="absolute inset-0 bg-background" />
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-background to-pink-900/10" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-pink-500/5 rounded-full blur-3xl" />
+
       <ConfirmDialog
         open={confirmDialog.open}
         onOpenChange={(open) => !open && hideConfirmDialog()}
@@ -1124,66 +1178,63 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       />
 
       {/* Title Bar */}
-      <div className="flex-shrink-0 z-10">
+      <div className="flex-shrink-0 z-10 relative">
         <TitleBar
           showTitle={true}
-          className="bg-card/50 backdrop-blur-xl border-b border-border"
+          className="bg-transparent border-b border-white/5"
         ></TitleBar>
       </div>
 
       {/* Progress Bar */}
-      <div className="flex-shrink-0 bg-card/30 backdrop-blur-xl border-b border-border p-6 md:px-16 z-10">
+      <div className="flex-shrink-0 relative bg-black/20 backdrop-blur-xl border-b border-white/5 p-6 md:px-16 z-10">
         <div className="max-w-4xl mx-auto">
           <StepProgress steps={steps} currentStep={currentStep} />
         </div>
       </div>
 
       {/* Content - This will grow to fill available space */}
-      <div className="flex-1 px-6 md:px-16 py-12 overflow-y-auto">
+      <div className="flex-1 px-6 md:px-16 py-8 overflow-y-auto relative z-10">
         <div className="max-w-4xl mx-auto">
-          <Card className="bg-card border border-border shadow-2xl rounded-2xl overflow-hidden">
-            <CardContent
-              className="p-12 md:p-16"
-              style={{ fontFamily: "Inter, sans-serif" }}
-            >
-              <div className="space-y-8">{renderStep()}</div>
-            </CardContent>
-          </Card>
+          {/* Card with subtle border */}
+          <div className="relative p-[1px] rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-white/10">
+            <Card className="bg-black/40 backdrop-blur-xl border-0 shadow-2xl rounded-2xl overflow-hidden">
+              <CardContent className="p-8 md:p-12">
+                <div className="space-y-6">{renderStep()}</div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
       {/* Footer - This will stick to the bottom */}
-      <div className="flex-shrink-0 bg-card/30 backdrop-blur-xl border-t border-border px-6 md:px-16 py-8 z-10">
+      <div className="flex-shrink-0 relative bg-black/20 backdrop-blur-xl border-t border-white/5 px-6 md:px-16 py-6 z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Button
             onClick={prevStep}
             variant="outline"
             disabled={currentStep === 0}
-            className="px-8 py-3 h-12 text-sm font-medium"
-            style={{ fontFamily: "Noto Sans, sans-serif" }}
+            className="px-6 py-2.5 h-11 text-sm font-medium border-purple-500/30 hover:bg-purple-500/10 hover:border-purple-500/50 disabled:opacity-30"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
-            Previous
+            Back
           </Button>
 
           <div className="flex items-center gap-3">
             {currentStep === steps.length - 1 ? (
               <Button
                 onClick={finishOnboarding}
-                className="bg-green-600 hover:bg-green-700 px-8 py-3 h-12 text-sm font-medium"
-                style={{ fontFamily: "Noto Sans, sans-serif" }}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0 px-8 py-2.5 h-11 text-sm font-medium shadow-lg shadow-emerald-500/25"
               >
                 <Check className="w-4 h-4 mr-2" />
-                Finish Setup
+                Get Started
               </Button>
             ) : (
               <Button
                 onClick={nextStep}
                 disabled={!canProceed()}
-                className="px-8 py-3 h-12 text-sm font-medium"
-                style={{ fontFamily: "Noto Sans, sans-serif" }}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 px-8 py-2.5 h-11 text-sm font-medium shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:shadow-none"
               >
-                Next
+                Continue
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             )}
