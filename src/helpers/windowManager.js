@@ -1,5 +1,6 @@
 const { app, screen, BrowserWindow } = require("electron");
 const HotkeyManager = require("./hotkeyManager");
+const HotkeyListenerManager = require("./hotkeyListenerManager");
 const DragManager = require("./dragManager");
 const MenuManager = require("./menuManager");
 const DevServerManager = require("./devServerManager");
@@ -17,12 +18,16 @@ class WindowManager {
     this.imageGenerationWindow = null;
     this.tray = null;
     this.hotkeyManager = new HotkeyManager();
+    this.hotkeyListenerManager = new HotkeyListenerManager(); // Native macOS listener
     this.dragManager = new DragManager();
     this.isQuitting = false;
     this.isMainWindowInteractive = false;
+    this.useNativeListener = process.platform === "darwin"; // Use native listener on macOS
+    this.currentHotkey = "`";
 
     app.on("before-quit", () => {
       this.isQuitting = true;
+      this.hotkeyListenerManager.stop();
     });
   }
 
@@ -109,9 +114,11 @@ class WindowManager {
 
   async initializeHotkey() {
     const callback = () => {
+      console.log(`🔥 [HOTKEY] Callback fired at ${Date.now()}`);
       if (!this.mainWindow.isVisible()) {
         this.mainWindow.show();
       }
+      console.log(`🔥 [HOTKEY] Sending toggle-dictation IPC at ${Date.now()}`);
       this.mainWindow.webContents.send("toggle-dictation");
     };
 
@@ -141,11 +148,34 @@ class WindowManager {
       }
     };
 
+    // On macOS, try to use native listener for main dictation hotkey (more reliable)
+    if (this.useNativeListener && this.currentHotkey !== "GLOBE") {
+      console.log(`🔧 [HOTKEY] Using native macOS listener for "${this.currentHotkey}"`);
+
+      // Set up native listener for dictation
+      this.hotkeyListenerManager.removeAllListeners();
+      this.hotkeyListenerManager.on("key-down", callback);
+
+      const started = this.hotkeyListenerManager.start(this.currentHotkey);
+      if (started) {
+        console.log(`✅ [HOTKEY] Native listener started for "${this.currentHotkey}"`);
+        // Still use Electron's globalShortcut for screenshot and image gen (with modifiers)
+        await this.hotkeyManager.initializeHotkey(this.mainWindow, () => {}, screenshotCallback, imageGenCallback);
+        return;
+      } else {
+        console.log(`⚠️ [HOTKEY] Native listener failed, falling back to Electron globalShortcut`);
+      }
+    }
+
+    // Fallback to Electron's globalShortcut
     await this.hotkeyManager.initializeHotkey(this.mainWindow, callback, screenshotCallback, imageGenCallback);
   }
 
   async updateHotkey(hotkey) {
+    this.currentHotkey = hotkey;
+
     const callback = () => {
+      console.log(`🔥 [HOTKEY] Callback fired at ${Date.now()}`);
       if (!this.mainWindow.isVisible()) {
         this.mainWindow.show();
       }
@@ -177,6 +207,23 @@ class WindowManager {
         this.imageGenerationWindow.focus();
       }
     };
+
+    // On macOS, use native listener for main dictation hotkey (more reliable)
+    if (this.useNativeListener && hotkey !== "GLOBE") {
+      console.log(`🔧 [HOTKEY] Updating native macOS listener for "${hotkey}"`);
+
+      this.hotkeyListenerManager.removeAllListeners();
+      this.hotkeyListenerManager.on("key-down", callback);
+
+      const started = this.hotkeyListenerManager.start(hotkey);
+      if (started) {
+        console.log(`✅ [HOTKEY] Native listener updated for "${hotkey}"`);
+        // Still use Electron for screenshot and image gen hotkeys
+        return await this.hotkeyManager.updateHotkey(hotkey, () => {}, screenshotCallback, imageGenCallback);
+      } else {
+        console.log(`⚠️ [HOTKEY] Native listener failed, falling back to Electron globalShortcut`);
+      }
+    }
 
     return await this.hotkeyManager.updateHotkey(hotkey, callback, screenshotCallback, imageGenCallback);
   }

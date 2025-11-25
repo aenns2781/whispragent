@@ -31,7 +31,9 @@
   "extraResources": [
     "src/assets/**/*",
     "resources/macos-globe-listener.swift",
-    "resources/bin/macos-globe-listener"
+    "resources/bin/macos-globe-listener",
+    "resources/macos-hotkey-listener.swift",
+    "resources/bin/macos-hotkey-listener"
   ],
   "afterSign": "afterSign.js",
   "mac": {

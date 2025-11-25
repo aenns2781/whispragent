@@ -8,6 +8,7 @@ class HotkeyManager {
     this.screenshotModifier = "CmdOrCtrl"; // Default modifier for screenshots
     this.heartbeatInterval = null;
     this.callback = null;
+    this.wrappedCallback = null; // Stored wrapped callback for re-registration
     this.screenshotCallback = null;
     this.imageGenCallback = null;
   }
@@ -21,11 +22,9 @@ class HotkeyManager {
     this.heartbeatInterval = setInterval(() => {
       if (this.currentHotkey && this.currentHotkey !== "GLOBE") {
         const isRegistered = globalShortcut.isRegistered(this.currentHotkey);
-        if (!isRegistered) {
-          console.error(`⚠️ [HotkeyManager] HOTKEY UNREGISTERED! Attempting to re-register "${this.currentHotkey}"...`);
-          if (this.callback) {
-            this.setupShortcuts(this.currentHotkey, this.callback, this.screenshotCallback, this.imageGenCallback);
-          }
+        if (!isRegistered && this.callback) {
+          console.error(`⚠️ [HotkeyManager] HOTKEY UNREGISTERED! Re-registering "${this.currentHotkey}"...`);
+          globalShortcut.register(this.currentHotkey, this.callback);
         }
       }
     }, 500); // Check every 500ms for more reliable hotkey detection
@@ -201,6 +200,51 @@ class HotkeyManager {
 
   getCurrentHotkey() {
     return this.currentHotkey;
+  }
+
+  // Soft refresh - only re-registers if hotkey is not currently registered
+  // Does NOT unregister first, avoiding the gap where keypresses are missed
+  softRefresh() {
+    if (!this.currentHotkey || this.currentHotkey === "GLOBE") {
+      return { success: true };
+    }
+
+    let needsRefresh = false;
+
+    // Check main hotkey
+    if (!globalShortcut.isRegistered(this.currentHotkey)) {
+      console.log(`🔄 [HotkeyManager] Main hotkey not registered, re-registering...`);
+      if (this.callback) {
+        globalShortcut.register(this.currentHotkey, this.callback);
+      }
+      needsRefresh = true;
+    }
+
+    // Check screenshot hotkey
+    const screenshotHotkey = `${this.screenshotModifier}+${this.currentHotkey}`;
+    if (!globalShortcut.isRegistered(screenshotHotkey)) {
+      console.log(`🔄 [HotkeyManager] Screenshot hotkey not registered, re-registering...`);
+      if (this.screenshotCallback) {
+        globalShortcut.register(screenshotHotkey, this.screenshotCallback);
+      }
+      needsRefresh = true;
+    }
+
+    // Check image gen hotkey
+    const imageGenHotkey = `Shift+${this.currentHotkey}`;
+    if (!globalShortcut.isRegistered(imageGenHotkey)) {
+      console.log(`🔄 [HotkeyManager] Image gen hotkey not registered, re-registering...`);
+      if (this.imageGenCallback) {
+        globalShortcut.register(imageGenHotkey, this.imageGenCallback);
+      }
+      needsRefresh = true;
+    }
+
+    if (!needsRefresh) {
+      console.log(`✅ [HotkeyManager] All hotkeys still registered, no refresh needed`);
+    }
+
+    return { success: true };
   }
 
   unregisterAll() {

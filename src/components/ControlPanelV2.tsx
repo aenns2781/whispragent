@@ -12,6 +12,7 @@ import SystemPanel from './panels/SystemPanel';
 import HelpPanel from './panels/HelpPanel';
 import ImageGenerationModal from './ImageGenerationModal';
 import { PhraseSuggestionNotification } from './PhraseSuggestionNotification';
+import { ApiKeySetupNotification } from './ApiKeySetupNotification';
 import { useSettings } from '../hooks/useSettings';
 
 const ControlPanelV2: React.FC = () => {
@@ -114,6 +115,11 @@ const ControlPanelV2: React.FC = () => {
       <PhraseSuggestionNotification
         onNavigateToDictionary={() => setActiveSection('dictionary')}
         onNavigateToSnippets={() => setActiveSection('snippets')}
+      />
+
+      {/* API Key Setup Notification */}
+      <ApiKeySetupNotification
+        onNavigateToAIModels={() => setActiveSection('ai')}
       />
     </div>
   );

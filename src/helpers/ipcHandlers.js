@@ -485,6 +485,13 @@ class IPCHandlers {
       return await this.windowManager.updateHotkey(hotkey);
     });
 
+    // Re-register the current hotkey (useful after clipboard operations that may interfere)
+    // Uses soft refresh to avoid unregister/register gap where keypresses are missed
+    ipcMain.handle("refresh-hotkey", async (event) => {
+      console.log(`🔄 [HOTKEY] Soft refreshing hotkey registration...`);
+      return this.windowManager.hotkeyManager.softRefresh();
+    });
+
     ipcMain.handle("update-screenshot-modifier", async (event, modifier) => {
       return await this.windowManager.updateScreenshotModifier(modifier);
     });

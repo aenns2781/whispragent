@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cpu, Zap, Shield, Brain, Sparkles, Cloud, Check } from 'lucide-react';
+import { Cpu, Zap, Shield, Brain, Sparkles, Cloud, Check, ExternalLink } from 'lucide-react';
 import { Input } from '../ui/input';
 import { useSettings } from '../../hooks/useSettings';
 import PanelBackground from '../PanelBackground';
@@ -120,6 +120,17 @@ const AIModelsPanel: React.FC = () => {
                       </div>
                     )}
                   </div>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.electronAPI?.openExternal('https://platform.openai.com/api-keys');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Don't have a key? Get one from OpenAI
+                  </a>
                   <select
                     className="w-full input-field glass text-sm"
                     value={settings.reasoningModel}
@@ -181,6 +192,17 @@ const AIModelsPanel: React.FC = () => {
                       </div>
                     )}
                   </div>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.electronAPI?.openExternal('https://aistudio.google.com/apikey');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Don't have a key? Get one from Google AI Studio
+                  </a>
                   <div>
                     <label className="text-sm text-color-foreground-muted mb-2 block font-medium">
                       Image Generation Model

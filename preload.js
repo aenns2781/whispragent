@@ -125,6 +125,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Cleanup function
   cleanupApp: () => ipcRenderer.invoke("cleanup-app"),
   updateHotkey: (hotkey) => ipcRenderer.invoke("update-hotkey", hotkey),
+  refreshHotkey: () => ipcRenderer.invoke("refresh-hotkey"),
   updateScreenshotModifier: (modifier) => ipcRenderer.invoke("update-screenshot-modifier", modifier),
   startWindowDrag: () => ipcRenderer.invoke("start-window-drag"),
   stopWindowDrag: () => ipcRenderer.invoke("stop-window-drag"),

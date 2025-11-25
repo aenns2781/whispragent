@@ -157,7 +157,6 @@ export default function App() {
         let originalClipboard = null;
 
         try {
-
           // Highlighted Text
           console.error("🎤 RECORDING STARTED - Checking for highlighted text...");
           originalClipboard = await window.electronAPI.readClipboard();
@@ -339,14 +338,19 @@ export default function App() {
       const { isProcessing } = stateRef.current;
       const isRecording = isRecordingRef.current;
 
+      console.log(`🎯 [RENDERER] handleToggle received at ${Date.now()}, isRecording=${isRecording}, isProcessing=${isProcessing}`);
+
       setIsCommandMenuOpen(false);
 
       // Simple toggle logic - no debounce, just check state
       if (!isRecording && !isProcessing) {
+        console.log(`🎯 [RENDERER] Starting recording...`);
         startRecording(false);
       } else if (isRecording) {
+        console.log(`🎯 [RENDERER] Stopping recording...`);
         stopRecording();
       } else if (isProcessing) {
+        console.log(`🎯 [RENDERER] Cancelling processing...`);
         // Cancel processing if user presses hotkey during processing
         if (audioManagerRef.current) {
           audioManagerRef.current.cancelProcessing();
@@ -388,6 +392,7 @@ export default function App() {
     };
 
     // Clean up any existing listeners to prevent duplicates
+    console.log(`🔄 [RENDERER] useEffect running - setting up IPC listeners (dictationKey=${dictationKey})`);
     window.electronAPI.removeAllListeners("toggle-dictation");
     window.electronAPI.removeAllListeners("stop-dictation");
     window.electronAPI.removeAllListeners("toggle-screenshot");
@@ -395,12 +400,14 @@ export default function App() {
     window.electronAPI.removeAllListeners("globe-key-up");
 
     window.electronAPI.onToggleDictation(handleToggle);
+    console.log(`✅ [RENDERER] IPC listener for toggle-dictation registered`);
     window.electronAPI.onStopDictation(handleStopDictation);
     window.electronAPI.onToggleScreenshot(handleScreenshotToggle);
     window.electronAPI.onGlobeKeyDown(handleGlobeKeyDown);
     window.electronAPI.onGlobeKeyUp(handleGlobeKeyUp);
 
     return () => {
+      console.log(`🧹 [RENDERER] useEffect cleanup - removing IPC listeners`);
       window.electronAPI.removeAllListeners("toggle-dictation");
       window.electronAPI.removeAllListeners("stop-dictation");
       window.electronAPI.removeAllListeners("toggle-screenshot");
