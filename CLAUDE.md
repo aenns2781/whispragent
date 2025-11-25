@@ -61,7 +61,7 @@ OpenWhispr is an Electron-based desktop dictation application that uses OpenAI W
 
 - **App.jsx**: Main dictation interface with recording states
 - **ControlPanel.tsx**: Settings, history, model management UI
-- **OnboardingFlow.tsx**: 8-step first-time setup wizard
+- **OnboardingFlow.tsx**: 7-step first-time setup wizard (Welcome, Setup, Permissions, Hotkey, Test, Agent Name, Finish)
 - **SettingsPage.tsx**: Comprehensive settings interface
 - **WhisperModelPicker.tsx**: Model selection and download UI
 - **ui/**: Reusable UI components (buttons, cards, inputs, etc.)
@@ -118,13 +118,16 @@ FFmpeg is bundled with the app and doesn't require system installation:
 
 ### 3. Local Whisper Models
 
-Models stored in `~/.cache/whisper/`:
+Uses **faster-whisper** (CTranslate2-based) for efficient CPU transcription.
+Models stored in `~/.cache/huggingface/hub/` (managed by huggingface_hub):
 - tiny: 39MB (fastest, lowest quality)
-- base: 74MB (recommended balance)
+- base: 74MB (recommended, **auto-downloaded during onboarding**)
 - small: 244MB (better quality)
 - medium: 769MB (high quality)
 - large: 1.5GB (best quality)
 - turbo: 809MB (fast with good quality)
+
+**Auto-download**: The "base" model is automatically downloaded after Whisper installation during onboarding to ensure users can start transcribing immediately.
 
 ### 4. Database Schema
 
@@ -165,7 +168,7 @@ Settings stored in localStorage with these keys:
 
 ### 7. Agent Naming System
 
-- User names their agent during onboarding (step 6/8)
+- User names their agent during onboarding (step 6/7)
 - Name stored in localStorage and database
 - ReasoningService detects "Hey [AgentName]" patterns
 - AI processes command and removes agent reference from output

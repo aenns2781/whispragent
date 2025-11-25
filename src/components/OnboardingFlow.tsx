@@ -611,6 +611,36 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </Button>
                   )}
                 </div>
+              ) : whisperHook.downloadingBaseModel ? (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center">
+                    <Download className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-2">
+                      Setting Up Your Model
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Downloading the recommended "base" model for best performance.
+                    </p>
+                  </div>
+                  <div className="bg-primary/10 p-4 rounded-lg">
+                    <div className="flex items-center justify-center gap-3 mb-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                      <span className="font-medium text-primary">
+                        Downloading...
+                      </span>
+                    </div>
+                    {whisperHook.installProgress && (
+                      <div className="text-xs text-primary bg-background p-2 rounded font-mono">
+                        {whisperHook.installProgress}
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      This is a one-time download (~74MB). Please keep the app open.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-4">
                   <div className="text-center">
@@ -618,16 +648,20 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       <Check className="w-8 h-8 text-green-500" />
                     </div>
                     <h3 className="font-semibold text-green-500 mb-2">
-                      Whisper Installed!
+                      {whisperHook.baseModelDownloaded ? "Ready to Go!" : "Whisper Installed!"}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Now choose your model quality:
+                      {whisperHook.baseModelDownloaded
+                        ? "The base model is ready. You can change models anytime in Settings."
+                        : "Now choose your model quality:"}
                     </p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-3">
-                      Choose your model quality below
+                      {whisperHook.baseModelDownloaded
+                        ? "Want a different model? Choose below:"
+                        : "Choose your model quality below"}
                     </label>
                     <p className="text-xs text-muted-foreground">
                       Download and select the model that best fits your needs.
