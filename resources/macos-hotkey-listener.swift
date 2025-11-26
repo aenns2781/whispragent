@@ -22,8 +22,31 @@ func eventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent,
     }
 
     let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+    let flags = event.flags
+
+    // Check for modifier keys (Cmd, Shift, Ctrl, Option)
+    let hasCommand = flags.contains(.maskCommand)
+    let hasShift = flags.contains(.maskShift)
+    let hasControl = flags.contains(.maskControl)
+    let hasOption = flags.contains(.maskAlternate)
+    let hasModifier = hasCommand || hasShift || hasControl || hasOption
 
     if keyCode == targetKeyCode {
+        // If any modifier is held, pass the event through (for Cmd+` or Shift+` etc)
+        if hasModifier {
+            if type == .keyDown {
+                if hasCommand {
+                    FileHandle.standardOutput.write("CMD_KEY_DOWN\n".data(using: .utf8)!)
+                } else if hasShift {
+                    FileHandle.standardOutput.write("SHIFT_KEY_DOWN\n".data(using: .utf8)!)
+                }
+                fflush(stdout)
+            }
+            // Don't consume - let the system/Electron handle modified keypresses
+            return Unmanaged.passUnretained(event)
+        }
+
+        // Plain key press (no modifiers) - this is our dictation toggle
         if type == .keyDown {
             FileHandle.standardOutput.write("KEY_DOWN\n".data(using: .utf8)!)
             fflush(stdout)

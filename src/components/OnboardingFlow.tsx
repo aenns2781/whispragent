@@ -761,14 +761,15 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <PermissionCard
                 icon={Mic}
                 title="Microphone Access"
                 description="Required to record your voice"
                 granted={permissionsHook.micPermissionGranted}
                 onRequest={permissionsHook.requestMicPermission}
-                buttonText="Grant Access"
+                buttonText="Allow Microphone"
+                instructions="Click the button and select 'Allow' when prompted by macOS."
               />
 
               <PermissionCard
@@ -776,27 +777,62 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 title="Accessibility Permission"
                 description="Required to paste text automatically"
                 granted={permissionsHook.accessibilityPermissionGranted}
-                onRequest={permissionsHook.testAccessibilityPermission}
-                buttonText="Test & Grant"
+                onRequest={async () => {
+                  // Open System Settings directly to Accessibility
+                  await window.electronAPI.openExternal(
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+                  );
+                  // Show instructions
+                  showAlertDialog({
+                    title: "Enable Accessibility Access",
+                    description: "System Settings will open. Find 'Tribe Assistant' in the list and toggle it ON. If it's already on but not working, toggle it OFF then ON again. Then click 'Verify' to confirm.",
+                  });
+                }}
+                onVerify={permissionsHook.testAccessibilityPermission}
+                buttonText="Open Settings"
+                instructions="Opens System Settings → Privacy & Security → Accessibility. Toggle ON for Tribe Assistant."
               />
 
               <PermissionCard
                 icon={Camera}
-                title="Screen Recording Permission"
-                description="Optional: For screenshot capture with voice"
+                title="Screen Recording"
+                description="Optional: Capture screenshots with voice commands"
                 granted={permissionsHook.screenPermissionGranted}
                 onRequest={async () => {
+                  // Open System Settings directly to Screen Recording
+                  await window.electronAPI.openExternal(
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+                  );
+                  showAlertDialog({
+                    title: "Enable Screen Recording",
+                    description: "System Settings will open. Find 'Tribe Assistant' in the list and toggle it ON. Then click 'Verify' to confirm.",
+                  });
+                }}
+                onVerify={async () => {
                   const hasPermission = await permissionsHook.checkScreenPermission();
                   if (hasPermission) {
                     showAlertDialog({
                       title: "Screen Recording Enabled",
                       description: "You can now capture screenshots with voice commands.",
                     });
+                  } else {
+                    showAlertDialog({
+                      title: "Permission Not Granted",
+                      description: "Screen Recording permission not detected. Please enable it in System Settings and try again.",
+                    });
                   }
                 }}
-                buttonText="Test & Grant"
+                buttonText="Open Settings"
+                instructions="Optional for screenshot features. Opens System Settings → Privacy & Security → Screen Recording."
               />
             </div>
+
+            {/* Help text */}
+            {(!permissionsHook.micPermissionGranted || !permissionsHook.accessibilityPermissionGranted) && (
+              <div className="text-center text-sm text-muted-foreground mt-4">
+                <p>After enabling permissions, click the button again to verify.</p>
+              </div>
+            )}
 
             {/* Privacy badge */}
             <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/50 to-teal-500/50">

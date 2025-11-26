@@ -75,6 +75,7 @@ const Tooltip = ({ children, content, emoji }) => {
 export default function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isAgentMode, setIsAgentMode] = useState(false); // Agent mode visual indicator
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState("");
   const [isHovered, setIsHovered] = useState(false);
@@ -261,8 +262,11 @@ export default function App() {
       audioManager.setCallbacks({
         onStateChange: ({ isRecording, isProcessing }) => {
           // Only update processing state here, recording state is managed manually
-          // setIsRecording(isRecording); 
+          // setIsRecording(isRecording);
           setIsProcessing(isProcessing);
+        },
+        onAgentModeChange: (agentMode) => {
+          setIsAgentMode(agentMode);
         },
         onError: (error) => {
           toast({
@@ -304,6 +308,7 @@ export default function App() {
       });
     } finally {
       setIsProcessing(false);
+      setIsAgentMode(false);
     }
   };
 
@@ -592,9 +597,14 @@ export default function App() {
                 <div className="absolute inset-0 rounded-full border-2 border-primary animate-pulse"></div>
               )}
 
-              {/* State indicator ring for processing */}
-              {micState === "processing" && (
+              {/* State indicator ring for processing - normal transcription */}
+              {micState === "processing" && !isAgentMode && (
                 <div className="absolute inset-0 rounded-full border-2 border-primary opacity-50"></div>
+              )}
+
+              {/* State indicator ring for agent mode - subtle purple-pink gradient border */}
+              {micState === "processing" && isAgentMode && (
+                <div className="absolute inset-0 rounded-full border-2 border-transparent bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" style={{ WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude' }}></div>
               )}
             </button>
           </Tooltip>

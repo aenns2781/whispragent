@@ -34,10 +34,11 @@ class AudioManager {
   }
 
   // Set callback functions
-  setCallbacks({ onStateChange, onError, onTranscriptionComplete }) {
+  setCallbacks({ onStateChange, onError, onTranscriptionComplete, onAgentModeChange }) {
     this.onStateChange = onStateChange;
     this.onError = onError;
     this.onTranscriptionComplete = onTranscriptionComplete;
+    this.onAgentModeChange = onAgentModeChange;
   }
 
   buildInitialPrompt() {
@@ -281,6 +282,7 @@ class AudioManager {
     } finally {
       this.isProcessing = false;
       this.onStateChange?.({ isRecording: false, isProcessing: false });
+      this.onAgentModeChange?.(false); // Reset agent mode indicator
     }
   }
 
@@ -514,6 +516,11 @@ class AudioManager {
     console.error("   - Captured context exists:", !!this.capturedContext);
     console.error("   - Window captured context exists:", !!window.capturedHighlightedContext);
     console.error("   - FINAL DECISION - Use agent mode:", useReasoning);
+
+    // Notify UI that agent mode is active (for visual indicator)
+    if (useReasoning) {
+      this.onAgentModeChange?.(true);
+    }
 
     const reasoningModel = (typeof window !== 'undefined' && window.localStorage)
       ? (localStorage.getItem("reasoningModel") || "gpt-5.1")

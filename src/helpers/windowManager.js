@@ -46,6 +46,9 @@ class WindowManager {
       this.mainWindow.setSkipTaskbar(true);
     }
 
+    // Set up always on top and visible on all workspaces immediately
+    this.enforceMainWindowOnTop();
+
     this.setMainWindowInteractivity(false);
     this.registerMainWindowEvents();
 
