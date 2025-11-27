@@ -91,6 +91,24 @@ class EnvironmentManager {
     }
   }
 
+  getElevenlabsKey() {
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    return apiKey || "";
+  }
+
+  saveElevenlabsKey(key) {
+    try {
+      // Update the environment variable in memory for immediate use
+      process.env.ELEVENLABS_API_KEY = key;
+      // Persist all keys to file
+      this.saveAllKeysToEnvFile();
+      return { success: true };
+    } catch (error) {
+      // Silent error - already throwing
+      throw error;
+    }
+  }
+
   createProductionEnvFile(apiKey) {
     try {
       const envPath = path.join(app.getPath("userData"), ".env");
@@ -128,6 +146,9 @@ OPENAI_API_KEY=${apiKey}
       }
       if (process.env.GEMINI_API_KEY) {
         envContent += `GEMINI_API_KEY=${process.env.GEMINI_API_KEY}\n`;
+      }
+      if (process.env.ELEVENLABS_API_KEY) {
+        envContent += `ELEVENLABS_API_KEY=${process.env.ELEVENLABS_API_KEY}\n`;
       }
 
       fs.writeFileSync(envPath, envContent, "utf8");

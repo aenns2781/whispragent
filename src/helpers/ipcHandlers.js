@@ -13,6 +13,8 @@ class IPCHandlers {
     this.whisperManager = managers.whisperManager;
     this.windowManager = managers.windowManager;
     this.modelManager = managers.modelManager;
+    this.elevenlabsManager = managers.elevenlabsManager;
+    this.elevenlabsRealtimeManager = managers.elevenlabsRealtimeManager;
     this.phraseAnalyzer = new PhraseAnalyzer(this.databaseManager);
     this.setupHandlers();
   }
@@ -617,6 +619,123 @@ class IPCHandlers {
 
     ipcMain.handle("save-anthropic-key", async (event, key) => {
       return this.environmentManager.saveAnthropicKey(key);
+    });
+
+    // ElevenLabs API
+    ipcMain.handle("get-elevenlabs-key", async (event) => {
+      return this.environmentManager.getElevenlabsKey();
+    });
+
+    ipcMain.handle("save-elevenlabs-key", async (event, key) => {
+      return this.environmentManager.saveElevenlabsKey(key);
+    });
+
+    // ElevenLabs transcription handler
+    ipcMain.handle("transcribe-elevenlabs", async (event, audioBlob, options = {}) => {
+      debugLogger.log('transcribe-elevenlabs called', {
+        audioBlobType: typeof audioBlob,
+        audioBlobSize: audioBlob?.byteLength || audioBlob?.length || 0,
+        options
+      });
+
+      try {
+        const result = await this.elevenlabsManager.transcribe(audioBlob, options);
+
+        debugLogger.log('ElevenLabs result', {
+          success: result.success,
+          hasText: !!result.text,
+          message: result.message,
+          error: result.error
+        });
+
+        // Check if no audio was detected and send appropriate event
+        if (!result.success && result.message === "No audio detected") {
+          debugLogger.log('Sending no-audio-detected event to renderer');
+          event.sender.send("no-audio-detected");
+        }
+
+        return result;
+      } catch (error) {
+        debugLogger.error('ElevenLabs transcription error', error);
+        throw error;
+      }
+    });
+
+    // ElevenLabs availability check
+    ipcMain.handle("check-elevenlabs-availability", async (event) => {
+      return this.elevenlabsManager.checkAvailability();
+    });
+
+    // ElevenLabs real-time token generation
+    ipcMain.handle("generate-elevenlabs-realtime-token", async (event) => {
+      if (!this.elevenlabsRealtimeManager) {
+        return { success: false, error: "Real-time manager not initialized" };
+      }
+      return this.elevenlabsRealtimeManager.generateSingleUseToken();
+    });
+
+    // ElevenLabs real-time availability check
+    ipcMain.handle("check-elevenlabs-realtime-availability", async (event) => {
+      if (!this.elevenlabsRealtimeManager) {
+        return { available: false, error: "Real-time manager not initialized" };
+      }
+      return this.elevenlabsRealtimeManager.checkRealtimeAvailability();
+    });
+
+    // Settings persistence helper
+    const settingsPath = path.join(app.getPath("userData"), "transcription-settings.json");
+
+    const loadTranscriptionSettings = () => {
+      try {
+        if (fs.existsSync(settingsPath)) {
+          const data = fs.readFileSync(settingsPath, "utf8");
+          return JSON.parse(data);
+        }
+      } catch (err) {
+        console.error("Failed to load transcription settings:", err);
+      }
+      return { engine: "local", realtime: false };
+    };
+
+    const saveTranscriptionSettings = (settings) => {
+      try {
+        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf8");
+      } catch (err) {
+        console.error("Failed to save transcription settings:", err);
+      }
+    };
+
+    // Load settings on startup
+    const savedSettings = loadTranscriptionSettings();
+    this.transcriptionEngine = savedSettings.engine || "local";
+    this.realtimeTranscriptionEnabled = savedSettings.realtime || false;
+    console.log(`🔧 [Settings] Loaded: engine=${this.transcriptionEngine}, realtime=${this.realtimeTranscriptionEnabled}`);
+
+    // Real-time transcription setting (shared between windows, persisted)
+    ipcMain.handle("get-realtime-transcription-enabled", async () => {
+      console.log(`🔧 [Settings] GET Real-time transcription: ${this.realtimeTranscriptionEnabled || false}`);
+      return this.realtimeTranscriptionEnabled || false;
+    });
+
+    ipcMain.handle("set-realtime-transcription-enabled", async (event, enabled) => {
+      this.realtimeTranscriptionEnabled = enabled;
+      saveTranscriptionSettings({ engine: this.transcriptionEngine, realtime: enabled });
+      console.log(`🔧 [Settings] Real-time transcription: ${enabled}`);
+      return true;
+    });
+
+    // Transcription engine setting (shared between windows, persisted)
+    ipcMain.handle("get-transcription-engine", async () => {
+      const engine = this.transcriptionEngine || "local";
+      console.log(`🔧 [Settings] GET Transcription engine: ${engine}`);
+      return engine;
+    });
+
+    ipcMain.handle("set-transcription-engine", async (event, engine) => {
+      this.transcriptionEngine = engine;
+      saveTranscriptionSettings({ engine: engine, realtime: this.realtimeTranscriptionEnabled });
+      console.log(`🔧 [Settings] SET Transcription engine: ${engine}`);
+      return true;
     });
 
     // Local reasoning handler

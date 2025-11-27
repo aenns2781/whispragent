@@ -1,5 +1,9 @@
 import ReasoningService from "../services/ReasoningService";
 import { API_ENDPOINTS, buildApiUrl, normalizeBaseUrl } from "../config/constants";
+import ElevenLabsRealtimeClient from "../services/ElevenLabsRealtimeClient";
+
+// VERSION MARKER - if you don't see this in console, the old file is cached
+console.log("🔴🔴🔴 AudioManager v5 loaded with REALTIME support 🔴🔴🔴");
 
 // Debug logger for renderer process
 const debugLogger = {
@@ -31,14 +35,22 @@ class AudioManager {
     this.capturedContext = null; // Store captured text context
     this.originalClipboard = null; // Store original clipboard to restore
     this.abortController = null; // For cancelling API requests
+
+    // Real-time transcription
+    this.realtimeClient = null;
+    this.isRealtimeMode = false;
+    this.realtimeTranscript = '';
+    this.realtimeIsAgentMode = false;
+    this.onPartialTranscript = null; // Callback for live transcript updates
   }
 
   // Set callback functions
-  setCallbacks({ onStateChange, onError, onTranscriptionComplete, onAgentModeChange }) {
+  setCallbacks({ onStateChange, onError, onTranscriptionComplete, onAgentModeChange, onPartialTranscript }) {
     this.onStateChange = onStateChange;
     this.onError = onError;
     this.onTranscriptionComplete = onTranscriptionComplete;
     this.onAgentModeChange = onAgentModeChange;
+    this.onPartialTranscript = onPartialTranscript;
   }
 
   buildInitialPrompt() {
@@ -190,6 +202,9 @@ class AudioManager {
   }
 
   async startRecording() {
+    // Log through IPC to main process terminal
+    window.electronAPI?.logReasoning?.("AUDIO_MANAGER_START", { version: "v3", timestamp: Date.now() });
+
     try {
       if (this.isRecording) {
         return false;
@@ -198,14 +213,120 @@ class AudioManager {
       // Capture any highlighted text when recording starts
       await this.captureHighlightedText();
 
+      // Check if real-time mode is enabled for ElevenLabs
+      // Read from main process (shared across windows) instead of localStorage
+      let transcriptionEngine = "local";
+      let useRealtimeTranscription = false;
+
+      // Log to terminal via IPC
+      await window.electronAPI?.logReasoning?.("START_RECORDING", {
+        hasGetTranscriptionEngine: !!window.electronAPI?.getTranscriptionEngine,
+        hasGetRealtimeEnabled: !!window.electronAPI?.getRealtimeTranscriptionEnabled
+      });
+
+      try {
+        transcriptionEngine = await window.electronAPI?.getTranscriptionEngine?.() || "local";
+        useRealtimeTranscription = await window.electronAPI?.getRealtimeTranscriptionEnabled?.() || false;
+      } catch (err) {
+        await window.electronAPI?.logReasoning?.("SETTINGS_ERROR", { error: err.message });
+      }
+
+      this.isRealtimeMode = transcriptionEngine === "elevenlabs" && useRealtimeTranscription;
+
+      // Log decision to terminal via IPC
+      await window.electronAPI?.logReasoning?.("REALTIME_DECISION", {
+        transcriptionEngine,
+        useRealtimeTranscription,
+        isRealtimeMode: this.isRealtimeMode
+      });
+
+      window.electronAPI?.logReasoning?.("REALTIME_CHECK", {
+        transcriptionEngine,
+        useRealtimeTranscription,
+        isRealtimeMode: this.isRealtimeMode
+      });
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
+      // If real-time mode, set up the WebSocket client and PCM capture
+      if (this.isRealtimeMode) {
+        console.log("🎙️ [AudioManager] Starting real-time transcription mode");
+        const agentName = localStorage.getItem("agentName") || null;
+        const language = localStorage.getItem("preferredLanguage") || "auto";
 
-      this.mediaRecorder = new MediaRecorder(stream);
+        this.realtimeTranscript = '';
+        this.realtimeIsAgentMode = false;
+
+        this.realtimeClient = new ElevenLabsRealtimeClient({
+          language,
+          agentName,
+          onPartialTranscript: (text) => {
+            this.realtimeTranscript = text;
+            this.onPartialTranscript?.(text);
+          },
+          onCommittedTranscript: (text) => {
+            this.realtimeTranscript = text;
+          },
+          onAgentDetected: (isAgentMode) => {
+            this.realtimeIsAgentMode = isAgentMode;
+            this.onAgentModeChange?.(isAgentMode);
+            console.log(`🎯 [AudioManager] Agent mode detected: ${isAgentMode}`);
+          },
+          onError: (error) => {
+            console.error("❌ [AudioManager] Real-time error:", error);
+            // Fall back to batch mode on error
+            this.isRealtimeMode = false;
+          },
+          onConnected: () => {
+            console.log("✅ [AudioManager] Real-time connected");
+          },
+          onDisconnected: () => {
+            console.log("🔌 [AudioManager] Real-time disconnected");
+          }
+        });
+
+        const connected = await this.realtimeClient.connect();
+        if (!connected) {
+          console.warn("⚠️ [AudioManager] Failed to connect to real-time, falling back to batch mode");
+          this.isRealtimeMode = false;
+          this.realtimeClient = null;
+        } else {
+          // Set up AudioContext for PCM capture (ElevenLabs needs PCM 16kHz 16-bit)
+          this.audioContext = new AudioContext({ sampleRate: 16000 });
+          const source = this.audioContext.createMediaStreamSource(stream);
+
+          // Use ScriptProcessor to get raw PCM samples
+          const bufferSize = 4096;
+          this.scriptProcessor = this.audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+          this.scriptProcessor.onaudioprocess = (e) => {
+            if (this.isRealtimeMode && this.realtimeClient) {
+              const inputData = e.inputBuffer.getChannelData(0);
+              // Convert Float32 to Int16 PCM
+              const pcm16 = new Int16Array(inputData.length);
+              for (let i = 0; i < inputData.length; i++) {
+                const s = Math.max(-1, Math.min(1, inputData[i]));
+                pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+              }
+              this.realtimeClient.sendAudio(pcm16.buffer);
+            }
+          };
+
+          source.connect(this.scriptProcessor);
+          this.scriptProcessor.connect(this.audioContext.destination);
+          console.log("🎤 [AudioManager] PCM audio capture started (16kHz)");
+        }
+      }
+
+      // Still use MediaRecorder for batch mode or as backup
+      this.mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
       this.audioChunks = [];
 
-      this.mediaRecorder.ondataavailable = (event) => {
+      this.mediaRecorder.ondataavailable = async (event) => {
         this.audioChunks.push(event.data);
+        // Note: For real-time mode, audio is sent via ScriptProcessor above, not here
       };
 
       this.mediaRecorder.onstop = async () => {
@@ -213,18 +334,41 @@ class AudioManager {
         this.isProcessing = true;
         this.onStateChange?.({ isRecording: false, isProcessing: true });
 
-        const audioBlob = new Blob(this.audioChunks, { type: "audio/wav" });
-
-        if (audioBlob.size === 0) {
+        // If real-time mode, commit and disconnect
+        if (this.isRealtimeMode && this.realtimeClient) {
+          this.realtimeClient.commit();
+          // Wait for final transcript
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          this.realtimeClient.disconnect();
         }
+
+        // Clean up AudioContext and ScriptProcessor
+        if (this.scriptProcessor) {
+          this.scriptProcessor.disconnect();
+          this.scriptProcessor = null;
+        }
+        if (this.audioContext) {
+          await this.audioContext.close();
+          this.audioContext = null;
+        }
+
+        const audioBlob = new Blob(this.audioChunks, { type: "audio/webm" });
 
         await this.processAudio(audioBlob);
 
         // Clean up stream
         stream.getTracks().forEach((track) => track.stop());
+
+        // Clean up real-time client
+        if (this.realtimeClient) {
+          this.realtimeClient = null;
+        }
+        this.isRealtimeMode = false;
       };
 
+      // Start recording (PCM audio is sent via ScriptProcessor for realtime mode)
       this.mediaRecorder.start();
+
       this.isRecording = true;
       this.onStateChange?.({ isRecording: true, isProcessing: false });
 
@@ -265,11 +409,37 @@ class AudioManager {
 
   async processAudio(audioBlob) {
     try {
-      // ALWAYS use local Whisper - this is the only transcription method
-      const whisperModel = localStorage.getItem("whisperModel") || "base";
-      console.log(`📝 Selected Whisper model from settings: ${whisperModel}`);
+      // Check which transcription engine to use (from IPC for cross-window consistency)
+      const transcriptionEngine = await window.electronAPI?.getTranscriptionEngine() || "local";
 
-      const result = await this.processWithLocalWhisper(audioBlob, whisperModel);
+      let result;
+
+      // If we have a real-time transcript, use it instead of batch processing
+      if (this.realtimeTranscript && this.realtimeTranscript.trim()) {
+        console.log(`📝 Using real-time transcript: "${this.realtimeTranscript.substring(0, 50)}..."`);
+
+        // Process the real-time transcript through the standard pipeline
+        const text = await this.processTranscription(this.realtimeTranscript, "elevenlabs-realtime");
+
+        if (text !== null && text !== undefined) {
+          result = { success: true, text: text || this.realtimeTranscript, source: "elevenlabs-realtime" };
+        } else {
+          throw new Error("No text transcribed");
+        }
+
+        // Clear the real-time transcript
+        this.realtimeTranscript = '';
+      } else if (transcriptionEngine === "elevenlabs") {
+        // Use ElevenLabs batch transcription (fallback or non-realtime mode)
+        console.log(`📝 Using ElevenLabs batch transcription`);
+        result = await this.processWithElevenLabs(audioBlob);
+      } else {
+        // Use local Whisper (default)
+        const whisperModel = localStorage.getItem("whisperModel") || "base";
+        console.log(`📝 Using local Whisper model: ${whisperModel}`);
+        result = await this.processWithLocalWhisper(audioBlob, whisperModel);
+      }
+
       this.onTranscriptionComplete?.(result);
     } catch (error) {
       // Don't show error here if it's "No audio detected" - already shown elsewhere
@@ -283,6 +453,9 @@ class AudioManager {
       this.isProcessing = false;
       this.onStateChange?.({ isRecording: false, isProcessing: false });
       this.onAgentModeChange?.(false); // Reset agent mode indicator
+      // Clear real-time state
+      this.realtimeTranscript = '';
+      this.realtimeIsAgentMode = false;
     }
   }
 
@@ -341,6 +514,48 @@ class AudioManager {
 
       // No fallback to OpenAI - local Whisper is the only transcription method
       throw new Error(`Local Whisper failed: ${error.message}`);
+    }
+  }
+
+  async processWithElevenLabs(audioBlob) {
+    try {
+      const arrayBuffer = await audioBlob.arrayBuffer();
+
+      // Get language preference
+      const language = localStorage.getItem("preferredLanguage");
+      const options = {};
+      if (language && language !== "auto") {
+        options.language = language;
+      }
+
+      console.log("📤 Sending audio to ElevenLabs...");
+      const result = await window.electronAPI.transcribeElevenlabs(
+        arrayBuffer,
+        options
+      );
+
+      if (result.success && result.text) {
+        const text = await this.processTranscription(result.text, "elevenlabs");
+        // Allow empty strings as valid responses
+        if (text !== null && text !== undefined) {
+          return { success: true, text: text || result.text, source: "elevenlabs" };
+        } else {
+          throw new Error("No text transcribed");
+        }
+      } else if (result.success === false && result.message === "No audio detected") {
+        this.onError?.({
+          title: "No Audio Detected",
+          description: "The recording contained no detectable audio. Please check your microphone settings.",
+        });
+        throw new Error("No audio detected");
+      } else {
+        throw new Error(result.error || "ElevenLabs transcription failed");
+      }
+    } catch (error) {
+      if (error.message === "No audio detected") {
+        throw error;
+      }
+      throw new Error(`ElevenLabs failed: ${error.message}`);
     }
   }
 

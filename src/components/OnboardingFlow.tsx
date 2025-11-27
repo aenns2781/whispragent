@@ -19,6 +19,8 @@ import {
   X,
   User,
   Camera,
+  Cloud,
+  Zap,
 } from "lucide-react";
 import TitleBar from "./TitleBar";
 import WhisperModelPicker from "./WhisperModelPicker";
@@ -39,7 +41,7 @@ import { getLanguageLabel, REASONING_PROVIDERS } from "../utils/languages";
 import LanguageSelector from "./ui/LanguageSelector";
 import { UnifiedModelPickerCompact } from "./UnifiedModelPicker";
 const InteractiveKeyboard = React.lazy(() => import("./ui/Keyboard"));
-import { setAgentName as saveAgentName } from "../utils/agentName";
+import { setAgentName as saveAgentName, sanitizeAgentName } from "../utils/agentName";
 import { formatHotkeyLabel } from "../utils/hotkeys";
 import { API_ENDPOINTS, buildApiUrl, normalizeBaseUrl } from "../config/constants";
 
@@ -74,6 +76,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     useReasoningModel,
     reasoningModel,
     openaiApiKey,
+    elevenlabsApiKey,
+    transcriptionEngine,
     dictationKey,
     setUseLocalWhisper,
     setWhisperModel,
@@ -81,6 +85,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     setCloudTranscriptionBaseUrl,
     setCloudReasoningBaseUrl,
     setOpenaiApiKey,
+    setElevenlabsApiKey,
+    setTranscriptionEngine,
     setDictationKey,
     updateTranscriptionSettings,
     updateReasoningSettings,
@@ -88,6 +94,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   } = useSettings();
 
   const [apiKey, setApiKey] = useState(openaiApiKey);
+  const [elevenLabsKey, setElevenLabsKey] = useState(elevenlabsApiKey);
   // Default to backtick for all platforms (works best with all features)
   const [hotkey, setHotkey] = useState(dictationKey || "`");
   const [transcriptionBaseUrl, setTranscriptionBaseUrl] = useState(cloudTranscriptionBaseUrl);
@@ -374,6 +381,13 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       await window.electronAPI.saveOpenAIKey(trimmedApiKey);
       updateApiKeys({ openaiApiKey: trimmedApiKey });
     }
+
+    // Save ElevenLabs key if using cloud transcription
+    const trimmedElevenLabsKey = elevenLabsKey.trim();
+    if (transcriptionEngine === 'elevenlabs' && trimmedElevenLabsKey) {
+      await window.electronAPI.saveElevenlabsKey(trimmedElevenLabsKey);
+      updateApiKeys({ elevenlabsApiKey: trimmedElevenLabsKey });
+    }
     return true;
   }, [
     whisperModel,
@@ -384,6 +398,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     permissionsHook.accessibilityPermissionGranted,
     useLocalWhisper,
     apiKey,
+    elevenLabsKey,
+    transcriptionEngine,
     transcriptionBaseUrl,
     reasoningBaseUrl,
     updateTranscriptionSettings,
@@ -483,53 +499,165 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </div>
             </div>
 
-            {/* Privacy badge */}
+            {/* Feature badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-              <Lock className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-zinc-400">100% Private &amp; Local Processing</span>
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-sm text-zinc-400">Fast & Accurate Voice-to-Text</span>
             </div>
           </div>
         );
 
-      case 1: // Setup Processing (Local Only)
+      case 1: // Setup Processing - Choose between Local and Cloud
         return (
           <div className="space-y-6">
             {/* Header with gradient */}
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 mb-4 shadow-lg shadow-purple-500/20">
-                <Shield className="w-7 h-7 text-white" />
+                <Mic className="w-7 h-7 text-white" />
               </div>
               <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
-                Privacy-First Setup
+                Choose Your Transcription
               </h2>
               <p className="text-muted-foreground">
-                All transcription happens locally on your device
+                Select how you want your voice converted to text
               </p>
             </div>
 
-            {/* Privacy Explanation with gradient border */}
-            <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/50 to-teal-500/50">
-              <div className="bg-background/95 rounded-xl p-4">
-                <h4 className="font-medium text-emerald-400 mb-3 flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  100% Local Transcription
-                </h4>
-                <div className="text-sm text-emerald-200/80 space-y-2">
-                  <p className="flex items-start gap-2">
-                    <span className="text-emerald-400 mt-0.5">✓</span>
-                    Voice recordings processed entirely on your device
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <span className="text-emerald-400 mt-0.5">✓</span>
-                    Zero audio sent to any server or cloud
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <span className="text-emerald-400 mt-0.5">✓</span>
-                    Works completely offline
-                  </p>
+            {/* Engine Selection Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* ElevenLabs Cloud Option - Recommended */}
+              <button
+                onClick={() => setTranscriptionEngine('elevenlabs')}
+                className={`relative p-5 rounded-xl border-2 transition-all text-left ${
+                  transcriptionEngine === 'elevenlabs'
+                    ? 'border-purple-500/50 bg-purple-500/10'
+                    : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                }`}
+              >
+                {transcriptionEngine === 'elevenlabs' && (
+                  <div className="absolute top-2 right-2 p-1 bg-purple-500/20 rounded-full">
+                    <Check className="w-3 h-3 text-purple-400" />
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg">
+                    <Cloud className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-white">ElevenLabs</span>
+                    <span className="ml-2 px-1.5 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded text-[9px] font-bold text-white uppercase">Best</span>
+                  </div>
+                </div>
+                <p className="text-sm text-zinc-300 mb-3">Fastest & most accurate transcription available</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2 py-0.5 text-xs bg-purple-500/20 text-purple-400 rounded-full flex items-center gap-1">
+                    <Zap className="w-3 h-3" /> Fast
+                  </span>
+                  <span className="px-2 py-0.5 text-xs bg-pink-500/20 text-pink-400 rounded-full">Best Quality</span>
+                </div>
+              </button>
+
+              {/* Local Whisper Option */}
+              <button
+                onClick={() => setTranscriptionEngine('local')}
+                className={`relative p-5 rounded-xl border-2 transition-all text-left ${
+                  transcriptionEngine === 'local'
+                    ? 'border-green-500/50 bg-green-500/10'
+                    : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                }`}
+              >
+                {transcriptionEngine === 'local' && (
+                  <div className="absolute top-2 right-2 p-1 bg-green-500/20 rounded-full">
+                    <Check className="w-3 h-3 text-green-400" />
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-green-500/20 rounded-lg">
+                    <Lock className="w-5 h-5 text-green-400" />
+                  </div>
+                  <span className="font-semibold text-white">Local</span>
+                </div>
+                <p className="text-sm text-zinc-300 mb-3">100% private - nothing leaves your device</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full flex items-center gap-1">
+                    <Shield className="w-3 h-3" /> Private
+                  </span>
+                  <span className="px-2 py-0.5 text-xs bg-zinc-500/20 text-zinc-400 rounded-full">Offline</span>
+                </div>
+              </button>
+            </div>
+
+            {/* ElevenLabs API Key Input - Show when cloud selected */}
+            {transcriptionEngine === 'elevenlabs' && (
+              <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/50 to-pink-500/50">
+                <div className="bg-background/95 rounded-xl p-5">
+                  <h4 className="font-medium text-purple-400 mb-3 flex items-center gap-2">
+                    <Key className="w-4 h-4" />
+                    ElevenLabs API Key
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Input
+                        type="password"
+                        placeholder="Enter your ElevenLabs API Key"
+                        value={elevenLabsKey}
+                        onChange={(e) => {
+                          const key = e.target.value;
+                          setElevenLabsKey(key);
+                          // Save immediately to localStorage and backend
+                          setElevenlabsApiKey(key);
+                          window.electronAPI?.saveElevenlabsKey(key);
+                        }}
+                        className="bg-background/50 border-purple-500/30 focus:border-purple-500 pr-10"
+                      />
+                      {elevenLabsKey && (
+                        <div className="p-1 bg-green-500/20 rounded absolute right-2 top-1/2 -translate-y-1/2">
+                          <Check className="w-3 h-3 text-green-400" />
+                        </div>
+                      )}
+                    </div>
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.electronAPI?.openExternal('https://elevenlabs.io/app/settings/api-keys');
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Get a free API key from ElevenLabs
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Local Setup - Show when local selected */}
+            {transcriptionEngine === 'local' && (
+              <>
+                {/* Privacy Explanation with gradient border */}
+                <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/50 to-teal-500/50">
+                  <div className="bg-background/95 rounded-xl p-4">
+                    <h4 className="font-medium text-emerald-400 mb-3 flex items-center gap-2">
+                      <Lock className="w-4 h-4" />
+                      100% Local Transcription
+                    </h4>
+                    <div className="text-sm text-emerald-200/80 space-y-2">
+                      <p className="flex items-start gap-2">
+                        <span className="text-emerald-400 mt-0.5">✓</span>
+                        Voice recordings processed entirely on your device
+                      </p>
+                      <p className="flex items-start gap-2">
+                        <span className="text-emerald-400 mt-0.5">✓</span>
+                        Zero audio sent to any server or cloud
+                      </p>
+                      <p className="flex items-start gap-2">
+                        <span className="text-emerald-400 mt-0.5">✓</span>
+                        Works completely offline
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
             <div className="space-y-4">
               {/* Python Installation Section */}
@@ -741,6 +869,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 </div>
               )}
             </div>
+              </>
+            )}
 
           </div>
         );
@@ -834,18 +964,35 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </div>
             )}
 
-            {/* Privacy badge */}
-            <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/50 to-teal-500/50">
-              <div className="bg-background/95 rounded-xl p-4">
-                <h4 className="font-medium text-emerald-400 mb-2 flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Privacy Protected
-                </h4>
-                <p className="text-sm text-emerald-200/80">
-                  All transcription happens locally. Your voice never leaves your device.
-                </p>
+            {/* Privacy badge - only show for local transcription */}
+            {transcriptionEngine === 'local' && (
+              <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/50 to-teal-500/50">
+                <div className="bg-background/95 rounded-xl p-4">
+                  <h4 className="font-medium text-emerald-400 mb-2 flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Privacy Protected
+                  </h4>
+                  <p className="text-sm text-emerald-200/80">
+                    All transcription happens locally. Your voice never leaves your device.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Cloud transcription notice - show for ElevenLabs */}
+            {transcriptionEngine === 'elevenlabs' && (
+              <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/50 to-pink-500/50">
+                <div className="bg-background/95 rounded-xl p-4">
+                  <h4 className="font-medium text-purple-400 mb-2 flex items-center gap-2">
+                    <Cloud className="w-4 h-4" />
+                    Cloud Transcription
+                  </h4>
+                  <p className="text-sm text-purple-200/80">
+                    Audio is sent to ElevenLabs for fast, accurate transcription.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -993,7 +1140,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="text-emerald-400">✓</span>
-                      <span>100% private & local</span>
+                      <span>{transcriptionEngine === 'local' ? '100% private & local' : 'Fast cloud processing'}</span>
                     </div>
                   </div>
                 </div>
@@ -1041,16 +1188,16 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-pink-500/50 to-purple-500/50">
               <div className="bg-background/95 rounded-xl p-4">
                 <label className="block text-sm font-medium text-foreground mb-3">
-                  Agent Name
+                  Agent Name <span className="text-muted-foreground font-normal">(single word)</span>
                 </label>
                 <Input
-                  placeholder="e.g., Assistant, Jarvis, Alex..."
+                  placeholder="e.g., Jarvis, Alex, Luna"
                   value={agentName}
-                  onChange={(e) => setAgentName(e.target.value)}
+                  onChange={(e) => setAgentName(sanitizeAgentName(e.target.value))}
                   className="text-center text-xl font-medium bg-background/50 border-purple-500/30 focus:border-purple-500"
                 />
                 <p className="text-xs text-muted-foreground mt-3 text-center">
-                  Change anytime in Settings
+                  Must be a single word for voice detection
                 </p>
               </div>
             </div>
@@ -1119,18 +1266,32 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </div>
             </div>
 
-            {/* Privacy badge */}
-            <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/30 to-teal-500/30">
-              <div className="bg-background/95 rounded-xl p-4">
-                <div className="flex items-center justify-center gap-2 text-emerald-400">
-                  <Lock className="w-4 h-4" />
-                  <span className="font-medium">100% Private</span>
+            {/* Transcription mode badge */}
+            {transcriptionEngine === 'local' ? (
+              <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-emerald-500/30 to-teal-500/30">
+                <div className="bg-background/95 rounded-xl p-4">
+                  <div className="flex items-center justify-center gap-2 text-emerald-400">
+                    <Lock className="w-4 h-4" />
+                    <span className="font-medium">100% Private</span>
+                  </div>
+                  <p className="text-xs text-emerald-200/70 mt-1">
+                    Voice never leaves your device
+                  </p>
                 </div>
-                <p className="text-xs text-emerald-200/70 mt-1">
-                  Voice never leaves your device
-                </p>
               </div>
-            </div>
+            ) : (
+              <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-purple-500/30 to-pink-500/30">
+                <div className="bg-background/95 rounded-xl p-4">
+                  <div className="flex items-center justify-center gap-2 text-purple-400">
+                    <Cloud className="w-4 h-4" />
+                    <span className="font-medium">Cloud Transcription</span>
+                  </div>
+                  <p className="text-xs text-purple-200/70 mt-1">
+                    Powered by ElevenLabs for best accuracy
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         );
 

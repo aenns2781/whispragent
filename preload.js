@@ -174,6 +174,28 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getGeminiKey: () => ipcRenderer.invoke("get-gemini-key"),
   saveGeminiKey: (key) => ipcRenderer.invoke("save-gemini-key", key),
 
+  // ElevenLabs API
+  getElevenlabsKey: () => ipcRenderer.invoke("get-elevenlabs-key"),
+  saveElevenlabsKey: (key) => ipcRenderer.invoke("save-elevenlabs-key", key),
+  transcribeElevenlabs: (audioBlob, options) =>
+    ipcRenderer.invoke("transcribe-elevenlabs", audioBlob, options),
+  checkElevenlabsAvailability: () =>
+    ipcRenderer.invoke("check-elevenlabs-availability"),
+
+  // ElevenLabs Real-time API
+  generateElevenlabsRealtimeToken: () =>
+    ipcRenderer.invoke("generate-elevenlabs-realtime-token"),
+  checkElevenlabsRealtimeAvailability: () =>
+    ipcRenderer.invoke("check-elevenlabs-realtime-availability"),
+  getRealtimeTranscriptionEnabled: () =>
+    ipcRenderer.invoke("get-realtime-transcription-enabled"),
+  setRealtimeTranscriptionEnabled: (enabled) =>
+    ipcRenderer.invoke("set-realtime-transcription-enabled", enabled),
+  getTranscriptionEngine: () =>
+    ipcRenderer.invoke("get-transcription-engine"),
+  setTranscriptionEngine: (engine) =>
+    ipcRenderer.invoke("set-transcription-engine", engine),
+
   // Local reasoning
   processLocalReasoning: (text, modelId, agentName, config) =>
     ipcRenderer.invoke("process-local-reasoning", text, modelId, agentName, config),

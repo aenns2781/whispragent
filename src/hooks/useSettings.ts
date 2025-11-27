@@ -12,6 +12,8 @@ export interface TranscriptionSettings {
   preferredLanguage: string;
   pushToTalk: boolean;
   cloudTranscriptionBaseUrl?: string;
+  transcriptionEngine: TranscriptionEngine;
+  useRealtimeTranscription: boolean;
 }
 
 export interface ReasoningSettings {
@@ -29,7 +31,10 @@ export interface ApiKeySettings {
   openaiApiKey: string;
   anthropicApiKey: string;
   geminiApiKey: string;
+  elevenlabsApiKey: string;
 }
+
+export type TranscriptionEngine = 'local' | 'elevenlabs';
 
 export function useSettings() {
   const [useLocalWhisper, setUseLocalWhisper] = useLocalStorage(
@@ -175,6 +180,37 @@ export function useSettings() {
     }
   );
 
+  const [elevenlabsApiKey, setElevenlabsApiKey] = useLocalStorage(
+    "elevenlabsApiKey",
+    "",
+    {
+      serialize: String,
+      deserialize: String,
+    }
+  );
+
+  // Transcription engine: 'local' for Whisper, 'elevenlabs' for ElevenLabs cloud
+  // Default to ElevenLabs for best accuracy/speed (recommended)
+  const [transcriptionEngine, setTranscriptionEngine] = useLocalStorage<TranscriptionEngine>(
+    "transcriptionEngine",
+    "elevenlabs",
+    {
+      serialize: String,
+      deserialize: (value) => (value === 'local' ? 'local' : 'elevenlabs') as TranscriptionEngine,
+    }
+  );
+
+  // Real-time transcription mode (uses WebSocket for live transcription)
+  // Default to false (batch mode) for stability - real-time is opt-in
+  const [useRealtimeTranscription, setUseRealtimeTranscription] = useLocalStorage(
+    "useRealtimeTranscription",
+    false,
+    {
+      serialize: String,
+      deserialize: (value) => value === "true",
+    }
+  );
+
   // Hotkey - backtick is default for all platforms (works best with agent mode)
   const [dictationKey, setDictationKey] = useLocalStorage("dictationKey", "`", {
     serialize: String,
@@ -203,6 +239,10 @@ export function useSettings() {
         setPushToTalk(settings.pushToTalk);
       if (settings.cloudTranscriptionBaseUrl !== undefined)
         setCloudTranscriptionBaseUrl(settings.cloudTranscriptionBaseUrl);
+      if (settings.transcriptionEngine !== undefined)
+        setTranscriptionEngine(settings.transcriptionEngine);
+      if (settings.useRealtimeTranscription !== undefined)
+        setUseRealtimeTranscription(settings.useRealtimeTranscription);
     },
     [
       setUseLocalWhisper,
@@ -213,6 +253,8 @@ export function useSettings() {
       setPreferredLanguage,
       setPushToTalk,
       setCloudTranscriptionBaseUrl,
+      setTranscriptionEngine,
+      setUseRealtimeTranscription,
     ]
   );
 
@@ -236,8 +278,10 @@ export function useSettings() {
         setAnthropicApiKey(keys.anthropicApiKey);
       if (keys.geminiApiKey !== undefined)
         setGeminiApiKey(keys.geminiApiKey);
+      if (keys.elevenlabsApiKey !== undefined)
+        setElevenlabsApiKey(keys.elevenlabsApiKey);
     },
-    [setOpenaiApiKey, setAnthropicApiKey, setGeminiApiKey]
+    [setOpenaiApiKey, setAnthropicApiKey, setGeminiApiKey, setElevenlabsApiKey]
   );
 
   return {
@@ -257,6 +301,8 @@ export function useSettings() {
     openaiApiKey,
     anthropicApiKey,
     geminiApiKey,
+    elevenlabsApiKey,
+    transcriptionEngine,
     dictationKey,
     setUseLocalWhisper,
     setWhisperModel,
@@ -289,9 +335,13 @@ export function useSettings() {
     setOpenaiApiKey,
     setAnthropicApiKey,
     setGeminiApiKey,
+    setElevenlabsApiKey,
+    setTranscriptionEngine,
     setDictationKey,
     pushToTalk,
     setPushToTalk,
+    useRealtimeTranscription,
+    setUseRealtimeTranscription,
     updateTranscriptionSettings,
     updateReasoningSettings,
     updateApiKeys,

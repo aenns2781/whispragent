@@ -31,6 +31,8 @@ const TrayManager = require("./src/helpers/tray");
 const IPCHandlers = require("./src/helpers/ipcHandlers");
 const UpdateManager = require("./src/updater");
 const GlobeKeyManager = require("./src/helpers/globeKeyManager");
+const ElevenLabsManager = require("./src/helpers/elevenlabs");
+const ElevenLabsRealtimeManager = require("./src/helpers/elevenlabsRealtime");
 
 // Set up PATH for production builds to find system Python
 function setupProductionPath() {
@@ -66,6 +68,8 @@ const hotkeyManager = windowManager.hotkeyManager;
 const databaseManager = new DatabaseManager();
 const clipboardManager = new ClipboardManager();
 const whisperManager = new WhisperManager();
+const elevenlabsManager = new ElevenLabsManager(environmentManager);
+const elevenlabsRealtimeManager = new ElevenLabsRealtimeManager(environmentManager);
 const trayManager = new TrayManager();
 const updateManager = new UpdateManager();
 const globeKeyManager = new GlobeKeyManager();
@@ -104,6 +108,8 @@ const ipcHandlers = new IPCHandlers({
   databaseManager,
   clipboardManager,
   whisperManager,
+  elevenlabsManager,
+  elevenlabsRealtimeManager,
   windowManager,
 });
 

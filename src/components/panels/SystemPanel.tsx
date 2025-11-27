@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Volume2, Globe2, Shield, HardDrive, Trash2, Folder } from 'lucide-react';
+import { Monitor, Volume2, Globe2, Shield, HardDrive, Trash2, Folder, Cloud, Lock } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Switch } from '../ui/switch';
 import { cn } from '../lib/utils';
 import PanelBackground from '../PanelBackground';
 import { getTranscriptionCount } from '../../stores/transcriptionStore';
+import { useSettings } from '../../hooks/useSettings';
 
 const SystemPanel: React.FC = () => {
+  const { transcriptionEngine } = useSettings();
   const [audioDevice, setAudioDevice] = useState('default');
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [language, setLanguage] = useState('auto');
@@ -331,11 +333,21 @@ const SystemPanel: React.FC = () => {
         </h3>
 
         <div className="space-y-4">
-          <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-            <p className="text-sm text-green-400">
-              ✓ Local processing mode enabled - Audio never leaves your device
-            </p>
-          </div>
+          {transcriptionEngine === 'local' ? (
+            <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-2">
+              <Lock className="w-4 h-4 text-green-400" />
+              <p className="text-sm text-green-400">
+                Local processing enabled - Audio never leaves your device
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg flex items-center gap-2">
+              <Cloud className="w-4 h-4 text-purple-400" />
+              <p className="text-sm text-purple-400">
+                Cloud transcription enabled - Audio sent to ElevenLabs for processing
+              </p>
+            </div>
+          )}
 
           {/* AI Suggestions Toggle */}
           <div className="p-4 border border-zinc-700/50 rounded-lg space-y-3">

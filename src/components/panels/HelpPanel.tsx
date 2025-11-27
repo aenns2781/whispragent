@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { HelpCircle, Book, MessageCircle } from 'lucide-react';
 import PanelBackground from '../PanelBackground';
 import { formatHotkeyLabel } from '../../utils/hotkeys';
+import { useSettings } from '../../hooks/useSettings';
 
 const HelpPanel: React.FC = () => {
+  const { transcriptionEngine } = useSettings();
   const [dictationKey, setDictationKey] = useState('`');
   const [isMac, setIsMac] = useState(false);
 
@@ -35,11 +37,15 @@ const HelpPanel: React.FC = () => {
     },
     {
       q: 'Why is my transcription slow?',
-      a: 'Larger Whisper models provide better accuracy but are slower. Try using "base" or "tiny" for faster results.'
+      a: transcriptionEngine === 'local'
+        ? 'Larger Whisper models provide better accuracy but are slower. Try using "base" or "tiny" for faster results.'
+        : 'Cloud transcription is typically very fast. If slow, check your internet connection.'
     },
     {
       q: 'Can I use Tribe Assistant offline?',
-      a: 'Yes! Tribe Assistant uses local Whisper processing, so everything runs on your device. All transcription is private and local.'
+      a: transcriptionEngine === 'local'
+        ? 'Yes! With local Whisper processing, everything runs on your device. All transcription is private and works offline.'
+        : 'ElevenLabs cloud transcription requires an internet connection. Switch to Local mode in AI Models settings for offline use.'
     },
     {
       q: 'How do I change the hotkey?',

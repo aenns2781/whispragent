@@ -16,7 +16,7 @@ import ApiKeyInput from "./ui/ApiKeyInput";
 import { ConfirmDialog, AlertDialog } from "./ui/dialog";
 import { useSettings } from "../hooks/useSettings";
 import { useDialogs } from "../hooks/useDialogs";
-import { useAgentName } from "../utils/agentName";
+import { useAgentName, sanitizeAgentName } from "../utils/agentName";
 import { useWhisper } from "../hooks/useWhisper";
 import { usePermissions } from "../hooks/usePermissions";
 import { useClipboard } from "../hooks/useClipboard";
@@ -943,20 +943,23 @@ export default function SettingsPage({
             </div>
 
             <div className="space-y-4 p-4 bg-card border border-border rounded-xl">
-              <h4 className="font-medium text-foreground">Current Agent Name</h4>
+              <h4 className="font-medium text-foreground">
+                Current Agent Name <span className="text-muted-foreground font-normal">(single word)</span>
+              </h4>
               <div className="flex gap-3">
                 <Input
-                  placeholder="e.g., Assistant, Jarvis, Alex..."
+                  placeholder="e.g., Jarvis, Alex, Luna"
                   value={agentName}
-                  onChange={(e) => setAgentName(e.target.value)}
+                  onChange={(e) => setAgentName(sanitizeAgentName(e.target.value))}
                   className="flex-1 text-center text-lg font-mono"
                 />
                 <Button
                   onClick={() => {
-                    setAgentName(agentName.trim());
+                    const sanitized = sanitizeAgentName(agentName);
+                    setAgentName(sanitized);
                     showAlertDialog({
                       title: "Agent Name Updated",
-                      description: `Your agent is now named "${agentName.trim()}". You can address it by saying "Hey ${agentName.trim()}" followed by your instructions.`,
+                      description: `Your agent is now named "${sanitized}". You can address it by saying "Hey ${sanitized}" followed by your instructions.`,
                     });
                   }}
                   disabled={!agentName.trim()}
@@ -965,7 +968,7 @@ export default function SettingsPage({
                 </Button>
               </div>
               <p className="text-xs text-gray-600 mt-2">
-                Choose a name that feels natural to say and remember
+                Must be a single word for accurate voice detection
               </p>
             </div>
 

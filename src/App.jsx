@@ -6,6 +6,7 @@ import { useHotkey } from "./hooks/useHotkey";
 import { useWindowDrag } from "./hooks/useWindowDrag";
 import { useSettings } from "./hooks/useSettings";
 import AudioManager from "./helpers/audioManager";
+import ElevenLabsRealtimeClient from "./services/ElevenLabsRealtimeClient";
 
 // Sound Wave Icon Component (for idle/hover states)
 const SoundWaveIcon = ({ size = 16 }) => {
@@ -77,6 +78,9 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAgentMode, setIsAgentMode] = useState(false); // Agent mode visual indicator
   const [transcript, setTranscript] = useState("");
+  const [partialTranscript, setPartialTranscript] = useState(""); // Live real-time transcript
+  const [isRealtimeRecording, setIsRealtimeRecording] = useState(false); // Track if recording in realtime mode
+  const transcriptScrollRef = useRef(null); // Ref for auto-scrolling transcript container
   const [error, setError] = useState("");
   const [isHovered, setIsHovered] = useState(false);
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
@@ -85,6 +89,15 @@ export default function App() {
   const commandMenuRef = useRef(null);
   const buttonRef = useRef(null);
   const audioManagerRef = useRef(null);
+  // Real-time transcription refs
+  const realtimeClientRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const scriptProcessorRef = useRef(null);
+  const streamRef = useRef(null);
+  const isRealtimeModeRef = useRef(false);
+  const realtimeTranscriptRef = useRef('');
+  const committedTranscriptRef = useRef(''); // Accumulated committed segments
+  const currentPartialRef = useRef(''); // Current partial (in-progress)
   const { toast } = useToast();
   const { hotkey } = useHotkey();
   const { isDragging, handleMouseDown, handleMouseUp } =
@@ -97,6 +110,21 @@ export default function App() {
     document.body.classList.add('dictation-window');
     return () => document.body.classList.remove('dictation-window');
   }, []);
+
+  // Auto-scroll transcript to bottom when new text arrives (only if already at bottom)
+  useEffect(() => {
+    if (transcriptScrollRef.current && partialTranscript) {
+      const container = transcriptScrollRef.current;
+      // Only auto-scroll if user is near the bottom (within 30px)
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 30;
+      if (isNearBottom) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [partialTranscript]);
 
   const setWindowInteractivity = React.useCallback((shouldCapture) => {
     window.electronAPI?.setMainWindowInteractivity?.(shouldCapture);
@@ -149,8 +177,40 @@ export default function App() {
       setIsRecording(true);
       setError("");
 
+      // Check if real-time mode is enabled (read from main process for cross-window sync)
+      let transcriptionEngine = "local";
+      let useRealtimeTranscription = false;
+      try {
+        transcriptionEngine = await window.electronAPI?.getTranscriptionEngine?.() || "local";
+        useRealtimeTranscription = await window.electronAPI?.getRealtimeTranscriptionEnabled?.() || false;
+      } catch (err) {
+        console.error("Failed to get transcription settings:", err);
+      }
+
+      isRealtimeModeRef.current = transcriptionEngine === "elevenlabs" && useRealtimeTranscription;
+      realtimeTranscriptRef.current = '';
+      committedTranscriptRef.current = ''; // Clear for fresh start
+      currentPartialRef.current = '';
+
+      // Log via IPC so it appears in terminal
+      window.electronAPI?.logReasoning?.("APP_RECORDING_MODE", {
+        mode: isRealtimeModeRef.current ? 'REAL-TIME' : 'BATCH',
+        engine: transcriptionEngine,
+        realtimeEnabled: useRealtimeTranscription
+      });
+      console.log(`🎙️ [App] Recording mode: ${isRealtimeModeRef.current ? 'REAL-TIME' : 'BATCH'}`);
+      console.log(`   - Engine: ${transcriptionEngine}, Realtime enabled: ${useRealtimeTranscription}`);
+
       // 2. Start Audio Stream
-      const streamPromise = navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      // Check if user cancelled while we were initializing
+      if (!isRecordingRef.current) {
+        console.log("Recording cancelled during initialization");
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
 
       // 3. Capture Context in background (don't block recording start)
       const captureContextPromise = (async () => {
@@ -177,16 +237,91 @@ export default function App() {
         return { capturedContext, originalClipboard };
       })();
 
-      // 4. Initialize Recorder
-      const stream = await streamPromise;
+      // 4. Set up real-time transcription if enabled
+      if (isRealtimeModeRef.current) {
+        window.electronAPI?.logReasoning?.("APP_REALTIME_SETUP", { status: "starting" });
+        console.log("🎙️ [App] Setting up real-time transcription...");
+        const agentName = localStorage.getItem("agentName") || null;
+        const language = localStorage.getItem("preferredLanguage") || "auto";
 
-      // Check if user cancelled while we were initializing
-      if (!isRecordingRef.current) {
-        console.log("Recording cancelled during initialization");
-        stream.getTracks().forEach(t => t.stop());
-        return;
+        realtimeClientRef.current = new ElevenLabsRealtimeClient({
+          language,
+          agentName,
+          onPartialTranscript: (text) => {
+            // Partial is the current in-progress segment
+            currentPartialRef.current = text;
+            // Full transcript = all committed + current partial
+            const fullTranscript = committedTranscriptRef.current + (committedTranscriptRef.current ? ' ' : '') + text;
+            realtimeTranscriptRef.current = fullTranscript;
+            setPartialTranscript(fullTranscript);
+            console.log(`📝 [Realtime] Partial: "${text.substring(0, 50)}..." | Full: ${fullTranscript.length} chars`);
+          },
+          onCommittedTranscript: (text) => {
+            // Committed segment - add to accumulated
+            if (text.trim()) {
+              committedTranscriptRef.current = committedTranscriptRef.current
+                ? committedTranscriptRef.current + ' ' + text
+                : text;
+            }
+            currentPartialRef.current = ''; // Clear partial since it's now committed
+            realtimeTranscriptRef.current = committedTranscriptRef.current;
+            setPartialTranscript(committedTranscriptRef.current);
+            console.log(`✅ [Realtime] Committed: "${text.substring(0, 50)}..." | Total: ${committedTranscriptRef.current.length} chars`);
+          },
+          onAgentDetected: (isAgentMode) => {
+            setIsAgentMode(isAgentMode);
+            console.log(`🎯 [Realtime] Agent mode: ${isAgentMode}`);
+          },
+          onError: (error) => {
+            console.error("❌ [Realtime] Error:", error);
+            // Fall back to batch mode on error
+            isRealtimeModeRef.current = false;
+          },
+          onConnected: () => {
+            console.log("✅ [Realtime] WebSocket connected");
+          },
+          onDisconnected: () => {
+            console.log("🔌 [Realtime] WebSocket disconnected");
+          }
+        });
+
+        const connected = await realtimeClientRef.current.connect();
+        window.electronAPI?.logReasoning?.("APP_REALTIME_CONNECT", { connected });
+        if (!connected) {
+          window.electronAPI?.logReasoning?.("APP_REALTIME_FALLBACK", { reason: "connection_failed" });
+          console.warn("⚠️ [App] Failed to connect real-time WebSocket, falling back to batch mode");
+          isRealtimeModeRef.current = false;
+          realtimeClientRef.current = null;
+        } else {
+          // Set up AudioContext for PCM capture (ElevenLabs needs PCM 16kHz 16-bit)
+          audioContextRef.current = new AudioContext({ sampleRate: 16000 });
+          const source = audioContextRef.current.createMediaStreamSource(stream);
+
+          // Use ScriptProcessor to get raw PCM samples
+          const bufferSize = 4096;
+          scriptProcessorRef.current = audioContextRef.current.createScriptProcessor(bufferSize, 1, 1);
+
+          scriptProcessorRef.current.onaudioprocess = (e) => {
+            if (isRealtimeModeRef.current && realtimeClientRef.current) {
+              const inputData = e.inputBuffer.getChannelData(0);
+              // Convert Float32 to Int16 PCM
+              const pcm16 = new Int16Array(inputData.length);
+              for (let i = 0; i < inputData.length; i++) {
+                const s = Math.max(-1, Math.min(1, inputData[i]));
+                pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+              }
+              realtimeClientRef.current.sendAudio(pcm16.buffer);
+            }
+          };
+
+          source.connect(scriptProcessorRef.current);
+          scriptProcessorRef.current.connect(audioContextRef.current.destination);
+          setIsRealtimeRecording(true); // Enable realtime UI
+          console.log("🎤 [App] PCM audio capture started (16kHz)");
+        }
       }
 
+      // 5. Initialize MediaRecorder (for batch mode or as backup)
       mediaRecorderRef.current = new window.MediaRecorder(stream);
       audioChunksRef.current = [];
 
@@ -196,6 +331,26 @@ export default function App() {
 
       mediaRecorderRef.current.onstop = async () => {
         setIsProcessing(true);
+
+        // Clean up real-time resources
+        if (isRealtimeModeRef.current && realtimeClientRef.current) {
+          console.log("📤 [App] Committing real-time transcription...");
+          realtimeClientRef.current.commit();
+          // Wait for final transcript
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          realtimeClientRef.current.disconnect();
+        }
+
+        // Clean up AudioContext and ScriptProcessor
+        if (scriptProcessorRef.current) {
+          scriptProcessorRef.current.disconnect();
+          scriptProcessorRef.current = null;
+        }
+        if (audioContextRef.current) {
+          await audioContextRef.current.close();
+          audioContextRef.current = null;
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/wav",
         });
@@ -209,9 +364,29 @@ export default function App() {
           console.error("Context capture failed:", e);
         }
 
-        // Start processing
-        processAudio(audioBlob);
+        // Start processing - pass the realtime transcript if available
+        window.electronAPI?.logReasoning?.("APP_PROCESS_DECISION", {
+          isRealtimeMode: isRealtimeModeRef.current,
+          hasTranscript: !!realtimeTranscriptRef.current,
+          transcriptPreview: realtimeTranscriptRef.current?.substring(0, 50) || "none"
+        });
+        if (isRealtimeModeRef.current && realtimeTranscriptRef.current) {
+          console.log(`📝 [App] Using real-time transcript: "${realtimeTranscriptRef.current.substring(0, 50)}..."`);
+          processAudioWithTranscript(realtimeTranscriptRef.current);
+        } else {
+          processAudio(audioBlob);
+        }
+
         stream.getTracks().forEach((track) => track.stop());
+
+        // Clean up refs
+        realtimeClientRef.current = null;
+        isRealtimeModeRef.current = false;
+        realtimeTranscriptRef.current = '';
+        committedTranscriptRef.current = ''; // Clear accumulated transcript
+        currentPartialRef.current = '';
+        setPartialTranscript(''); // Clear live transcript from UI
+        setIsRealtimeRecording(false); // Disable realtime UI
       };
 
       mediaRecorderRef.current.start();
@@ -220,6 +395,19 @@ export default function App() {
       console.error("Recording error:", err);
       isRecordingRef.current = false;
       setIsRecording(false); // Revert state on error
+      // Clean up any partial setup
+      if (realtimeClientRef.current) {
+        realtimeClientRef.current.disconnect();
+        realtimeClientRef.current = null;
+      }
+      if (scriptProcessorRef.current) {
+        scriptProcessorRef.current.disconnect();
+        scriptProcessorRef.current = null;
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
       toast({
         title: "Recording Error",
         description: "Failed to access microphone: " + err.message,
@@ -304,6 +492,62 @@ export default function App() {
       toast({
         title: "Transcription Error",
         description: "Transcription failed: " + err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+      setIsAgentMode(false);
+    }
+  };
+
+  // Process a transcript that was already obtained from real-time WebSocket
+  const processAudioWithTranscript = async (transcript) => {
+    try {
+      const audioManager = new AudioManager();
+      audioManagerRef.current = audioManager;
+      audioManager.setCallbacks({
+        onStateChange: ({ isRecording, isProcessing }) => {
+          setIsProcessing(isProcessing);
+        },
+        onAgentModeChange: (agentMode) => {
+          setIsAgentMode(agentMode);
+        },
+        onError: (error) => {
+          toast({
+            title: error.title,
+            description: error.description,
+            variant: "destructive",
+          });
+        },
+        onTranscriptionComplete: async (result) => {
+          if (result.success && result.text !== null && result.text !== undefined) {
+            setTranscript(result.text);
+            const pastePromise = safePaste(result.text);
+            const savePromise = window.electronAPI
+              .saveTranscription(result.text)
+              .catch((err) => {});
+            await pastePromise;
+          } else if (result.success && result.text === null) {
+            console.log("Processing was cancelled - not pasting");
+          }
+        },
+      });
+
+      // Process the transcript through AudioManager's pipeline
+      // This handles agent detection, dictionary corrections, snippets, etc.
+      console.log(`🔄 [App] Processing real-time transcript through AudioManager...`);
+
+      // Set the realtime transcript on the audio manager so it uses it
+      audioManager.realtimeTranscript = transcript;
+      audioManager.isRealtimeMode = true;
+
+      // Create a dummy blob - processAudio will see the realtime transcript and use it instead
+      const dummyBlob = new Blob([], { type: "audio/wav" });
+      await audioManager.processAudio(dummyBlob);
+    } catch (err) {
+      toast({
+        title: "Transcription Error",
+        description: "Processing failed: " + err.message,
         variant: "destructive",
       });
     } finally {
@@ -497,7 +741,49 @@ export default function App() {
     <>
       {/* Fixed bottom-right voice button */}
       <div className="fixed bottom-6 right-6 z-50 bg-transparent">
-        <div className="relative bg-transparent">
+        <div className="relative bg-transparent flex items-center gap-3">
+          {/* Live transcript bubble - shows during real-time recording when there's text */}
+          {isRealtimeRecording && partialTranscript && (
+            <div
+              ref={transcriptScrollRef}
+              className="transcript-container"
+              onMouseEnter={() => setWindowInteractivity(true)}
+              style={{
+                maxWidth: '350px',
+                minWidth: '140px',
+                maxHeight: '120px',
+                overflowY: 'scroll',
+                overflowX: 'hidden',
+                scrollBehavior: 'smooth',
+                padding: '12px 16px',
+                background: 'rgba(0, 0, 0, 0.92)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '16px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                pointerEvents: 'auto',
+                cursor: 'default'
+              }}
+            >
+              <style>{`
+                .transcript-container::-webkit-scrollbar { width: 6px; }
+                .transcript-container::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+                .transcript-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+                .transcript-container::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+              `}</style>
+              <p
+                style={{
+                  color: 'rgba(255, 255, 255, 0.95)',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                  wordBreak: 'break-word',
+                  margin: 0
+                }}
+              >
+                {partialTranscript}
+              </p>
+            </div>
+          )}
           <Tooltip content={micProps.tooltip}>
             <button
               ref={buttonRef}
