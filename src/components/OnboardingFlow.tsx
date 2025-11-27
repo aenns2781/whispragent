@@ -483,7 +483,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <p className="text-xs text-muted-foreground mt-1">Voice to text</p>
                 </div>
               </div>
-              <div className="group relative p-[1px] rounded-xl bg-gradient-to-br from-pink-500/30 to-purple-500/30 hover:from-pink-500/50 hover:to-purple-500/50 transition-all duration-300">
+              <div className="group relative p-[1px] rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/30 hover:from-purple-500/50 hover:to-pink-500/50 transition-all duration-300">
                 <div className="bg-black/40 rounded-xl p-4 h-full">
                   <Sparkles className="w-6 h-6 text-pink-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
                   <p className="text-sm font-medium text-foreground">Create</p>
@@ -1021,8 +1021,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <Input
                     placeholder="Default: ` (backtick)"
                     value={hotkey}
-                    onChange={(e) => setHotkey(e.target.value)}
-                    className="text-center text-lg font-mono bg-background/50 border-purple-500/30 focus:border-purple-500"
+                    readOnly
+                    className="text-center text-lg font-mono bg-background/50 border-purple-500/30 cursor-default"
                   />
                   <p className="text-xs text-muted-foreground mt-2">
                     Press this key from anywhere to start/stop
@@ -1304,7 +1304,12 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     switch (currentStep) {
       case 0: // Welcome
         return true;
-      case 1: // Setup - require Python, Whisper, and base model downloaded
+      case 1: // Setup - requirements depend on transcription engine choice
+        if (transcriptionEngine === 'elevenlabs') {
+          // ElevenLabs cloud only requires API key
+          return elevenLabsKey.trim().length > 0;
+        }
+        // Local requires Python, Whisper, and base model downloaded
         return (
           pythonHook.pythonInstalled &&
           whisperHook.whisperInstalled &&

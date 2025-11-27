@@ -30,7 +30,7 @@ export default function StepProgress({
               className={`flex items-center gap-2 ${isActive
                   ? "text-primary"
                   : isCompleted
-                    ? "text-green-600"
+                    ? "text-emerald-400"
                     : "text-muted-foreground"
                 }`}
               style={{ fontFamily: "Noto Sans, sans-serif" }}
@@ -39,7 +39,7 @@ export default function StepProgress({
                 className={`w-6 h-6 rounded-full flex items-center justify-center border-2 flex-shrink-0 transition-all duration-200 ${isActive
                     ? "border-primary bg-primary/10 shadow-sm"
                     : isCompleted
-                      ? "border-green-600 bg-green-500/10 shadow-sm"
+                      ? "border-emerald-400 bg-emerald-500/10 shadow-sm"
                       : "border-border bg-card"
                   }`}
               >
@@ -55,7 +55,7 @@ export default function StepProgress({
             </div>
             {index < steps.length - 1 && (
               <div
-                className={`flex-1 h-0.5 mx-3 rounded-full transition-colors duration-200 ${isCompleted ? "bg-green-600" : "bg-border"
+                className={`flex-1 h-0.5 mx-3 rounded-full transition-colors duration-200 ${isCompleted ? "bg-emerald-400" : "bg-border"
                   }`}
               />
             )}
