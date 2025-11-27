@@ -1,696 +1,263 @@
 # OpenWhispr
 
-An open source desktop dictation application that converts speech to text using OpenAI Whisper. Features both local and cloud processing options for maximum flexibility and privacy.
+A powerful open-source desktop voice assistant that combines speech-to-text, AI processing, and image generation. Features dual transcription engines (Local Whisper or ElevenLabs cloud), multi-provider AI support, and Gemini-powered image generation.
 
-## 🚀 Complete Beginner's Setup Guide (Never Coded Before? Start Here!)
+## Key Features
 
-**Welcome!** This guide will walk you through setting up OpenWhispr even if you've never used coding tools before.
+### Voice Transcription
+- **Dual Transcription Engines**:
+  - **ElevenLabs** (Recommended): Fastest & most accurate cloud transcription with real-time display
+  - **Local Whisper**: 100% private - audio never leaves your device, works offline
+- **58 Languages Supported**: Including auto-detect mode
+- **Real-time Transcript**: See your words appear as you speak (ElevenLabs mode)
+- **Global Hotkey**: Customizable hotkey to start/stop dictation from anywhere
 
-### Step 1: Install Required Software
+### AI Agent Mode
+- **Custom Agent Name**: Name your AI assistant (e.g., "Jarvis", "Alex", "Luna")
+- **Three Trigger Methods**:
+  1. Voice: Say "Hey [AgentName], write a professional email"
+  2. Highlight text: Select text before pressing hotkey
+  3. Screenshot: Press Cmd/Ctrl + hotkey to capture and analyze screen
+- **Multi-Provider Support**:
+  - **OpenAI**: GPT-5.1, GPT-5 Nano/Mini, GPT-4.1 series, o3/o4 reasoning models
+  - **Anthropic**: Claude Opus 4.1, Sonnet 4, Claude 3.5 Sonnet/Haiku
+  - **Google Gemini**: Gemini 2.5 Pro/Flash with thinking capability
+  - **Local Models**: Qwen, LLaMA, Mistral via llama.cpp
 
-**Install Node.js** (this lets you run JavaScript apps):
-1. Go to https://nodejs.org/
-2. Download the "LTS" version (the green button)
-3. Run the installer and click "Next" through all steps
-4. Restart your computer after installation
+### Image Generation
+- **Gemini-Powered**: Generate AI images with voice commands
+- **Hotkey**: Press Shift + your dictation hotkey
+- **Features**: Multiple aspect ratios, 4K resolution (Pro), reference image support
+- **History**: All generated images saved and accessible
 
-**Install Git** (this lets you download code from GitHub):
-1. Go to https://git-scm.com/downloads
-2. Download for your operating system (Windows/Mac/Linux)
-3. Run the installer - default settings are fine
-4. On Mac, you can also run this in Terminal: `xcode-select --install`
+### Smart Text Processing
+- **Style Guide**: Custom writing instructions for AI responses
+- **Dictionary**: Custom vocabulary recognition + auto-corrections
+- **Snippets**: Text expansion triggers (e.g., "myemail" → full email address)
+- **AI Suggestions**: Automatic phrase and correction recommendations
 
-### Step 2: Download OpenWhispr
-
-1. **Open Terminal/Command Prompt:**
-   - **Mac**: Press `Cmd + Space`, type "Terminal", press Enter
-   - **Windows**: Press `Windows + R`, type "cmd", press Enter
-   - **Linux**: Press `Ctrl + Alt + T`
-
-2. **Navigate to where you want the code:**
-   ```bash
-   cd ~/Documents  # This goes to your Documents folder
-   # Or use: cd ~/Desktop  # for Desktop
-   ```
-
-3. **Download the code:**
-   ```bash
-   git clone https://github.com/aenns2781/whispragent.git
-   ```
-
-4. **Go into the folder:**
-   ```bash
-   cd whispragent
-   ```
-
-### Step 3: Install Dependencies
-
-Still in Terminal/Command Prompt, run:
-```bash
-npm install
-```
-
-**This will take 2-3 minutes.** It's downloading all the libraries the app needs. Just wait for it to finish!
-
-### Step 4: Run the App
-
-```bash
-npm run dev
-```
-
-**That's it!** The app should open and you'll see the setup wizard. Follow the on-screen instructions to:
-- Set your hotkey (default is the backtick key: `)
-- Grant microphone permissions
-- Choose local or cloud processing
-- Name your AI agent
-
-### Step 5: Making Changes (with Claude Code)
-
-**Want to customize the app?**
-
-1. **Install Claude Code** (AI coding assistant):
-   - Download from: https://claude.ai/download
-   - Install and open it
-
-2. **Open this project in Claude Code:**
-   - In Claude Code, click "File" → "Open Folder"
-   - Find and select the `whispragent` folder
-   - Now you can ask Claude to make changes!
-
-**Example requests to Claude Code:**
-- "Change the default hotkey to F2"
-- "Make the dictation window bigger"
-- "Add a button to clear all history"
-- "Change the app colors to dark blue"
-
-3. **After making changes, restart the app:**
-   - Close the app
-   - In Terminal, press `Ctrl+C` to stop it
-   - Run `npm run dev` again to see your changes
-
-### Step 6: Building Your Own Standalone App (Optional)
-
-**Want to create a real .app file you can drag to Applications?**
-
-1. **In Terminal, in the `whispragent` folder, run:**
-   ```bash
-   npm run pack
-   ```
-
-2. **Wait 2-3 minutes** for the build to complete.
-
-3. **Find your app:**
-   - **Mac (Apple Silicon)**: `dist/mac-arm64/OpenWhispr.app`
-   - **Mac (Intel)**: `dist/mac/OpenWhispr.app`
-   - **Windows**: `dist/win-unpacked/OpenWhispr.exe`
-
-4. **Install it:**
-   - **Mac**: Drag `OpenWhispr.app` to your Applications folder
-   - **Windows**: Copy the whole `win-unpacked` folder wherever you want
-
-5. **First time opening on Mac:**
-   - Right-click on OpenWhispr.app → Click "Open"
-   - Or run in Terminal: `sudo xattr -rd com.apple.quarantine /Applications/OpenWhispr.app`
-
-6. **Enable auto-start on login:**
-   - Open OpenWhispr
-   - Click the settings icon
-   - Turn on "Launch on Startup"
-
-**Now you have a real app that:**
-- Works like any other Mac/Windows app
-- Can auto-start when you login
-- Runs in the background with a tray icon
-- You customized yourself!
-
-### Need Help?
-
-- **The app won't start**: Make sure you ran `npm install` first
-- **"npm: command not found"**: Restart your computer after installing Node.js
-- **"git: command not found"**: Install Git (see Step 1)
-- **Changes not showing**: Stop the app (`Ctrl+C`), then run `npm run dev` again
-- **Want to share with others**: Send them this GitHub link: https://github.com/aenns2781/whispragent
-
----
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. This means you can freely use, modify, and distribute this software for personal or commercial purposes.
-
-## Features
-
-- 🎤 **Global Hotkey**: Customizable hotkey to start/stop dictation from anywhere (default: backtick `)
-- 📸 **Screenshot Capture with Vision AI**: Press Cmd/Ctrl + hotkey to capture screen and process with GPT-5.1 vision
-- 🤖 **Multi-Provider AI Processing**: Choose between OpenAI, Anthropic Claude, Google Gemini, or local models
-- 🎯 **Agent Naming**: Personalize your AI assistant with a custom name - triggered by voice, highlighted text, or screenshots
-- 🧠 **Latest AI Models** (September 2025):
-  - **OpenAI**: GPT-5 Series, GPT-4.1 Series, o-series reasoning models (o3/o4-mini)
-  - **Anthropic**: Claude Opus 4.1, Claude Sonnet 4, Claude 3.5 Sonnet/Haiku
-  - **Google**: Gemini 2.5 Pro/Flash/Flash-Lite with thinking capability, Gemini 2.0 Flash
-  - **Local**: Qwen, LLaMA, Mistral models via llama.cpp
-- 🔒 **Privacy-First**: Local processing keeps your voice data completely private
-- 🎨 **Modern UI**: Built with React 19, TypeScript, and Tailwind CSS v4
-- 🚀 **Fast**: Optimized with Vite and modern tooling
-- 🚀 **Launch on Startup**: Automatically start when your computer boots (configurable)
-- 📱 **Control Panel**: Manage settings, view history, and configure API keys
-- 🗄️ **Transcription History**: SQLite database stores all your transcriptions locally
-- 📤 **Export Transcriptions**: Export your history to CSV, JSON, or TXT formats
-- 🔧 **Model Management**: Download and manage local Whisper models (tiny, base, small, medium, large, turbo)
-- 🧹 **Model Cleanup**: One-click removal of cached Whisper models with uninstall hooks to keep disks tidy
-- 🌐 **Cross-Platform**: Works on macOS, Windows, and Linux
-- ⚡ **Automatic Pasting**: Transcribed text automatically pastes at your cursor location
-- 🖱️ **Draggable Interface**: Move the dictation panel anywhere on your screen
-- 🔄 **OpenAI Responses API**: Using the latest Responses API for improved performance
-- 🌐 **Globe Key Toggle (macOS)**: Optional Fn/Globe key listener for a hardware-level dictation trigger
-
-## Prerequisites
-
-- **Node.js 18+** and npm (Download from [nodejs.org](https://nodejs.org/))
-- **macOS 10.15+**, **Windows 10+**, or **Linux**
-- On macOS, Globe key support requires the Xcode Command Line Tools (`xcode-select --install`) so the bundled Swift helper can run
-- **Python 3.7+** (Optional - the app can install it automatically for local Whisper processing)
+### Additional Features
+- **Screenshot Analysis**: Cmd/Ctrl + hotkey captures screen for AI analysis
+- **Automatic Pasting**: Transcribed text pastes directly at cursor
+- **Transcription History**: SQLite database with search, export (CSV/JSON/TXT)
+- **Launch on Startup**: Optional auto-start when computer boots
+- **Cross-Platform**: macOS, Windows, and Linux support
 
 ## Quick Start
 
-### For Personal Use (Recommended)
+### For Beginners (Never Coded Before?)
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/HeroTools/open-whispr.git
-   cd open-whispr
-   ```
+**Step 1: Install Required Software**
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+1. **Install Node.js**: Download from https://nodejs.org/ (click the green "LTS" button)
+2. **Install Git**: Download from https://git-scm.com/downloads
 
-3. **Optional: Set up API keys** (only needed for cloud processing):
-   
-   **Method A - Environment file**:
-   ```bash
-   cp env.example .env
-   # Edit .env and add your API keys:
-   # OPENAI_API_KEY=your_openai_key
-   # ANTHROPIC_API_KEY=your_anthropic_key  
-   # GEMINI_API_KEY=your_gemini_key
-   ```
-   
-   **Method B - In-app configuration**:
-   - Run the app and configure API keys through the Control Panel
-   - Keys are automatically saved and persist across app restarts
-
-4. **Run the application**:
-   ```bash
-   npm run dev  # Development mode with hot reload
-   # OR
-   npm start    # Production mode
-   ```
-
-### Building for Personal Use (Optional)
-
-If you want to build a standalone app for personal use:
+**Step 2: Download & Run**
 
 ```bash
-# Build without code signing (no certificates required)
-npm run pack
-
-# The unsigned app will be in: dist/mac-arm64/OpenWhispr.app (macOS)
-# or dist/win-unpacked/OpenWhispr.exe (Windows)
-# or dist/linux-unpacked/open-whispr (Linux)
+# Open Terminal (Mac: Cmd+Space, type "Terminal") or Command Prompt (Windows)
+cd ~/Documents
+git clone https://github.com/aenns2781/whispragent.git
+cd whispragent
+npm install  # Wait 2-3 minutes
+npm run dev  # App opens!
 ```
 
-**Note**: On macOS, you may see a security warning when first opening the unsigned app. Right-click and select "Open" to bypass this.
+**Step 3: Follow the Setup Wizard**
+- Choose transcription method (ElevenLabs recommended, or Local for privacy)
+- Grant microphone permissions
+- Set your hotkey (default: backtick `)
+- Name your AI agent
 
-#### Linux (Multiple Package Formats)
-
-OpenWhispr now supports multiple Linux package formats for maximum compatibility:
-
-**Available Formats**:
-- `.deb` - Debian, Ubuntu, Linux Mint, Pop!_OS
-- `.rpm` - Fedora, Red Hat, CentOS, openSUSE
-- `.tar.gz` - Universal archive (works on any distro)
-- `.flatpak` - Sandboxed cross-distro package
-- `AppImage` - Portable single-file executable
-
-**Building Linux Packages**:
+### Building a Standalone App
 
 ```bash
-# Build default Linux package formats (AppImage, deb, rpm, tar.gz)
-npm run build:linux
+npm run pack  # Creates unsigned app for personal use
 
-# Find packages in dist/:
-# - OpenWhispr-x.x.x-linux-x64.AppImage
-# - OpenWhispr-x.x.x-linux-x64.deb
-# - OpenWhispr-x.x.x-linux-x64.rpm
-# - OpenWhispr-x.x.x-linux-x64.tar.gz
+# Find your app:
+# macOS: dist/mac-arm64/OpenWhispr.app
+# Windows: dist/win-unpacked/OpenWhispr.exe
 ```
 
-**Optional: Building Flatpak** (requires additional setup):
-
-```bash
-# Install Flatpak build tools
-sudo apt install flatpak flatpak-builder  # Debian/Ubuntu
-# OR
-sudo dnf install flatpak flatpak-builder  # Fedora/RHEL
-
-# Add Flathub repository and install runtime
-flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
-
-# Add "flatpak" to linux.target in electron-builder.json, then build
-npm run build:linux
-```
-
-**Installation Examples**:
-
-```bash
-# Debian/Ubuntu
-sudo apt install ./dist/OpenWhispr-*-linux-x64.deb
-
-# Fedora/RHEL
-sudo dnf install ./dist/OpenWhispr-*-linux-x64.rpm
-
-# Universal tar.gz (no root required)
-tar -xzf dist/OpenWhispr-*-linux-x64.tar.gz
-cd OpenWhispr-*/
-./openwhispr
-
-# Flatpak
-flatpak install --user ./dist/OpenWhispr-*-linux-x64.flatpak
-
-# AppImage (existing method)
-chmod +x dist/OpenWhispr-*.AppImage
-./dist/OpenWhispr-*.AppImage
-```
-
-**Optional Dependencies for Automatic Paste**:
-
-The clipboard paste feature requires platform-specific tools:
-
-**X11 (Traditional Linux Desktop)**:
-```bash
-# Debian/Ubuntu
-sudo apt install xdotool
-
-# Fedora/RHEL
-sudo dnf install xdotool
-
-# Arch
-sudo pacman -S xdotool
-```
-
-**Wayland (Modern Linux Desktop)**:
-```bash
-# Debian/Ubuntu
-sudo apt install wtype
-
-# Fedora/RHEL
-sudo dnf install wtype
-
-# Arch
-sudo pacman -S wtype
-
-# Alternative: ydotool (requires uinput permissions)
-sudo apt install ydotool  # or equivalent for your distro
-```
-
-> ℹ️ **Note**: OpenWhispr automatically detects your display server (X11 vs Wayland) and uses the appropriate paste tool. If no paste tool is installed, text will still be copied to the clipboard - you'll just need to paste manually with Ctrl+V.
-
-> 🔒 **Flatpak Security**: The Flatpak package includes sandboxing with explicit permissions for microphone, clipboard, and file access. See [electron-builder.json](electron-builder.json) for the complete permission list.
-
-### Building for Distribution
-
-For maintainers who need to distribute signed builds:
-
-```bash
-# Requires code signing certificates and notarization setup
-npm run build:mac    # macOS (requires Apple Developer account)
-npm run build:win    # Windows (requires code signing cert)
-npm run build:linux  # Linux
-```
-
-### First Time Setup
-
-1. **Choose Processing Method**:
-   - **Local Processing**: Download Whisper models for completely private transcription
-   - **Cloud Processing**: Use OpenAI's API for faster transcription (requires API key)
-
-2. **Grant Permissions**:
-   - **Microphone Access**: Required for voice recording
-   - **Accessibility Permissions**: Required for automatic text pasting (macOS)
-   - **Screen Recording**: Required for screenshot capture feature (macOS)
-
-3. **Name Your Agent**: Give your AI assistant a personal name (e.g., "Assistant", "Jarvis", "Alex")
-   - Makes interactions feel more natural and conversational
-   - Helps distinguish between giving commands and regular dictation
-   - Can be changed anytime in settings
-
-4. **Configure Global Hotkey**: Default is backtick (`) but can be customized
+**First launch on macOS**: Right-click → Open (or run `sudo xattr -rd com.apple.quarantine /Applications/OpenWhispr.app`)
 
 ## Usage
 
 ### Basic Dictation
-1. **Start the app** - A small draggable panel appears on your screen
-2. **Press your hotkey** (default: backtick `) - Start dictating (panel shows recording animation)
-3. **Press your hotkey again** - Stop dictation and begin transcription (panel shows processing animation)
-4. **Text appears** - Transcribed text is automatically pasted at your cursor location
-5. **Drag the panel** - Click and drag to move the dictation panel anywhere on your screen
+1. Press your hotkey (default: `) to start recording
+2. Speak naturally
+3. Press hotkey again to stop and transcribe
+4. Text automatically pastes at your cursor
 
-### Control Panel
-- **Access**: Right-click the tray icon (macOS) or through the system menu
-- **Configure**: Choose between local and cloud processing
-- **History**: View, copy, and delete past transcriptions
-  - Export to CSV, JSON, or TXT formats
-  - Configurable display limits (10, 25, 50, 100, 200, 500, 1000)
-  - Shows total count vs displayed count
-- **Models**: Download and manage local Whisper models
-- **Storage Cleanup**: Remove downloaded Whisper models from cache to reclaim space
-- **Settings**: Configure API keys, customize hotkeys, launch on startup, and manage permissions
+### AI Agent Commands
+- **Voice trigger**: "Hey [AgentName], summarize this email"
+- **Highlight + hotkey**: Select text, press hotkey, speak command
+- **Screenshot**: Cmd/Ctrl + hotkey, then speak about what you see
 
-### Uninstall & Cache Cleanup
-- **In-App**: Use *Settings → Speech to Text Processing → Local Model Storage → Remove Downloaded Models* to clear `~/.cache/openwhispr/models` (or `%USERPROFILE%\.cache\openwhispr\models` on Windows).
-- **Windows Uninstall**: The NSIS uninstaller automatically deletes the same cache directory.
-- **Linux Packages**: `deb`/`rpm` post-uninstall scripts also remove cached models.
-- **macOS**: If you uninstall manually, remove `~/Library/Caches` or `~/.cache/openwhispr/models` if desired.
+### Image Generation
+1. Press Shift + your hotkey
+2. Describe the image you want
+3. AI generates and displays the result
 
-### Screenshot Capture with Vision AI
-Capture your screen and let AI analyze it along with your voice command:
+### Control Panel Sections
+- **Home**: Quick start and status
+- **History**: View/search/export transcriptions and images
+- **Dictionary**: Custom vocabulary and auto-corrections
+- **Snippets**: Text expansion triggers
+- **Style**: Writing style guide for AI
+- **Dictation**: Hotkey and screenshot settings
+- **AI Models**: Configure transcription engine and AI providers
+- **System**: App settings and diagnostics
+- **Help**: Documentation and support
 
-1. **Press Cmd/Ctrl + hotkey** - Captures a screenshot of your active window
-2. **Give voice command** - Describe what you want AI to do with the screenshot
-3. **AI processes both** - GPT-5.1 vision model analyzes screenshot + voice command together
-4. **Get results** - AI response is pasted at cursor location
+## Configuration
 
-**Example Use Cases**:
-- "Cmd+hotkey: Explain what this error message means"
-- "Cmd+hotkey: Write code to implement this UI design"
-- "Cmd+hotkey: Summarize the key points from this document"
-- "Cmd+hotkey: Help me debug this code"
+### API Keys
 
-**Requirements**:
-- Screen Recording permission on macOS (granted during first-time setup)
-- Agent mode automatically activates for all screenshot captures
-- Uses GPT-5.1 or configured vision-capable model
+**Method 1 - In-App** (Recommended):
+Open Control Panel → AI Models → Enter your API keys
 
-### Agent Naming & AI Processing
-Once you've named your agent during setup, you can trigger agent mode in THREE ways:
-
-**🎯 Agent Mode Triggers**:
-1. **Say agent name**: "Hey [AgentName], make this more professional"
-2. **Highlight text first**: Select text before pressing hotkey - agent processes it
-3. **Take screenshot**: Press Cmd/Ctrl + hotkey - agent analyzes image + voice
-
-**🎯 Agent Command Examples**:
-- "Hey [AgentName], make this more professional"
-- "Hey [AgentName], format this as a list"
-- "Hey [AgentName], write a thank you email"
-- Highlight text → hotkey → "Convert this to bullet points"
-- Cmd+hotkey → "Explain this error message"
-
-**🤖 AI Provider Options**:
-- **OpenAI**:
-  - GPT-5 Series (Nano/Mini/Full) - Latest generation with deep reasoning
-  - GPT-4.1 Series - Enhanced coding with 1M token context
-  - o3/o4 Series - Advanced reasoning models with longer thinking
-- **Anthropic**: Claude Opus 4.1, Sonnet 4 - Frontier intelligence models
-- **Google**: Gemini 2.5 Pro/Flash - Advanced multi-modal capabilities
-- **Local**: Community models for complete privacy
-
-**📝 Regular Dictation** (for normal text):
-- "This is just normal text I want transcribed"
-- "Meeting notes: John mentioned the quarterly report"
-- "Dear Sarah, thank you for your help"
-
-The AI automatically removes agent name references from the final output.
-
-### Processing Options
-- **Local Processing**: 
-  - Install Whisper automatically through the Control Panel
-  - Download models: tiny (fastest), base (recommended), small, medium, large (best quality)
-  - Complete privacy - audio never leaves your device
-- **Cloud Processing**:
-  - Requires OpenAI API key
-  - Faster processing
-  - Uses OpenAI's Whisper API
-
-## Project Structure
-
-```
-open-whispr/
-├── main.js              # Electron main process & IPC handlers
-├── preload.js           # Electron preload script & API bridge
-├── whisper_bridge.py    # Python script for local Whisper processing
-├── setup.js             # First-time setup script
-├── package.json         # Dependencies and scripts
-├── env.example          # Environment variables template
-├── CHANGELOG.md         # Project changelog
-├── src/
-│   ├── App.jsx          # Main dictation interface
-│   ├── main.jsx         # React entry point
-│   ├── index.html       # Vite HTML template
-│   ├── index.css        # Tailwind CSS v4 configuration
-│   ├── vite.config.js   # Vite configuration
-│   ├── components/
-│   │   ├── ControlPanel.tsx     # Settings and history UI
-│   │   ├── OnboardingFlow.tsx   # First-time setup wizard
-│   │   ├── SettingsPage.tsx     # Settings interface
-│   │   ├── ui/                  # shadcn/ui components
-│   │   │   ├── button.tsx
-│   │   │   ├── card.tsx
-│   │   │   ├── input.tsx
-│   │   │   ├── LoadingDots.tsx
-│   │   │   ├── DotFlashing.tsx
-│   │   │   ├── Toast.tsx
-│   │   │   ├── toggle.tsx
-│   │   │   └── tooltip.tsx
-│   │   └── lib/
-│   │       └── utils.ts         # Utility functions
-│   ├── services/
-│   │   └── ReasoningService.ts  # Multi-provider AI processing (OpenAI/Anthropic/Gemini)
-│   ├── utils/
-│   │   └── agentName.ts         # Agent name management utility
-│   └── components.json          # shadcn/ui configuration
-└── assets/                      # App icons and resources
+**Method 2 - Environment File**:
+```bash
+cp env.example .env
+# Edit .env with your keys:
+# OPENAI_API_KEY=your_key
+# ANTHROPIC_API_KEY=your_key
+# GEMINI_API_KEY=your_key
+# ELEVENLABS_API_KEY=your_key
 ```
 
-## Technology Stack
+### Transcription Options
 
-- **Frontend**: React 19, TypeScript, Tailwind CSS v4
-- **Build Tool**: Vite with optimized Tailwind plugin
-- **Desktop**: Electron 36 with context isolation
-- **UI Components**: shadcn/ui with Radix primitives
-- **Database**: better-sqlite3 for local transcription storage
-- **Speech-to-Text**: OpenAI Whisper (local models + API)
-- **Local Processing**: Python with OpenAI Whisper package
-- **Icons**: Lucide React for consistent iconography
+| Engine | Speed | Accuracy | Privacy | Requires |
+|--------|-------|----------|---------|----------|
+| ElevenLabs | Fastest | Best | Cloud | API Key |
+| Local Whisper | Moderate | Good | 100% Local | None |
+
+### Local Whisper Models
+
+| Model | Size | Speed | Quality |
+|-------|------|-------|---------|
+| tiny | 39MB | Fastest | Basic |
+| base | 74MB | Fast | Good (Recommended) |
+| small | 244MB | Moderate | Better |
+| medium | 769MB | Slower | High |
+| large | 1.5GB | Slowest | Best |
+| turbo | 809MB | Fast | Good |
+
+## Platform Support
+
+### macOS
+- macOS 10.15+ (Intel & Apple Silicon)
+- Permissions required: Microphone, Accessibility, Screen Recording (optional)
+- Globe key support available (requires Xcode Command Line Tools)
+
+### Windows
+- Windows 10+
+- No special permissions needed
+- NSIS installer included
+
+### Linux
+Multiple package formats available:
+```bash
+npm run build:linux
+
+# Outputs: AppImage, .deb, .rpm, .tar.gz
+```
+
+**Auto-paste requirements**:
+- X11: `sudo apt install xdotool`
+- Wayland: `sudo apt install wtype`
 
 ## Development
 
 ### Scripts
-
-- `npm run dev` - Start development with hot reload
-- `npm run start` - Start production build
-- `npm run setup` - First-time setup (creates .env file)
-- `npm run build:renderer` - Build the React app only
-- `npm run build` - Full build with signing (requires certificates)
-- `npm run build:mac` - macOS build with signing
-- `npm run build:win` - Windows build with signing
-- `npm run build:linux` - Linux build
-- `npm run pack` - Build without signing (for personal use)
-- `npm run dist` - Build and package with signing
-- `npm run lint` - Run ESLint
-- `npm run preview` - Preview production build
+```bash
+npm run dev          # Development with hot reload
+npm start            # Production mode
+npm run pack         # Build without signing
+npm run build:mac    # macOS with signing
+npm run build:win    # Windows with signing
+npm run build:linux  # Linux packages
+npm run lint         # Run ESLint
+```
 
 ### Architecture
+- **Main Window**: Minimal overlay for dictation (draggable, always-on-top)
+- **Control Panel**: Full settings interface
+- **Electron 36** with context isolation
+- **React 19** + TypeScript + Tailwind CSS v4
+- **better-sqlite3** for local database
 
-The app consists of two main windows:
-1. **Main Window**: Minimal overlay for dictation controls
-2. **Control Panel**: Full settings and history interface
-
-Both use the same React codebase but render different components based on URL parameters.
-
-### Key Components
-
-- **main.js**: Electron main process, IPC handlers, database operations
-- **preload.js**: Secure bridge between main and renderer processes
-- **App.jsx**: Main dictation interface with recording controls
-- **ControlPanel.tsx**: Settings, history, and model management
-- **whisper_bridge.py**: Python bridge for local Whisper processing
-- **better-sqlite3**: Local database for transcription history
-
-### Tailwind CSS v4 Setup
-
-This project uses the latest Tailwind CSS v4 with:
-- CSS-first configuration using `@theme` directive
-- Vite plugin for optimal performance
-- Custom design tokens for consistent theming
-- Dark mode support with `@variant`
-
-## Building
-
-The build process creates a single executable for your platform:
-
-```bash
-# Development build
-npm run pack
-
-# Production builds
-npm run dist           # Current platform
-npm run build:mac      # macOS DMG + ZIP
-npm run build:win      # Windows NSIS + Portable
-npm run build:linux    # AppImage + DEB
+### Project Structure
 ```
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file in the root directory (or use `npm run setup`):
-
-```env
-# OpenAI API Configuration (optional - only needed for cloud processing)
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Optional: Customize the Whisper model
-WHISPER_MODEL=whisper-1
-
-# Optional: Set language for better transcription accuracy
-LANGUAGE=
-
-# Optional: Anthropic API Configuration
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-
-# Optional: Google Gemini API Configuration  
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# Optional: Debug mode
-DEBUG=false
+open-whispr/
+├── main.js              # Electron main process
+├── preload.js           # IPC bridge
+├── whisper_bridge.py    # Local Whisper processing
+├── src/
+│   ├── App.jsx          # Main dictation UI
+│   ├── components/
+│   │   ├── ControlPanelV2.tsx
+│   │   ├── OnboardingFlow.tsx
+│   │   ├── ImageGenerationModal.tsx
+│   │   └── panels/      # Control panel sections
+│   ├── services/
+│   │   ├── ReasoningService.ts      # Multi-provider AI
+│   │   └── LocalReasoningService.ts # Local AI models
+│   └── hooks/           # React hooks
+└── assets/              # Icons and resources
 ```
-
-### Local Whisper Setup
-
-For local processing, OpenWhispr offers automated setup:
-
-1. **Automatic Python Installation** (if needed):
-   - The app will detect if Python is missing
-   - Offers to install Python 3.11 automatically
-   - macOS: Uses Homebrew if available, otherwise official installer
-   - Windows: Downloads and installs official Python
-   - Linux: Uses system package manager (apt, yum, or pacman)
-
-2. **Automatic Whisper Setup**:
-   - Installs OpenAI Whisper package via pip
-   - Downloads your chosen model on first use
-   - Handles all transcription locally
-
-**Requirements**:
-- Sufficient disk space for models (39MB - 1.5GB depending on model)
-- Admin/sudo access may be required for Python installation
-
-### Customization
-
-- **Hotkey**: Change in the Control Panel (default: backtick `) - fully customizable
-- **Panel Position**: Drag the dictation panel to any location on your screen`
-- **Processing Method**: Choose local or cloud in Control Panel
-- **Whisper Model**: Select quality vs speed in Control Panel
-- **UI Theme**: Edit CSS variables in `src/index.css`
-- **Window Size**: Adjust dimensions in `main.js`
-- **Database**: Transcriptions stored in user data directory
-
-## Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Run `npm run lint` before committing
-- Follow the existing code style
-- Update documentation as needed
-- Test on your target platform before submitting
-## Security
-
-OpenWhispr is designed with privacy and security in mind:
-
-- **Local Processing Option**: Keep your voice data completely private
-- **No Analytics**: We don't collect any usage data or telemetry
-- **Open Source**: All code is available for review
-- **Secure Storage**: API keys are stored securely in your system's keychain/credential manager
-- **Minimal Permissions**: Only requests necessary permissions (microphone, accessibility)
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Microphone permissions**: Grant permissions in System Preferences/Settings
-2. **Accessibility permissions (macOS)**: Required for automatic text pasting
-   - Go to System Settings → Privacy & Security → Accessibility
-   - Add OpenWhispr and enable the checkbox
-   - Use "Fix Permission Issues" in Control Panel if needed
-3. **Screen Recording permissions (macOS)**: Required for screenshot capture feature
-   - Go to System Settings → Privacy & Security → Screen Recording
-   - Add OpenWhispr and enable the checkbox
-   - Restart app after granting permission
-4. **API key errors** (cloud processing only): Ensure your OpenAI API key is valid and has credits
-   - Set key through Control Panel or .env file
-   - Check logs for "OpenAI API Key present: Yes/No"
-5. **Local Whisper installation**:
-   - Ensure Python 3.7+ is installed
-   - Use Control Panel to install Whisper automatically
-   - Check available disk space for models
-6. **Global hotkey conflicts**: Change the hotkey in the Control Panel - any key can be used
-7. **Text not pasting**: Check accessibility permissions and try manual paste with Cmd+V
-8. **Panel position**: If the panel appears off-screen, restart the app to reset position
+**Microphone not working**
+- Grant microphone permission in System Settings
+
+**Text not pasting (macOS)**
+- System Settings → Privacy & Security → Accessibility → Enable OpenWhispr
+- Toggle OFF then ON if already enabled
+
+**Screenshot not working (macOS)**
+- System Settings → Privacy & Security → Screen Recording → Enable OpenWhispr
+
+**ElevenLabs not transcribing**
+- Check API key in Control Panel → AI Models
+- Verify key at elevenlabs.io
+
+**Local Whisper issues**
+- Python 3.7+ required (app can install automatically)
+- Check disk space for models
+
+**Hotkey conflicts**
+- Change hotkey in Control Panel → Dictation
 
 ### Getting Help
+- Check [Issues](https://github.com/aenns2781/whispragent/issues)
+- Review console logs (View → Toggle Developer Tools)
 
-- Check the [Issues](https://github.com/your-repo/open-whispr/issues) page
-- Review the console logs for debugging information
-- For local processing: Ensure Python and pip are working
-- For cloud processing: Verify your OpenAI API key and billing status
-- Check the Control Panel for system status and diagnostics
+## Security & Privacy
 
-### Performance Tips
+- **Local Processing**: Voice data never leaves your device
+- **No Analytics**: No usage data or telemetry collected
+- **Open Source**: All code available for review
+- **Secure Storage**: API keys stored in system keychain
+- **Minimal Permissions**: Only requests necessary access
 
-- **Local Processing**: Use "base" model for best balance of speed and accuracy
-- **Cloud Processing**: Generally faster but requires internet connection
-- **Model Selection**: tiny (fastest) → base (recommended) → small → medium → large (best quality)
-- **Permissions**: Ensure all required permissions are granted for smooth operation
+## License
 
-## FAQ
+MIT License - Free for personal and commercial use. See [LICENSE](LICENSE) for details.
 
-**Q: Is OpenWhispr really free?**
-A: Yes! OpenWhispr is open source and free to use. You only pay for OpenAI API usage if you choose cloud processing.
+## Contributing
 
-**Q: Which processing method should I use?**
-A: Use local processing for privacy and offline use. Use cloud processing for speed and convenience.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-**Q: Can I use this commercially?**
-A: Yes! The MIT license allows commercial use.
+---
 
-**Q: How do I change the hotkey?**
-A: Open the Control Panel (right-click tray icon) and go to Settings. You can set any key as your hotkey.
-
-**Q: Is my data secure?**
-A: With local processing, your audio never leaves your device. With cloud processing, audio is sent to OpenAI's servers (see their privacy policy).
-
-**Q: What languages are supported?**
-A: OpenWhispr supports 58 languages including English, Spanish, French, German, Chinese, Japanese, and more. Set your preferred language in the .env file or use auto-detect.
-
-## Project Status
-
-OpenWhispr is actively maintained and ready for production use. Current version: 1.0.4
-
-- ✅ Core functionality complete
-- ✅ Cross-platform support
-- ✅ Local and cloud processing
-- ✅ Automatic Python/Whisper installation
-- ✅ Agent naming system
-- ✅ Draggable interface
-- 🚧 Continuous improvements and bug fixes
+**OpenWhispr** - Speak. Create. Command.

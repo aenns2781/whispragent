@@ -325,9 +325,9 @@ const AIModelsPanel: React.FC = () => {
                       settings.setReasoningModel(e.target.value);
                     }}
                   >
-                    <option value="gpt-5-nano">GPT-5 Nano (Fastest)</option>
-                    <option value="gpt-5-mini">GPT-5 Mini (Balanced)</option>
                     <option value="gpt-5.1">GPT-5.1 (Most Capable)</option>
+                    <option value="gpt-5-mini">GPT-5 Mini (Balanced)</option>
+                    <option value="gpt-5-nano">GPT-5 Nano (Fastest)</option>
                   </select>
                 </div>
               </div>
