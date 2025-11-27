@@ -413,14 +413,19 @@ class ReasoningService extends BaseReasoningService {
       let userContent: any = userPrompt;
       if (config.screenshot) {
         // For multimodal input, use array format with text and image
+        // OpenAI expects: { type: "image_url", image_url: { url: "data:..." } }
         userContent = [
-          { type: "input_text", text: userPrompt },
+          { type: "text", text: userPrompt },
           {
-            type: "input_image",
-            image_url: config.screenshot, // Base64 data URL from screenshot
-            detail: "high" // Use high detail for screenshots
+            type: "image_url",
+            image_url: {
+              url: config.screenshot, // Base64 data URL from screenshot
+              detail: "high" // Use high detail for screenshots
+            }
           }
         ];
+        console.error("📸 Including screenshot in request");
+        console.error("   - Screenshot data length:", config.screenshot?.length || 0);
       }
 
       const messages = [

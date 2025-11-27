@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./index.css";
 import { useToast } from "./components/ui/Toast";
-import { LoadingDots } from "./components/ui/LoadingDots";
 import { useHotkey } from "./hooks/useHotkey";
 import { useWindowDrag } from "./hooks/useWindowDrag";
 import { useSettings } from "./hooks/useSettings";
@@ -9,37 +8,18 @@ import AudioManager from "./helpers/audioManager";
 import ElevenLabsRealtimeClient from "./services/ElevenLabsRealtimeClient";
 
 // Sound Wave Icon Component (for idle/hover states)
-const SoundWaveIcon = ({ size = 16 }) => {
-  return (
-    <div className="flex items-center justify-center gap-1">
-      <div
-        className={`bg-white rounded-full`}
-        style={{ width: size * 0.25, height: size * 0.6 }}
-      ></div>
-      <div
-        className={`bg-white rounded-full`}
-        style={{ width: size * 0.25, height: size }}
-      ></div>
-      <div
-        className={`bg-white rounded-full`}
-        style={{ width: size * 0.25, height: size * 0.6 }}
-      ></div>
-    </div>
-  );
-};
-
-// Voice Wave Animation Component (for processing state)
-const VoiceWaveIndicator = ({ isListening }) => {
+const SoundWaveIcon = ({ size = 16, isHovered = false }) => {
   return (
     <div className="flex items-center justify-center gap-0.5">
-      {[...Array(4)].map((_, i) => (
+      {[0.5, 0.7, 1, 0.7, 0.5].map((scale, i) => (
         <div
           key={i}
-          className={`w-0.5 bg-white rounded-full transition-all duration-150 ${isListening ? "animate-pulse h-4" : "h-2"
-            }`}
+          className="bg-white rounded-full transition-all duration-300"
           style={{
-            animationDelay: isListening ? `${i * 0.1}s` : "0s",
-            animationDuration: isListening ? `${0.6 + i * 0.1}s` : "0s",
+            width: size * 0.15,
+            height: size * scale * (isHovered ? 1.1 : 1),
+            transform: isHovered ? `scaleY(${1 + Math.sin(i * 0.8) * 0.15})` : 'scaleY(1)',
+            opacity: isHovered ? 1 : 0.9,
           }}
         />
       ))}
@@ -47,9 +27,77 @@ const VoiceWaveIndicator = ({ isListening }) => {
   );
 };
 
-// Enhanced Tooltip Component
+// Audio-reactive Recording Wave Animation Component
+const RecordingWaveAnimation = ({ audioLevel = 0 }) => {
+  // audioLevel is 0-1, amplify for visible response but let it drop fast
+  const amplifiedLevel = Math.min(1, audioLevel * 3); // More amplification
+  const baseHeight = 4; // Flat when silent
+  const maxHeight = 20; // Taller for more dramatic effect
+  const scales = [0.4, 0.7, 1, 0.7, 0.4];
+
+  return (
+    <div className="flex items-center justify-center gap-0.5">
+      {scales.map((scale, i) => {
+        const height = baseHeight + (maxHeight - baseHeight) * amplifiedLevel * scale;
+        return (
+          <div
+            key={i}
+            className="bg-white rounded-full"
+            style={{
+              width: 3,
+              height: `${height}px`,
+              opacity: 0.9,
+              // Fast transition down, slightly slower up for natural feel
+              transition: `height ${amplifiedLevel > 0.3 ? '30ms' : '50ms'} ease-out`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+// Simple Loading Dots Component (for processing state - minimal, black and white)
+const LoadingDots = () => {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 350);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', height: 10, gap: 1 }}>
+      {[0, 1, 2].map(i => (
+        <div
+          key={i}
+          style={{
+            width: 4,
+            height: 6 + 6 * (tick % 3 === i ? 1 : 0),
+            background: '#fff',
+            borderRadius: 3,
+            opacity: 0.9,
+            transition: 'height 0.2s',
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// Enhanced Tooltip Component with animation
 const Tooltip = ({ children, content, emoji }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  useEffect(() => {
+    if (isVisible) {
+      setShouldRender(true);
+    } else {
+      const timer = setTimeout(() => setShouldRender(false), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible]);
 
   return (
     <div className="relative inline-block">
@@ -59,14 +107,26 @@ const Tooltip = ({ children, content, emoji }) => {
       >
         {children}
       </div>
-      {isVisible && (
+      {shouldRender && (
         <div
-          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-1 py-1 text-popover-foreground bg-popover border border-border rounded-md whitespace-nowrap z-10 transition-opacity duration-150"
-          style={{ fontSize: "9.7px" }}
+          className="absolute bottom-full left-1/2 mb-2 px-2 py-1 text-popover-foreground bg-popover/95 backdrop-blur-sm border border-border rounded-lg whitespace-nowrap z-10 shadow-lg"
+          style={{
+            fontSize: "10px",
+            transform: `translateX(-50%) translateY(${isVisible ? '0' : '4px'})`,
+            opacity: isVisible ? 1 : 0,
+            transition: 'all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          }}
         >
           {emoji && <span className="mr-1">{emoji}</span>}
           {content}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-popover"></div>
+          <div
+            className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0"
+            style={{
+              borderLeft: '4px solid transparent',
+              borderRight: '4px solid transparent',
+              borderTop: '4px solid var(--popover)',
+            }}
+          />
         </div>
       )}
     </div>
@@ -84,11 +144,14 @@ export default function App() {
   const [error, setError] = useState("");
   const [isHovered, setIsHovered] = useState(false);
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0); // 0-1 audio level for wave animation
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const commandMenuRef = useRef(null);
   const buttonRef = useRef(null);
   const audioManagerRef = useRef(null);
+  const analyserRef = useRef(null);
+  const audioLevelIntervalRef = useRef(null);
   // Real-time transcription refs
   const realtimeClientRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -219,10 +282,38 @@ export default function App() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
+      // Set up audio level analyser for reactive wave animation
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyserRef.current = analyser;
+
+        // Start monitoring audio levels
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        audioLevelIntervalRef.current = setInterval(() => {
+          if (analyserRef.current) {
+            analyserRef.current.getByteFrequencyData(dataArray);
+            // Calculate average level (0-255) and normalize to 0-1
+            const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+            const normalizedLevel = Math.min(1, avg / 128); // Normalize with some headroom
+            setAudioLevel(normalizedLevel);
+          }
+        }, 50); // Update every 50ms for smooth animation
+      } catch (err) {
+        console.log("Audio analyser not available:", err);
+      }
+
       // Check if user cancelled while we were initializing
       if (!isRecordingRef.current) {
         console.log("Recording cancelled during initialization");
         stream.getTracks().forEach(t => t.stop());
+        if (audioLevelIntervalRef.current) {
+          clearInterval(audioLevelIntervalRef.current);
+          audioLevelIntervalRef.current = null;
+        }
         return;
       }
 
@@ -438,6 +529,14 @@ export default function App() {
 
     isRecordingRef.current = false;
     setIsRecording(false);
+
+    // Clean up audio level monitoring
+    if (audioLevelIntervalRef.current) {
+      clearInterval(audioLevelIntervalRef.current);
+      audioLevelIntervalRef.current = null;
+    }
+    analyserRef.current = null;
+    setAudioLevel(0);
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
@@ -725,36 +824,43 @@ export default function App() {
   const micState = getMicState();
   const isListening = isRecording || isProcessing;
 
-  // Get microphone button properties based on state
+  // Get microphone button properties based on state - minimal black and white design
   const getMicButtonProps = () => {
     const baseClasses =
-      "rounded-full w-10 h-10 flex items-center justify-center relative overflow-hidden border-2 border-white/70 cursor-pointer";
+      "rounded-full w-10 h-10 flex items-center justify-center relative overflow-hidden cursor-pointer";
 
     switch (micState) {
       case "idle":
         return {
-          className: `${baseClasses} bg-transparent cursor-pointer`,
+          className: `${baseClasses} bg-transparent border-2 border-white/60`,
+          style: {},
           tooltip: `Press [${hotkey}] to speak`,
         };
       case "hover":
         return {
-          className: `${baseClasses} bg-white/10 backdrop-blur-sm cursor-pointer`,
+          className: `${baseClasses} bg-white/10 backdrop-blur-sm border-2 border-white/80`,
+          style: {
+            transform: 'scale(1.05)',
+          },
           tooltip: `Press [${hotkey}] to speak`,
         };
       case "recording":
         return {
-          className: `${baseClasses} bg-primary cursor-pointer`,
+          // Transparent background like idle, just border
+          className: `${baseClasses} bg-transparent border-2 border-white/60`,
+          style: {},
           tooltip: "Recording...",
         };
       case "processing":
         return {
-          className: `${baseClasses} bg-primary/80 cursor-not-allowed`,
-          tooltip: "Processing...",
+          className: `${baseClasses} cursor-not-allowed border-2 border-white/60 bg-transparent`,
+          style: {},
+          tooltip: isAgentMode ? "Processing with AI..." : "Processing...",
         };
       default:
         return {
-          className: `${baseClasses} bg-transparent cursor-pointer`,
-          style: { transform: "scale(0.8)" },
+          className: `${baseClasses} bg-transparent border-2 border-white/60`,
+          style: {},
           tooltip: "Click to speak",
         };
     }
@@ -894,35 +1000,41 @@ export default function App() {
                 }}
               ></div>
 
-              {/* Dynamic content based on state */}
+              {/* Dynamic content based on state - minimal black and white */}
               {micState === "idle" || micState === "hover" ? (
-                <SoundWaveIcon size={micState === "idle" ? 12 : 14} />
+                <SoundWaveIcon size={micState === "idle" ? 12 : 14} isHovered={micState === "hover"} />
               ) : micState === "recording" ? (
-                <LoadingDots />
+                <RecordingWaveAnimation audioLevel={audioLevel} />
               ) : micState === "processing" ? (
-                <VoiceWaveIndicator isListening={true} />
+                <LoadingDots />
               ) : null}
 
-              {/* State indicator ring for recording */}
-              {micState === "recording" && (
-                <div className="absolute inset-0 rounded-full border-2 border-primary animate-pulse"></div>
-              )}
-
-              {/* State indicator ring for processing - normal transcription */}
-              {micState === "processing" && !isAgentMode && (
-                <div className="absolute inset-0 rounded-full border-2 border-primary opacity-50"></div>
-              )}
-
-              {/* State indicator ring for agent mode - subtle purple-pink gradient border */}
+              {/* Agent mode indicator - simple gradient ring around button during processing */}
               {micState === "processing" && isAgentMode && (
-                <div className="absolute inset-0 rounded-full border-2 border-transparent bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" style={{ WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude' }}></div>
+                <div
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{
+                    border: '2px solid #a855f7',
+                    boxShadow: '0 0 8px rgba(168, 85, 247, 0.5)',
+                    animation: 'agentPulse 1.5s ease-in-out infinite',
+                  }}
+                />
               )}
+              <style>{`
+                @keyframes agentPulse {
+                  0%, 100% { opacity: 0.7; border-color: #a855f7; }
+                  50% { opacity: 1; border-color: #ec4899; }
+                }
+              `}</style>
             </button>
           </Tooltip>
           {isCommandMenuOpen && (
             <div
               ref={commandMenuRef}
-              className="absolute bottom-full right-0 mb-3 w-48 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg backdrop-blur-sm"
+              className="absolute bottom-full right-0 mb-3 w-48 rounded-xl border border-border/50 bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-md overflow-hidden"
+              style={{
+                animation: 'menuScaleIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+              }}
               onMouseEnter={() => {
                 setWindowInteractivity(true);
               }}
@@ -932,17 +1044,49 @@ export default function App() {
                 }
               }}
             >
+              <style>{`
+                @keyframes menuScaleIn {
+                  from {
+                    opacity: 0;
+                    transform: scale(0.9) translateY(8px);
+                  }
+                  to {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                  }
+                }
+                @keyframes menuItemFadeIn {
+                  from {
+                    opacity: 0;
+                    transform: translateX(-8px);
+                  }
+                  to {
+                    opacity: 1;
+                    transform: translateX(0);
+                  }
+                }
+              `}</style>
               <button
-                className="w-full px-3 py-2 text-left text-sm font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
+                className="w-full px-3 py-2.5 text-left text-sm font-medium hover:bg-accent/80 hover:text-accent-foreground focus:bg-accent focus:outline-none transition-colors"
+                style={{
+                  animation: 'menuItemFadeIn 0.2s ease-out forwards',
+                  animationDelay: '0.05s',
+                  opacity: 0,
+                }}
                 onClick={() => {
                   toggleListening();
                 }}
               >
                 {isRecording ? "Stop listening" : "Start listening"}
               </button>
-              <div className="h-px bg-border" />
+              <div className="h-px bg-border/50 mx-2" />
               <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
+                className="w-full px-3 py-2.5 text-left text-sm hover:bg-accent/80 hover:text-accent-foreground focus:bg-accent focus:outline-none transition-colors"
+                style={{
+                  animation: 'menuItemFadeIn 0.2s ease-out forwards',
+                  animationDelay: '0.1s',
+                  opacity: 0,
+                }}
                 onClick={() => {
                   setIsCommandMenuOpen(false);
                   setWindowInteractivity(false);
@@ -951,9 +1095,14 @@ export default function App() {
               >
                 Hide this for now
               </button>
-              <div className="h-px bg-border" />
+              <div className="h-px bg-border/50 mx-2" />
               <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
+                className="w-full px-3 py-2.5 text-left text-sm hover:bg-accent/80 hover:text-accent-foreground focus:bg-accent focus:outline-none transition-colors"
+                style={{
+                  animation: 'menuItemFadeIn 0.2s ease-out forwards',
+                  animationDelay: '0.15s',
+                  opacity: 0,
+                }}
                 onClick={async () => {
                   const newValue = !isDictationPanelDisabled;
                   setIsDictationPanelDisabled(newValue);

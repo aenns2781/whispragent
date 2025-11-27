@@ -108,14 +108,15 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
     }
   }, [isOpen, isCompactMode]);
 
-  // Auto-resize textarea based on content (up to max height, then scroll)
+  // Auto-resize textarea in compact mode - expands up to max height, then scrolls internally
   useEffect(() => {
     const textarea = promptTextareaRef.current;
     if (textarea && isCompactMode) {
-      // Reset height to auto to get accurate scrollHeight
-      textarea.style.height = 'auto';
-      // Set height to content or max height (120px), whichever is smaller
-      const newHeight = Math.min(textarea.scrollHeight, 120);
+      // Reset to minimum to get accurate scrollHeight
+      textarea.style.height = '20px';
+      // Expand up to 60px (about 3 lines), then scroll internally
+      const maxHeight = 60;
+      const newHeight = Math.min(textarea.scrollHeight, maxHeight);
       textarea.style.height = newHeight + 'px';
     }
   }, [prompt, isCompactMode]);
@@ -451,12 +452,13 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
   if (isCompactMode) {
     return (
       <div
-        className="flex items-center justify-center h-screen w-screen bg-transparent"
+        className="fixed inset-0 flex items-center justify-center bg-transparent overflow-hidden"
+        style={{ width: '100vw', height: '100vh', maxWidth: '100vw', maxHeight: '100vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Just the modal content without any backdrop */}
-        <div className="bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/50 rounded-xl shadow-2xl p-2 flex flex-col gap-2 min-w-[520px] max-w-[600px] relative">
-            <div className="flex items-center gap-2">
+        {/* Just the modal content without any backdrop - no scrollbars in collapsed mode */}
+        <div className="bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/50 rounded-xl shadow-2xl p-2 flex flex-col gap-2 min-w-[520px] max-w-[600px] relative overflow-hidden">
+            <div className="flex items-start gap-2 overflow-hidden">
               {/* Close button - subtle X */}
               <button
                 onClick={onClose}
@@ -481,8 +483,8 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
                 </button>
               )}
 
-              {/* Text input container with send button */}
-              <div className="flex-1 flex items-center gap-2 bg-zinc-800/80 rounded-lg px-3 py-2 min-h-[36px] transition-all outline-none">
+              {/* Text input container with send button - textarea scrolls internally, container does not */}
+              <div className="flex-1 flex items-start gap-2 bg-zinc-800/80 rounded-lg px-3 py-2 transition-all outline-none overflow-hidden">
                 <textarea
                   ref={promptTextareaRef}
                   value={prompt}
@@ -496,10 +498,10 @@ const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({ isOpen, onC
                     }
                   }}
                   placeholder="Describe the image you want to generate..."
-                  className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 text-sm focus:outline-none resize-none overflow-y-auto leading-tight [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full"
+                  className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 text-sm focus:outline-none resize-none overflow-y-auto leading-tight [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-600 [&::-webkit-scrollbar-thumb]:rounded-full"
                   disabled={isGenerating}
                   rows={1}
-                  style={{ minHeight: '20px', maxHeight: '120px' }}
+                  style={{ minHeight: '20px', maxHeight: '60px' }}
                 />
 
                 {/* Send button */}

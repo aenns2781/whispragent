@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Clock, Copy, Trash2, Search, Image as ImageIcon, Download, FileText, FileJson, FolderArchive, X, Check, Loader2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -10,6 +10,39 @@ import {
   getTranscriptionCount,
   updateDisplayLimit
 } from '../../stores/transcriptionStore';
+
+// Custom hook for intersection observer animation
+const useIntersectionAnimation = () => {
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const observe = useCallback((element: HTMLElement | null) => {
+    if (!element) return;
+
+    if (!observerRef.current) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('animate-in');
+              observerRef.current?.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1, rootMargin: '50px' }
+      );
+    }
+
+    observerRef.current.observe(element);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, []);
+
+  return observe;
+};
 
 type HistoryItem = {
   id: number;
@@ -37,7 +70,9 @@ const HistoryPanel: React.FC = () => {
   const [totalTranscriptionCount, setTotalTranscriptionCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const observeElement = useIntersectionAnimation();
 
   useEffect(() => {
     loadHistory();
@@ -164,6 +199,14 @@ const HistoryPanel: React.FC = () => {
   };
 
   const deleteItem = async (id: number, type: 'transcription' | 'image') => {
+    const itemKey = `${type}-${id}`;
+
+    // Start delete animation
+    setDeletingIds(prev => new Set(prev).add(itemKey));
+
+    // Wait for animation to complete
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     try {
       if (type === 'transcription') {
         await window.electronAPI.deleteTranscription(id);
@@ -174,6 +217,12 @@ const HistoryPanel: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to delete:', error);
+      // Remove from deleting set if there was an error
+      setDeletingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemKey);
+        return newSet;
+      });
     }
   };
 
@@ -356,10 +405,19 @@ const HistoryPanel: React.FC = () => {
     }
   };
 
-  const renderHistoryCard = (item: HistoryItem) => (
+  const renderHistoryCard = (item: HistoryItem) => {
+    const itemKey = `${item.type}-${item.id}`;
+    const isDeleting = deletingIds.has(itemKey);
+
+    return (
     <div
-      key={`${item.type}-${item.id}`}
-      className="card hover-lift animate-fadeIn"
+      key={itemKey}
+      className={`card hover-lift history-card-enter ${isDeleting ? 'history-card-exit' : ''}`}
+      style={{
+        opacity: isDeleting ? 0 : undefined,
+        transform: isDeleting ? 'translateX(-20px) scale(0.95)' : undefined,
+        transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
+      }}
     >
       {item.type === 'transcription' ? (
         // Transcription item
@@ -477,6 +535,7 @@ const HistoryPanel: React.FC = () => {
       )}
     </div>
   );
+  };
 
   return (
     <PanelBackground>
@@ -644,11 +703,32 @@ const HistoryPanel: React.FC = () => {
       ) : (
         /* List View */
         <div ref={scrollContainerRef} className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto no-scrollbar">
+          <style>{`
+            .history-card-wrapper {
+              opacity: 0;
+              transform: translateY(20px);
+              transition: opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+            .history-card-wrapper.animate-in {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          `}</style>
           {filteredHistory.slice(0, displayLimit).map((item, index) => (
             <div
               key={`${item.type}-${item.id}`}
-              className="animate-slideInLeft"
-              style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
+              ref={(el) => {
+                // Only observe the first 10 items immediately, rest use intersection
+                if (index < 10) {
+                  if (el) {
+                    el.classList.add('animate-in');
+                    el.style.transitionDelay = `${index * 50}ms`;
+                  }
+                } else {
+                  observeElement(el);
+                }
+              }}
+              className="history-card-wrapper"
             >
               {renderHistoryCard(item)}
             </div>

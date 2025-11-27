@@ -66,6 +66,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       deserialize: (value) => parseInt(value, 10),
     }
   );
+  const [slideDirection, setSlideDirection] = useState<'forward' | 'back'>('forward');
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const {
     useLocalWhisper,
@@ -412,11 +414,9 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   ]);
 
   const nextStep = useCallback(async () => {
-    if (currentStep >= steps.length - 1) {
+    if (currentStep >= steps.length - 1 || isTransitioning) {
       return;
     }
-
-    const newStep = currentStep + 1;
 
     if (currentStep === 3) { // Hotkey step - register before proceeding
       const registered = await ensureHotkeyRegistered();
@@ -426,15 +426,30 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       setDictationKey(hotkey);
     }
 
-    setCurrentStep(newStep);
-  }, [currentStep, ensureHotkeyRegistered, hotkey, setCurrentStep, setDictationKey, steps.length]);
+    setSlideDirection('forward');
+    setIsTransitioning(true);
+
+    // Small delay for exit animation
+    setTimeout(() => {
+      const newStep = currentStep + 1;
+      setCurrentStep(newStep);
+      setTimeout(() => setIsTransitioning(false), 50);
+    }, 150);
+  }, [currentStep, ensureHotkeyRegistered, hotkey, setCurrentStep, setDictationKey, steps.length, isTransitioning]);
 
   const prevStep = useCallback(() => {
-    if (currentStep > 0) {
-      const newStep = currentStep - 1;
-      setCurrentStep(newStep);
+    if (currentStep > 0 && !isTransitioning) {
+      setSlideDirection('back');
+      setIsTransitioning(true);
+
+      // Small delay for exit animation
+      setTimeout(() => {
+        const newStep = currentStep - 1;
+        setCurrentStep(newStep);
+        setTimeout(() => setIsTransitioning(false), 50);
+      }, 150);
     }
-  }, [currentStep, setCurrentStep]);
+  }, [currentStep, setCurrentStep, isTransitioning]);
 
   const finishOnboarding = useCallback(async () => {
     const saved = await saveSettings();
@@ -1401,7 +1416,59 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <div className="relative p-[1px] rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-white/10">
             <Card className="bg-black/40 backdrop-blur-xl border-0 shadow-2xl rounded-2xl overflow-hidden">
               <CardContent className="p-8 md:p-12">
-                <div className="space-y-6">{renderStep()}</div>
+                <style>{`
+                  @keyframes slideInFromRight {
+                    from {
+                      opacity: 0;
+                      transform: translateX(30px);
+                    }
+                    to {
+                      opacity: 1;
+                      transform: translateX(0);
+                    }
+                  }
+                  @keyframes slideInFromLeft {
+                    from {
+                      opacity: 0;
+                      transform: translateX(-30px);
+                    }
+                    to {
+                      opacity: 1;
+                      transform: translateX(0);
+                    }
+                  }
+                  @keyframes slideOutToLeft {
+                    from {
+                      opacity: 1;
+                      transform: translateX(0);
+                    }
+                    to {
+                      opacity: 0;
+                      transform: translateX(-30px);
+                    }
+                  }
+                  @keyframes slideOutToRight {
+                    from {
+                      opacity: 1;
+                      transform: translateX(0);
+                    }
+                    to {
+                      opacity: 0;
+                      transform: translateX(30px);
+                    }
+                  }
+                `}</style>
+                <div
+                  className="space-y-6"
+                  style={{
+                    animation: isTransitioning
+                      ? `${slideDirection === 'forward' ? 'slideOutToLeft' : 'slideOutToRight'} 0.15s ease-out forwards`
+                      : `${slideDirection === 'forward' ? 'slideInFromRight' : 'slideInFromLeft'} 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards`,
+                  }}
+                  key={currentStep}
+                >
+                  {renderStep()}
+                </div>
               </CardContent>
             </Card>
           </div>

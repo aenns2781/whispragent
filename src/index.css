@@ -175,9 +175,15 @@ html {
     background: transparent;
   }
 
-  /* Image generation window - completely transparent */
+  /* Image generation window - completely transparent with no scrollbars */
   body.image-generation-window {
     background: transparent !important;
+    overflow: hidden !important;
+  }
+
+  /* Also ensure html doesn't scroll for image generation window */
+  html:has(body.image-generation-window) {
+    overflow: hidden !important;
   }
 
   /* Control panel - dark background with gradient */
