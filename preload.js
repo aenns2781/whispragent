@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   hideWindow: () => ipcRenderer.invoke("hide-window"),
   resizeImageWindow: (isCompact) => ipcRenderer.invoke("resize-image-window", isCompact),
   showDictationPanel: () => ipcRenderer.invoke("show-dictation-panel"),
+  getDictationPanelDisabled: () => ipcRenderer.invoke("get-dictation-panel-disabled"),
+  setDictationPanelDisabled: (disabled) => ipcRenderer.invoke("set-dictation-panel-disabled", disabled),
   startDictation: () => ipcRenderer.invoke("start-dictation"),
   onToggleDictation: (callback) => ipcRenderer.on("toggle-dictation", callback),
   onStopDictation: (callback) => ipcRenderer.on("stop-dictation", callback),

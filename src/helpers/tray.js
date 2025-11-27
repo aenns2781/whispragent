@@ -241,6 +241,7 @@ class TrayManager {
 
   buildContextMenuTemplate() {
     const dictationVisible = this.windowManager?.isDictationPanelVisible?.() ?? false;
+    const liveTranscriptDisabled = this.windowManager?.isDictationPanelDisabled?.() ?? false;
 
     return [
       {
@@ -255,6 +256,17 @@ class TrayManager {
           this.updateTrayMenu();
         },
       },
+      {
+        label: liveTranscriptDisabled ? "Enable Live Transcript" : "Disable Live Transcript",
+        click: () => {
+          if (!this.windowManager) return;
+          const newValue = !liveTranscriptDisabled;
+          this.windowManager.setDictationPanelDisabled(newValue);
+          // Just toggle the setting - the renderer handles showing/hiding the transcript bubble
+          this.updateTrayMenu();
+        },
+      },
+      { type: "separator" },
       {
         label: "Open Control Panel",
         click: async () => {

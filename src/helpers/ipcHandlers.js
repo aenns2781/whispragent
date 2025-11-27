@@ -112,6 +112,18 @@ class IPCHandlers {
       return { success: true };
     });
 
+    // Live transcription disabled setting (persists across restarts)
+    // This only affects the live transcript bubble, not the dictation panel itself
+    ipcMain.handle("get-dictation-panel-disabled", () => {
+      return this.windowManager.isDictationPanelDisabled();
+    });
+
+    ipcMain.handle("set-dictation-panel-disabled", (event, disabled) => {
+      this.windowManager.setDictationPanelDisabled(disabled);
+      // Just save the setting - the renderer will handle not showing the transcript bubble
+      return { success: true };
+    });
+
     // Environment handlers
     ipcMain.handle("get-openai-key", async (event) => {
       return this.environmentManager.getOpenAIKey();

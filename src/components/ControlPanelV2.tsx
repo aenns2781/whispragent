@@ -14,11 +14,13 @@ import ImageGenerationModal from './ImageGenerationModal';
 import { PhraseSuggestionNotification } from './PhraseSuggestionNotification';
 import { ApiKeySetupNotification } from './ApiKeySetupNotification';
 import { useSettings } from '../hooks/useSettings';
+import { useToast } from './ui/Toast';
 
 const ControlPanelV2: React.FC = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [isImageGenModalOpen, setIsImageGenModalOpen] = useState(false);
   const settings = useSettings();
+  const { toast } = useToast();
 
   // Add control-panel class to body on mount
   useEffect(() => {
@@ -29,6 +31,16 @@ const ControlPanelV2: React.FC = () => {
   // Listen for image generation hotkey
   useEffect(() => {
     const handleImageGenToggle = () => {
+      // Check if Gemini API key is configured for image generation
+      const geminiKey = localStorage.getItem('geminiApiKey');
+      if (!geminiKey) {
+        toast({
+          title: "Gemini API Key Required",
+          description: "Image generation requires a Gemini API key. Go to Settings → AI Models to set it up.",
+          variant: "destructive",
+        });
+        return;
+      }
       setIsImageGenModalOpen(prev => !prev);
     };
 
@@ -37,7 +49,7 @@ const ControlPanelV2: React.FC = () => {
     return () => {
       window.electronAPI?.removeAllListeners?.('toggle-image-generation');
     };
-  }, []);
+  }, [toast]);
 
   // Listen for navigation to history event
   useEffect(() => {

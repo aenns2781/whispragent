@@ -104,11 +104,25 @@ export default function App() {
     useWindowDrag();
   const [dragStartPos, setDragStartPos] = useState(null);
   const [hasDragged, setHasDragged] = useState(false);
+  const [isDictationPanelDisabled, setIsDictationPanelDisabled] = useState(false);
 
   // Add dictation-window class to body on mount
   useEffect(() => {
     document.body.classList.add('dictation-window');
     return () => document.body.classList.remove('dictation-window');
+  }, []);
+
+  // Load dictation panel disabled setting on mount
+  useEffect(() => {
+    const loadSetting = async () => {
+      try {
+        const disabled = await window.electronAPI?.getDictationPanelDisabled?.();
+        setIsDictationPanelDisabled(disabled || false);
+      } catch (err) {
+        console.error("Failed to load dictation panel setting:", err);
+      }
+    };
+    loadSetting();
   }, []);
 
   // Auto-scroll transcript to bottom when new text arrives (only if already at bottom)
@@ -633,6 +647,17 @@ export default function App() {
 
       setIsCommandMenuOpen(false);
 
+      // Check if OpenAI key is configured for screenshot mode
+      const openaiKey = localStorage.getItem('openaiApiKey');
+      if (!openaiKey) {
+        toast({
+          title: "OpenAI API Key Required",
+          description: "Screenshot mode requires an OpenAI API key. Go to Settings → AI Models to set it up.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (!isRecording && !isProcessing) {
         startRecording(true);
       } else if (isRecording) {
@@ -742,8 +767,8 @@ export default function App() {
       {/* Fixed bottom-right voice button */}
       <div className="fixed bottom-6 right-6 z-50 bg-transparent">
         <div className="relative bg-transparent flex items-center gap-3">
-          {/* Live transcript bubble - shows during real-time recording when there's text */}
-          {isRealtimeRecording && partialTranscript && (
+          {/* Live transcript bubble - shows during real-time recording when there's text (unless disabled) */}
+          {isRealtimeRecording && partialTranscript && !isDictationPanelDisabled && (
             <div
               ref={transcriptScrollRef}
               className="transcript-container"
@@ -925,6 +950,19 @@ export default function App() {
                 }}
               >
                 Hide this for now
+              </button>
+              <div className="h-px bg-border" />
+              <button
+                className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
+                onClick={async () => {
+                  const newValue = !isDictationPanelDisabled;
+                  setIsDictationPanelDisabled(newValue);
+                  await window.electronAPI?.setDictationPanelDisabled?.(newValue);
+                  setIsCommandMenuOpen(false);
+                  setWindowInteractivity(false);
+                }}
+              >
+                {isDictationPanelDisabled ? "Enable live transcript" : "Disable live transcript"}
               </button>
             </div>
           )}

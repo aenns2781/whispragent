@@ -118,6 +118,8 @@ declare global {
       pasteText: (text: string) => Promise<void>;
       hideWindow: () => Promise<void>;
       showDictationPanel: () => Promise<void>;
+      getDictationPanelDisabled: () => Promise<boolean>;
+      setDictationPanelDisabled: (disabled: boolean) => Promise<{ success: boolean }>;
       onToggleDictation: (callback: () => void) => void;
 
       // Database operations

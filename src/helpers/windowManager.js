@@ -1,4 +1,6 @@
 const { app, screen, BrowserWindow } = require("electron");
+const path = require("path");
+const fs = require("fs");
 const HotkeyManager = require("./hotkeyManager");
 const HotkeyListenerManager = require("./hotkeyListenerManager");
 const DragManager = require("./dragManager");
@@ -25,10 +27,55 @@ class WindowManager {
     this.useNativeListener = process.platform === "darwin"; // Use native listener on macOS
     this.currentHotkey = "`";
 
+    // Load persistent setting for dictation panel visibility
+    this.dictationPanelDisabled = this.loadDictationPanelDisabled();
+
     app.on("before-quit", () => {
       this.isQuitting = true;
       this.hotkeyListenerManager.stop();
     });
+  }
+
+  // Settings persistence for dictation panel
+  getSettingsPath() {
+    return path.join(app.getPath("userData"), "window-settings.json");
+  }
+
+  loadDictationPanelDisabled() {
+    try {
+      const settingsPath = this.getSettingsPath();
+      if (fs.existsSync(settingsPath)) {
+        const data = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+        return data.dictationPanelDisabled || false;
+      }
+    } catch (err) {
+      console.error("Failed to load window settings:", err);
+    }
+    return false;
+  }
+
+  saveDictationPanelDisabled(disabled) {
+    try {
+      const settingsPath = this.getSettingsPath();
+      let data = {};
+      if (fs.existsSync(settingsPath)) {
+        data = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+      }
+      data.dictationPanelDisabled = disabled;
+      fs.writeFileSync(settingsPath, JSON.stringify(data, null, 2), "utf8");
+    } catch (err) {
+      console.error("Failed to save window settings:", err);
+    }
+  }
+
+  setDictationPanelDisabled(disabled) {
+    this.dictationPanelDisabled = disabled;
+    this.saveDictationPanelDisabled(disabled);
+    console.log(`🔧 [Settings] Dictation panel disabled: ${disabled}`);
+  }
+
+  isDictationPanelDisabled() {
+    return this.dictationPanelDisabled;
   }
 
   async createMainWindow() {
