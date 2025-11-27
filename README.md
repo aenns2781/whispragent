@@ -18,16 +18,18 @@ A powerful open-source desktop voice assistant that combines speech-to-text, AI 
   1. Voice: Say "Hey [AgentName], write a professional email"
   2. Highlight text: Select text before pressing hotkey
   3. Screenshot: Press Cmd/Ctrl + hotkey to capture and analyze screen
-- **Multi-Provider Support**:
-  - **OpenAI**: GPT-5.1, GPT-5 Nano/Mini, GPT-4.1 series, o3/o4 reasoning models
-  - **Anthropic**: Claude Opus 4.1, Sonnet 4, Claude 3.5 Sonnet/Haiku
-  - **Google Gemini**: Gemini 2.5 Pro/Flash with thinking capability
-  - **Local Models**: Qwen, LLaMA, Mistral via llama.cpp
+- **OpenAI Models**:
+  - GPT-5.1 (Most Capable)
+  - GPT-5 Mini (Balanced)
+  - GPT-5 Nano (Fastest)
 
 ### Image Generation
 - **Gemini-Powered**: Generate AI images with voice commands
 - **Hotkey**: Press Shift + your dictation hotkey
-- **Features**: Multiple aspect ratios, 4K resolution (Pro), reference image support
+- **Models**:
+  - Nano Banana (Fast)
+  - Nano Banana Pro (Higher Quality)
+- **Features**: Multiple aspect ratios, reference image support
 - **History**: All generated images saved and accessible
 
 ### Smart Text Processing
